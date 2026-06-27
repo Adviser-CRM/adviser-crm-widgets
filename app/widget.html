@@ -256,12 +256,12 @@ function fmtNZD(n) {
 
 /* ── Zoho API helpers ──────────────────────────────── */
 function searchModule(moduleName, accountId) {
-  return ZOHO.CRM.API.getRelatedRecords({
-    Entity:      'Accounts',
-    RecordID:    accountId,
-    RelatedList: moduleName,
-    page:        1,
-    per_page:    200
+  return ZOHO.CRM.API.searchRecord({
+    Entity:   moduleName,
+    Type:     'criteria',
+    Query:    '(Account:equals:' + accountId + ')',
+    page:     1,
+    per_page: 200
   });
 }
 
