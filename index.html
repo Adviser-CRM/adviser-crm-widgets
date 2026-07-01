@@ -1513,6 +1513,17 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(startApp, 350);
 }
+
+// Hard fallback — if nothing has loaded after 3 seconds, force reveal
+setTimeout(() => {
+  const page = document.getElementById('page');
+  const loading = document.getElementById('loading');
+  if (loading && !loading.classList.contains('hidden')) {
+    console.warn('Fallback reveal triggered');
+    loading.classList.add('hidden');
+    if (page) page.classList.add('visible');
+  }
+}, 3000);
 </script>
 </body>
 </html>
