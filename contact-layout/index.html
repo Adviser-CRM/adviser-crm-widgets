@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Profile</title>
+
+  <!-- Zoho JS SDK — loaded first so ZOHO is defined before the mock guard runs -->
+  <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════════════ */
+    :root {
+      --cream:        #f0faff;
+      --cream-dark:   #dff3fc;
+      --sand:         #b8e4f7;
+      --sand-dark:    #7dcff0;
+      --blue:         #00abe6;
+      --blue-lt:      #d0eefa;
+      --blue-dk:      #0087b8;
+      --ink:          #00364d;
+      --ink-mid:      #005a7a;
+      --ink-soft:     #007da8;
+      --muted:        #5a9ab5;
+      --divider:      #c0e4f5;
+      --white:        #ffffff;
+      --serif:        Verdana, Geneva, sans-serif;
+      --sans:         Verdana, Geneva, sans-serif;
+      --r-sm:   8px;
+      --r-md:   16px;
+      --r-lg:   24px;
+      --r-xl:   32px;
+      --r-full: 9999px;
+      --shadow-sm:  0 2px 8px rgba(0,171,230,0.10);
+      --shadow-md:  0 6px 24px rgba(0,171,230,0.14);
+      --shadow-lg:  0 16px 48px rgba(0,171,230,0.18);
+      --ease: cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--cream);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(0,171,230,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(0,171,230,0.05) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Loading / Error ── */
+    #loading-screen {
+      position: fixed; inset: 0;
+      background: var(--cream);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; z-index: 200;
+      transition: opacity 0.4s ease;
+    }
+    #loading-screen.hidden { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--divider);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .loading-label { font-size: 13px; color: var(--muted); }
+
+    .error-banner {
+      background: #fff0f0; color: #b00;
+      border: 1px solid #f5c0c0;
+      border-radius: var(--r-md);
+      padding: 14px 18px; margin-bottom: 20px;
+      font-size: 13px; display: none;
+    }
+    .error-banner.visible { display: block; }
+
+    /* ── Mock badge ── */
+    #mock-badge {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+      background: var(--ink); color: var(--blue);
+      font-family: monospace; font-size: 11px;
+      padding: 6px 14px; text-align: center; letter-spacing: 0.05em;
+      display: none;
+    }
+
+    /* ── Page ── */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+      display: none;
+    }
+    .page.visible { display: block; }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--white);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-lg);
+      padding: 40px 44px;
+      margin-bottom: 28px;
+      display: flex; align-items: center; gap: 32px;
+      position: relative; overflow: hidden;
+      animation: slideUp 0.5s var(--ease) both;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; right: 0;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle at top right, var(--blue-lt) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -30px; left: -30px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, var(--cream-dark) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .avatar-wrap { position: relative; flex-shrink: 0; }
+
+    .avatar {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: linear-gradient(135deg, #00abe6 0%, #0087b8 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700;
+      color: var(--white);
+      box-shadow: 0 8px 24px rgba(0,171,230,0.35);
+      position: relative; z-index: 1;
+    }
+
+    .avatar-ring {
+      position: absolute; inset: -6px; border-radius: 50%;
+      border: 2px dashed var(--sand-dark);
+      animation: spin 18s linear infinite; opacity: 0.5;
+    }
+
+    .hero-info { flex: 1; position: relative; z-index: 1; }
+
+    .hero-name {
+      font-size: 26px; font-weight: 700;
+      color: var(--ink); line-height: 1.2; margin-bottom: 4px;
+    }
+    .hero-owner {
+      font-size: 11px; color: var(--muted);
+      font-weight: 400; letter-spacing: 0.04em;
+      margin-bottom: 5px;
+    }
+    .hero-role {
+      font-size: 13px; color: var(--ink-soft);
+      margin-bottom: 14px; font-style: italic;
+    }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 13px; border-radius: var(--r-full);
+      font-size: 11px; font-weight: 700;
+      transition: transform 0.2s var(--ease);
+    }
+    .tag:hover { transform: translateY(-2px); }
+    .tag-blue { background: var(--blue-lt); color: var(--blue-dk); }
+    .tag-sand { background: var(--cream-dark); color: var(--ink-mid); }
+
+    .hero-actions {
+      display: flex; flex-direction: column; gap: 10px;
+      flex-shrink: 0; position: relative; z-index: 1;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center;
+      justify-content: center; gap: 7px;
+      padding: 10px 20px; border-radius: var(--r-full);
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      cursor: pointer; border: none;
+      transition: all 0.2s var(--ease);
+      white-space: nowrap; text-decoration: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #00abe6 0%, #0087b8 100%);
+      color: var(--white);
+      box-shadow: 0 4px 14px rgba(0,171,230,0.4);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,171,230,0.45); }
+    .btn-ghost {
+      background: var(--cream-dark); color: var(--ink-mid);
+      border: 1.5px solid var(--sand);
+    }
+    .btn-ghost:hover { background: var(--sand); transform: translateY(-2px); }
+
+    /* ── Stats ── */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 28px;
+      animation: slideUp 0.5s 0.1s var(--ease) both;
+    }
+    .stat-card {
+      background: var(--white); border-radius: var(--r-lg);
+      padding: 22px 24px; box-shadow: var(--shadow-sm);
+      border: 1.5px solid var(--divider);
+      text-align: center;
+      transition: all 0.25s var(--ease);
+    }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--sand-dark); }
+    .stat-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+    .stat-value { font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+    /* ── Layout grid ── */
+    .layout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .layout-grid .full-width { grid-column: 1 / -1; }
+
+    /* ── Section cards ── */
+    .section-card {
+      background: var(--white); border-radius: var(--r-lg);
+      box-shadow: var(--shadow-sm); border: 1.5px solid var(--divider);
+      overflow: hidden; transition: box-shadow 0.25s ease;
+      animation: slideUp 0.5s var(--ease) both;
+    }
+    .section-card:hover { box-shadow: var(--shadow-md); }
+    .section-card:nth-child(1) { animation-delay: 0.15s; }
+    .section-card:nth-child(2) { animation-delay: 0.20s; }
+    .section-card:nth-child(3) { animation-delay: 0.25s; }
+    .section-card:nth-child(4) { animation-delay: 0.30s; }
+
+    .section-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 18px 24px; border-bottom: 1.5px solid var(--divider);
+      background: linear-gradient(to right, var(--cream) 0%, var(--white) 100%);
+    }
+    .section-icon {
+      width: 36px; height: 36px; border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
+    }
+    .section-icon.blue  { background: var(--blue-lt); }
+    .section-icon.sand  { background: var(--cream-dark); }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .section-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .section-body { padding: 22px 24px; }
+
+    /* ── Fields ── */
+    .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; }
+    .field-group.single { grid-template-columns: 1fr; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted);
+    }
+    .field-value {
+      font-size: 13px; font-weight: 500; color: var(--ink);
+      padding: 9px 13px; background: var(--cream);
+      border-radius: var(--r-sm); border: 1.5px solid transparent;
+      transition: border-color 0.2s ease, background 0.2s ease;
+      min-height: 38px; display: flex; align-items: center;
+    }
+    .field-value:hover { border-color: var(--sand-dark); background: var(--white); }
+    .field-value a { color: var(--blue-dk); text-decoration: none; font-weight: 600; }
+    .field-value a:hover { text-decoration: underline; }
+    .field-value.empty { color: var(--muted); font-style: italic; font-weight: 400; }
+
+    /* ── Pills ── */
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: var(--r-full);
+      font-size: 11px; font-weight: 700;
+    }
+    .pill-blue { background: var(--blue-lt); color: var(--blue-dk); }
+    .pill-sand { background: var(--cream-dark); color: var(--ink-mid); }
+    .pill-dark { background: var(--sand); color: var(--ink); }
+
+    /* ── Profile highlights ── */
+    .profile-highlights {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    .highlight-box {
+      background: var(--cream); border-radius: var(--r-md);
+      padding: 14px 16px; border: 1.5px solid var(--divider);
+      transition: all 0.2s var(--ease);
+    }
+    .highlight-box:hover { border-color: var(--sand-dark); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+    .highlight-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; }
+    .highlight-box-value { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+
+    /* ── Address ── */
+    .address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .address-col { padding: 20px 24px; }
+    .address-col:first-child { border-right: 1.5px solid var(--divider); }
+    .address-col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin-bottom: 10px; }
+    .address-line { display: flex; flex-direction: column; gap: 3px; }
+    .address-line span { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.5; }
+    .address-line span.muted { color: var(--muted); font-style: italic; }
+
+    /* ── Description ── */
+    .description-body {
+      font-size: 13px; color: var(--ink-mid); line-height: 1.75;
+      padding: 18px 22px; background: var(--cream);
+      border-radius: var(--r-md); border: 1.5px dashed var(--sand-dark);
+      min-height: 70px;
+    }
+    .description-body.empty { color: var(--muted); font-style: italic; }
+
+    /* ── Opportunities table ── */
+    .opp-table { width: 100%; border-collapse: collapse; }
+    .opp-table th {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted);
+      padding: 11px 20px; text-align: left;
+      border-bottom: 1.5px solid var(--divider);
+      background: var(--cream);
+    }
+    .opp-table td {
+      padding: 12px 20px; border-bottom: 1px solid var(--divider);
+      font-size: 12px; color: var(--ink-mid); vertical-align: middle;
+    }
+    .opp-table tr:last-child td { border-bottom: none; }
+    .opp-table tr:hover td { background: var(--cream); }
+    .opp-name { font-weight: 600; color: var(--ink); }
+
+    .stage-pill {
+      display: inline-block; padding: 3px 9px;
+      border-radius: 12px; font-size: 11px; font-weight: 700;
+    }
+    .stage-new        { background: var(--blue-lt); color: var(--blue-dk); }
+    .stage-qualified  { background: #e0f0ff; color: #005a9e; }
+    .stage-proposal   { background: var(--cream-dark); color: var(--ink-mid); }
+    .stage-closed-won { background: #d0f5e8; color: #1a6b45; }
+    .stage-closed-lost{ background: #fde8e8; color: #991b1b; }
+    .stage-default    { background: var(--divider); color: var(--muted); }
+
+    /* ── Footer ── */
+    .page-footer {
+      margin-top: 36px; text-align: center;
+      font-size: 11px; color: var(--muted);
+      animation: slideUp 0.5s 0.4s var(--ease) both;
+    }
+    .page-footer a { color: var(--blue); text-decoration: none; }
+    .page-footer a:hover { text-decoration: underline; }
+
+    /* ── Animations ── */
+    @keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .hero { flex-direction: column; text-align: center; padding: 32px 24px; }
+      .hero-actions { flex-direction: row; justify-content: center; }
+      .hero-tags { justify-content: center; }
+      .avatar-wrap { margin: 0 auto; }
+      .layout-grid { grid-template-columns: 1fr; }
+      .layout-grid .full-width { grid-column: 1; }
+      .stats-strip { grid-template-columns: 1fr; }
+      .field-group { grid-template-columns: 1fr; }
+      .profile-highlights { grid-template-columns: 1fr; }
+      .address-grid { grid-template-columns: 1fr; }
+      .address-col:first-child { border-right: none; border-bottom: 1.5px solid var(--divider); }
+    }
+    @media (max-width: 480px) {
+      .page { padding: 24px 16px 60px; }
+      .hero { border-radius: var(--r-lg); }
+      .hero-name { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-label">Loading client profile…</div>
+</div>
+
+<!-- Mock mode badge (dev only) -->
+<div id="mock-badge">⚙ MOCK MODE — Sample data. Deploy inside Zoho CRM for live data.</div>
+
+<div class="page" id="main-page">
+
+  <div class="error-banner" id="error-banner"></div>
+
+  <!-- ── HERO ── -->
+  <div class="hero">
+    <div class="avatar-wrap">
+      <div class="avatar-ring"></div>
+      <div class="avatar" id="avatar-initials">…</div>
+    </div>
+    <div class="hero-info">
+      <div class="hero-owner" id="hero-owner"></div>
+      <div class="hero-name" id="hero-name">Loading…</div>
+      <div class="hero-role" id="hero-role"></div>
+      <div class="hero-tags" id="hero-tags"></div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="sendEmail()">✉ Send Email</button>
+      <button class="btn btn-ghost"   onclick="logCall()">📞 Log Call</button>
+    </div>
+  </div>
+
+  <!-- ── STATS ── -->
+  <div class="stats-strip">
+    <div class="stat-card">
+      <span class="stat-icon">📂</span>
+      <div class="stat-value" id="kpi-opps">—</div>
+      <div class="stat-label">Open Opportunities</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">💰</span>
+      <div class="stat-value" id="kpi-pipeline">—</div>
+      <div class="stat-label">Pipeline Value</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">🗓</span>
+      <div class="stat-value" id="kpi-activity" style="font-size:15px;">—</div>
+      <div class="stat-label">Last Activity</div>
+    </div>
+  </div>
+
+  <!-- ── SECTIONS ── -->
+  <div class="layout-grid">
+
+    <!-- Adviser Profile — full width, first -->
+    <div class="section-card full-width">
+      <div class="section-head">
+        <div class="section-icon blue">🏦</div>
+        <div>
+          <div class="section-title">Adviser Profile</div>
+          <div class="section-subtitle">Subscription &amp; adviser details</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="profile-highlights" style="grid-template-columns:repeat(4,1fr);">
+          <div class="highlight-box"><div class="highlight-box-label">Dealer Group</div><div class="highlight-box-value" id="p-dealer">—</div></div>
+          <div class="highlight-box"><div class="highlight-box-label">Adviser FSP</div><div class="highlight-box-value" id="p-fsp">—</div></div>
+          <div class="highlight-box"><div class="highlight-box-label">Subscription Start</div><div class="highlight-box-value" id="p-sub-start">—</div></div>
+          <div class="highlight-box"><div class="highlight-box-label">Payment Frequency</div><div class="highlight-box-value" id="p-payment">—</div></div>
+        </div>
+        <!-- Row 2: Is an Adviser, Primary Contact, Subscriber — matching 4-col grid of highlight row -->
+        <div class="field-group" style="grid-template-columns:repeat(4,1fr); margin-bottom:14px;">
+          <div class="field"><div class="field-label">Is an Adviser</div><div class="field-value" id="p-is-adviser">—</div></div>
+          <div class="field"><div class="field-label">Primary Contact</div><div class="field-value" id="p-primary">—</div></div>
+          <div class="field"><div class="field-label">Subscriber</div><div class="field-value" id="p-subscriber">—</div></div>
+        </div>
+        <!-- Row 3: Subscription End (2 cols) + Adviser Services (3 cols) -->
+        <div class="field-group" style="grid-template-columns:repeat(5,1fr);">
+          <div class="field" style="grid-column:span 2;"><div class="field-label">Subscription End</div><div class="field-value" id="p-sub-end">—</div></div>
+          <div class="field" style="grid-column:span 3;">
+            <div class="field-label">Adviser Services</div>
+            <div class="field-value" id="p-services" style="gap:6px;flex-wrap:wrap;height:auto;padding:8px 10px;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Information — full width, second -->
+    <div class="section-card full-width">
+      <div class="section-head">
+        <div class="section-icon blue">👤</div>
+        <div>
+          <div class="section-title">Contact Information</div>
+          <div class="section-subtitle">Personal &amp; communication details</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <!-- Row 1: Account Name (2 cols) + Title (2 cols) -->
+        <div class="field-group" style="grid-template-columns:repeat(5,1fr); margin-bottom:14px;">
+          <div class="field" style="grid-column:span 2;"><div class="field-label">Account Name</div><div class="field-value" id="f-account">—</div></div>
+          <div class="field" style="grid-column:span 2;"><div class="field-label">Title</div><div class="field-value" id="f-title">—</div></div>
+        </div>
+        <!-- Row 2: First Name + Last Name each span 2 cols, aligning to end of Title -->
+        <div class="field-group" style="grid-template-columns:repeat(5,1fr); margin-bottom:14px;">
+          <div class="field" style="grid-column:span 2;"><div class="field-label">First Name</div><div class="field-value" id="f-first">—</div></div>
+          <div class="field" style="grid-column:span 2;"><div class="field-label">Last Name</div><div class="field-value" id="f-last">—</div></div>
+        </div>
+        <!-- Row 3: Email (1 col), Phone + Mobile sharing remaining 4 cols equally -->
+        <div class="field-group" style="grid-template-columns:1fr 2fr 2fr; margin-bottom:14px;">
+          <div class="field"><div class="field-label">Email</div><div class="field-value" id="f-email">—</div></div>
+          <div class="field"><div class="field-label">Phone</div><div class="field-value" id="f-phone">—</div></div>
+          <div class="field"><div class="field-label">Mobile</div><div class="field-value" id="f-mobile">—</div></div>
+        </div>
+        <!-- Row 4: Lead Source + Status each span 2 cols, matching First Name width -->
+        <div class="field-group" style="grid-template-columns:repeat(5,1fr);">
+          <div class="field" style="grid-column:span 2;"><div class="field-label">Lead Source</div><div class="field-value" id="f-lead-source">—</div></div>
+          <div class="field" style="grid-column:span 2;"><div class="field-label">Status</div><div class="field-value" id="f-status">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Address Information -->
+    <div class="section-card full-width">
+      <div class="section-head">
+        <div class="section-icon sand">📍</div>
+        <div>
+          <div class="section-title">Address Information</div>
+          <div class="section-subtitle">Mailing and postal addresses</div>
+        </div>
+      </div>
+      <div class="address-grid">
+        <div class="address-col">
+          <div class="address-col-label">Mailing Address</div>
+          <div class="address-line" id="addr-mailing"></div>
+        </div>
+        <div class="address-col">
+          <div class="address-col-label">Postal Address</div>
+          <div class="address-line" id="addr-postal"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Opportunities -->
+    <div class="section-card full-width">
+      <div class="section-head">
+        <div class="section-icon blue">💼</div>
+        <div>
+          <div class="section-title">Opportunities</div>
+          <div class="section-subtitle">Linked deals &amp; pipeline</div>
+        </div>
+      </div>
+      <table class="opp-table">
+        <thead>
+          <tr>
+            <th>Name</th><th>Stage</th><th>Value</th><th>Close Date</th>
+          </tr>
+        </thead>
+        <tbody id="opp-tbody">
+          <tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Description -->
+    <div class="section-card full-width">
+      <div class="section-head">
+        <div class="section-icon sand">📝</div>
+        <div>
+          <div class="section-title">Description</div>
+          <div class="section-subtitle">Notes &amp; background</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="description-body" id="f-description">Loading…</div>
+      </div>
+    </div>
+
+  </div><!-- /layout-grid -->
+
+  <div class="page-footer" id="page-footer"></div>
+
+</div><!-- /page -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+//  Zoho JS SDK — Contact Layout Page
+//  Pulls live data from: Contacts, Deals (related), Notes (description)
+// ─────────────────────────────────────────────────────────────────────────
+
+// ── Utilities ────────────────────────────────────────────────────────────
+const fmt      = v  => v || '—';
+const fmtDate  = s  => { if (!s) return '—'; return new Date(s).toLocaleDateString('en-NZ', { day:'numeric', month:'short', year:'numeric' }); };
+const fmtCurr  = n  => { if (n == null || n === '') return '—'; return '$' + Number(n).toLocaleString('en-NZ', { minimumFractionDigits: 0 }); };
+const initials = nm => { if (!nm) return '?'; return nm.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase(); };
+
+function set(id, html, isHtml = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  isHtml ? (el.innerHTML = html) : (el.textContent = html);
+}
+
+function stagePillClass(stage) {
+  if (!stage) return 'stage-default';
+  const s = stage.toLowerCase();
+  if (s.includes('closed won'))  return 'stage-closed-won';
+  if (s.includes('closed lost')) return 'stage-closed-lost';
+  if (s.includes('proposal') || s.includes('value') || s.includes('present')) return 'stage-proposal';
+  if (s.includes('qualif'))      return 'stage-qualified';
+  if (s.includes('new') || s.includes('prospect')) return 'stage-new';
+  return 'stage-default';
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = msg; el.classList.add('visible');
+}
+
+function reveal() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('main-page').classList.add('visible');
+}
+
+// ── SDK Mock (dev/preview mode) ───────────────────────────────────────────
+// Waits briefly to allow the real Zoho SDK script to execute fully.
+// If ZOHO is still undefined after the wait, we're in local/preview mode.
+(function () {
+  function initMockIfNeeded() {
+    if (typeof ZOHO !== 'undefined' && typeof ZOHO.embeddedApp !== 'undefined') return;
+
+    const MOCK = {
+    contact: {
+      id: 'demo-001', First_Name: 'Margaret', Last_Name: 'Thornton',
+      Full_Name: 'Margaret Thornton', Title: 'Chief Financial Officer',
+      Email: 'margaret.thornton@bluepeak.co.nz',
+      Phone: '+64 9 555 0182', Mobile: '+64 21 555 0182',
+      Account_Name: { id: 'acc-001', name: 'BluePeak Capital Group' },
+      Owner: { id: 'usr-001', name: 'Sean Davis' },
+      Lead_Source: 'Referral', Status: 'Active',
+      Mailing_Street: 'Level 12, 1 Queen Street', Mailing_City: 'Auckland CBD',
+      Mailing_State: 'Auckland', Mailing_Zip: '1010', Mailing_Country: 'New Zealand',
+      Other_Street: 'PO Box 7281', Other_City: 'Wellesley Street',
+      Other_State: 'Auckland', Other_Zip: '1141', Other_Country: 'New Zealand',
+      Description: 'Margaret has been a client since mid-2023, referred by James Thornton. She manages the financial oversight for BluePeak Capital Group and is primarily interested in KiwiSaver restructuring and managed portfolio reviews.',
+      Last_Activity_Time: '2025-05-22T14:15:00+12:00',
+      // Custom adviser profile fields
+      Dealer_Group: 'BluePeak Advisers', FSP: 'FSP-44821',
+      Is_An_Adviser: true, Primary_Contact: 'Primary',
+      Subscriber: 'Active', Subscription_Start: '2023-06-01',
+      Subscription_End: '2026-05-31', Payment_Frequency: 'Monthly',
+      Adviser_Services: 'KiwiSaver;Insurance;Investment'
+    },
+    deals: [
+      { id: 'd1', Deal_Name: 'BluePeak — Managed Portfolio Review', Stage: 'Proposal/Price Quote', Amount: 85000, Closing_Date: '2025-07-31' },
+      { id: 'd2', Deal_Name: 'BluePeak — KiwiSaver Restructure',    Stage: 'Qualification',        Amount: 42000, Closing_Date: '2025-08-15' },
+      { id: 'd3', Deal_Name: 'BluePeak — Estate Planning Advisory',  Stage: 'Closed Won',           Amount: 120000, Closing_Date: '2024-12-01' },
+      { id: 'd4', Deal_Name: 'BluePeak — Insurance Review',          Stage: 'Closed Lost',          Amount: 18000,  Closing_Date: '2024-09-30' },
+    ]
+  };
+
+  window.ZOHO = {
+    embeddedApp: {
+      _h: {},
+      on(e, fn) { this._h[e] = fn; },
+      init() {
+        setTimeout(() => { const fn = this._h['PageLoad']; if (fn) fn({ EntityId: 'demo-001', Entity: 'Contacts' }); }, 600);
+      }
+    },
+    CRM: {
+      API: {
+        getRecord({ Entity, RecordID }) {
+          return Promise.resolve({ data: [MOCK.contact] });
+        },
+        getRelatedRecords({ Entity, RecordID, RelatedList }) {
+          return Promise.resolve({ data: RelatedList === 'Deals' ? MOCK.deals : [] });
+        }
+      },
+      UI: {
+        Record: {
+          edit(o)   { alert(`[Mock] Edit ${o.Entity} ${o.RecordID}`); },
+          create(o) { alert(`[Mock] Create ${o.Entity}`); },
+          open(o)   { alert(`[Mock] Open ${o.Entity} ${o.RecordID}`); }
+        }
+      }
+    }
+  };
+
+    document.getElementById('mock-badge').style.display = 'block';
+  }
+  // Give the SDK script 300ms to load; if still missing, activate mock
+  setTimeout(initMockIfNeeded, 300);
+})();
+
+// ── State ─────────────────────────────────────────────────────────────────
+let ENTITY_ID = null;
+let CONTACT   = {};
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+// Deferred so the SDK script (real or mock) has time to fully initialise
+// before we call ZOHO.embeddedApp.on / .init
+function startApp() {
+  ZOHO.embeddedApp.on('PageLoad', function (data) {
+    ENTITY_ID = data.EntityId;
+    Promise.all([loadContact(), loadDeals()])
+      .catch(err => { console.error(err); showError('Some data could not be loaded. Please refresh.'); })
+      .finally(() => reveal());
+  });
+  ZOHO.embeddedApp.init();
+}
+
+// Wait for DOM + SDK to be ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { setTimeout(startApp, 350); });
+} else {
+  setTimeout(startApp, 350);
+}
+
+// ── Load Contact ───────────────────────────────────────────────────────────
+async function loadContact() {
+  const resp = await ZOHO.CRM.API.getRecord({ Entity: 'Contacts', RecordID: ENTITY_ID });
+  const c = resp.data?.[0];
+  if (!c) throw new Error('Contact not found');
+  CONTACT = c;
+
+  const fullName = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
+
+  // Hero
+  set('avatar-initials', initials(fullName));
+  set('hero-name', fmt(fullName));
+  set('hero-owner', c.Owner?.name ? `Adviser: ${c.Owner.name}` : '');
+  set('hero-role', [c.Title, c.Account_Name?.name].filter(Boolean).join(' · '));
+
+  // Tags
+  const tags = [];
+  if (c.Lead_Source) tags.push(`<span class="tag tag-blue">📌 ${c.Lead_Source}</span>`);
+  if (c.Status)      tags.push(`<span class="tag tag-blue">✓ ${c.Status}</span>`);
+  if (c.Owner?.name) tags.push(`<span class="tag tag-sand">👤 ${c.Owner.name}</span>`);
+  set('hero-tags', tags.join(''), true);
+
+  // KPI — last activity
+  set('kpi-activity', fmtDate(c.Last_Activity_Time));
+
+  // ── Contact Information ──
+  set('f-first', fmt(c.First_Name));
+  set('f-last',  fmt(c.Last_Name));
+
+  const emailEl = document.getElementById('f-email');
+  emailEl.innerHTML = c.Email ? `<a href="mailto:${c.Email}">${c.Email}</a>` : '—';
+
+  set('f-phone',  fmt(c.Phone));
+  set('f-mobile', fmt(c.Mobile));
+  set('f-title',  fmt(c.Title));
+
+  const acctEl = document.getElementById('f-account');
+  acctEl.innerHTML = c.Account_Name?.name
+    ? `<a href="#" onclick="openAccount('${c.Account_Name.id}')">${c.Account_Name.name}</a>` : '—';
+
+  set('f-lead-source', '', true);
+  if (c.Lead_Source) {
+    document.getElementById('f-lead-source').innerHTML = `<span class="pill pill-blue">📌 ${c.Lead_Source}</span>`;
+  } else {
+    set('f-lead-source', '—');
+  }
+
+  set('f-owner', fmt(c.Owner?.name));
+
+  const statusEl = document.getElementById('f-status');
+  statusEl.innerHTML = c.Status ? `<span class="pill pill-blue">✓ ${c.Status}</span>` : '—';
+
+  // ── Adviser Profile ──
+  set('p-dealer',    fmt(c.Dealer_Group));
+  set('p-fsp',       fmt(c.FSP));
+  set('p-sub-start', fmtDate(c.Subscription_Start));
+  set('p-payment',   fmt(c.Payment_Frequency));
+
+  const adviserEl = document.getElementById('p-is-adviser');
+  adviserEl.innerHTML = c.Is_An_Adviser ? `<span class="pill pill-blue">✓ Yes</span>` : `<span class="pill pill-sand">No</span>`;
+
+  set('p-primary',    fmt(c.Primary_Contact));
+  set('p-subscriber', fmt(c.Subscriber));
+  set('p-sub-end',    fmtDate(c.Subscription_End));
+
+  // Adviser Services (multi-select — semicolon separated in Zoho)
+  const servicesEl = document.getElementById('p-services');
+  const services = (c.Adviser_Services || '').split(';').map(s => s.trim()).filter(Boolean);
+  servicesEl.innerHTML = services.length
+    ? services.map(s => `<span class="pill pill-sand">${s}</span>`).join('')
+    : '—';
+
+  // ── Address ──
+  renderAddress('addr-mailing', c.Mailing_Street, c.Mailing_City, c.Mailing_State, c.Mailing_Zip, c.Mailing_Country);
+  renderAddress('addr-postal',  c.Other_Street,   c.Other_City,   c.Other_State,   c.Other_Zip,   c.Other_Country);
+
+  // ── Description ──
+  const descEl = document.getElementById('f-description');
+  if (c.Description) {
+    descEl.textContent = c.Description;
+    descEl.classList.remove('empty');
+  } else {
+    descEl.textContent = 'No description on record.';
+    descEl.classList.add('empty');
+  }
+
+  // ── Footer ──
+  set('page-footer', `Last updated ${fmtDate(c.Modified_Time || c.Created_Time)} · `, true);
+  document.getElementById('page-footer').innerHTML +=
+    `<a href="#" onclick="editContact()">Edit record</a>`;
+}
+
+function renderAddress(id, street, city, state, zip, country) {
+  const el = document.getElementById(id);
+  const parts = [street, city, [state, zip].filter(Boolean).join(' '), country].filter(Boolean);
+  if (parts.length === 0) {
+    el.innerHTML = '<span class="muted">Not on record</span>';
+  } else {
+    el.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
+  }
+}
+
+// ── Load Deals ─────────────────────────────────────────────────────────────
+async function loadDeals() {
+  const resp  = await ZOHO.CRM.API.getRelatedRecords({
+    Entity: 'Contacts', RecordID: ENTITY_ID,
+    RelatedList: 'Deals', page: 1, per_page: 20
+  });
+  const deals = resp.data || [];
+  const tbody = document.getElementById('opp-tbody');
+
+  if (deals.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted);">No opportunities on record</td></tr>';
+    set('kpi-opps',     '0');
+    set('kpi-pipeline', '$0');
+    return;
+  }
+
+  let openCount = 0, pipeline = 0;
+
+  tbody.innerHTML = deals.map(d => {
+    const stage  = d.Stage || '';
+    const isOpen = !stage.toLowerCase().includes('closed');
+    if (isOpen) { openCount++; pipeline += (d.Amount || 0); }
+    return `
+      <tr>
+        <td><span class="opp-name">${fmt(d.Deal_Name)}</span></td>
+        <td><span class="stage-pill ${stagePillClass(stage)}">${fmt(stage)}</span></td>
+        <td>${fmtCurr(d.Amount)}</td>
+        <td>${fmtDate(d.Closing_Date)}</td>
+      </tr>`;
+  }).join('');
+
+  set('kpi-opps',     String(openCount));
+  set('kpi-pipeline', fmtCurr(pipeline));
+}
+
+// ── CRM Actions ────────────────────────────────────────────────────────────
+function editContact() {
+  ZOHO.CRM.UI.Record.edit({ Entity: 'Contacts', RecordID: ENTITY_ID });
+}
+function sendEmail() {
+  if (CONTACT.Email) window.location.href = `mailto:${CONTACT.Email}`;
+}
+function logCall() {
+  ZOHO.CRM.UI.Record.create({
+    Entity: 'Calls',
+    prefill: { 'Contact_Name': { id: ENTITY_ID } }
+  });
+}
+function openAccount(id) {
+  ZOHO.CRM.UI.Record.open({ Entity: 'Accounts', RecordID: id });
+}
+</script>
+</body>
+</html>
