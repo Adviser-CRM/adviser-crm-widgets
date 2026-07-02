@@ -695,6 +695,16 @@ if (document.readyState === 'loading') {
   setTimeout(startApp, 350);
 }
 
+// Hard fallback — if loading screen hasn't dismissed after 3 seconds, force reveal
+setTimeout(function() {
+  var l = document.getElementById('loading-screen');
+  var p = document.getElementById('main-content');
+  if (l && !l.classList.contains('hidden')) {
+    l.classList.add('hidden');
+    if (p) p.style.display = 'block';
+  }
+}, 3000);
+
 // ── Load Contact ───────────────────────────────────────────────────────────
 async function loadContact() {
   const resp = await ZOHO.CRM.API.getRecord({ Entity: 'Contacts', RecordID: ENTITY_ID });
