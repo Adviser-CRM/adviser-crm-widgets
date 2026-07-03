@@ -3,861 +3,1054 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Client Profile</title>
-
-  <!-- Zoho JS SDK — loaded first so ZOHO is defined before the mock guard runs -->
+  <title>Client Profile — Adviser CRM</title>
   <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
-
   <style>
-    /* ═══════════════════════════════════════════════════
-       DESIGN TOKENS
-    ═══════════════════════════════════════════════════ */
     :root {
-      --cream:        #f0faff;
-      --cream-dark:   #dff3fc;
-      --sand:         #b8e4f7;
-      --sand-dark:    #7dcff0;
-      --blue:         #00abe6;
-      --blue-lt:      #d0eefa;
-      --blue-dk:      #0087b8;
-      --ink:          #00364d;
-      --ink-mid:      #005a7a;
-      --ink-soft:     #007da8;
-      --muted:        #5a9ab5;
-      --divider:      #c0e4f5;
-      --white:        #ffffff;
-      --serif:        Verdana, Geneva, sans-serif;
-      --sans:         Verdana, Geneva, sans-serif;
-      --r-sm:   8px;
-      --r-md:   16px;
-      --r-lg:   24px;
-      --r-xl:   32px;
-      --r-full: 9999px;
-      --shadow-sm:  0 2px 8px rgba(0,171,230,0.10);
-      --shadow-md:  0 6px 24px rgba(0,171,230,0.14);
-      --shadow-lg:  0 16px 48px rgba(0,171,230,0.18);
-      --ease: cubic-bezier(0.34, 1.2, 0.64, 1);
+      --blue:      #00abe6;
+      --blue-dk:   #0087b8;
+      --blue-lt:   #d0eefa;
+      --blue-xlt:  #ebf7fd;
+      --ink:       #00364d;
+      --ink-mid:   #005a7a;
+      --ink-soft:  #007da8;
+      --muted:     #5a9ab5;
+      --divider:   #c0e4f5;
+      --bg:        #f0faff;
+      --bg-alt:    #dff3fc;
+      --white:     #ffffff;
+      --green:     #0d7f5f;
+      --green-lt:  #d4f0e8;
+      --amber:     #b86b00;
+      --amber-lt:  #fef0d6;
+      --red:       #c0392b;
+      --red-lt:    #fde8e6;
+      --purple:    #6c3fcf;
+      --purple-lt: #ede8fb;
+      --sans:      Verdana, Geneva, sans-serif;
+      --radius:    10px;
+      --radius-lg: 16px;
+      --shadow:    0 2px 10px rgba(0,171,230,0.10);
+      --shadow-md: 0 6px 24px rgba(0,171,230,0.14);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-
+    html { -webkit-font-smoothing: antialiased; }
     body {
       font-family: var(--sans);
-      background: var(--cream);
+      background: var(--bg);
       color: var(--ink);
-      font-size: 14px;
-      line-height: 1.65;
+      font-size: 13px;
+      line-height: 1.6;
       min-height: 100vh;
     }
 
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(0,171,230,0.07) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(0,171,230,0.05) 0%, transparent 60%);
-      pointer-events: none; z-index: 0;
-    }
-
-    /* ── Loading / Error ── */
-    #loading-screen {
-      position: fixed; inset: 0;
-      background: var(--cream);
+    /* ── Loading ── */
+    #loading {
+      position: fixed; inset: 0; background: var(--bg);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 14px; z-index: 200;
-      transition: opacity 0.4s ease;
+      gap: 14px; z-index: 999;
+      transition: opacity 0.3s ease;
     }
-    #loading-screen.hidden { opacity: 0; pointer-events: none; }
-
+    #loading.hidden { opacity: 0; pointer-events: none; }
     .spinner {
-      width: 40px; height: 40px;
+      width: 38px; height: 38px;
       border: 3px solid var(--divider);
       border-top-color: var(--blue);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    .loading-label { font-size: 13px; color: var(--muted); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 12px; color: var(--muted); }
 
-    .error-banner {
-      background: #fff0f0; color: #b00;
-      border: 1px solid #f5c0c0;
-      border-radius: var(--r-md);
-      padding: 14px 18px; margin-bottom: 20px;
-      font-size: 13px; display: none;
-    }
-    .error-banner.visible { display: block; }
-
-    /* ── Mock badge ── */
     #mock-badge {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
       background: var(--ink); color: var(--blue);
       font-family: monospace; font-size: 11px;
-      padding: 6px 14px; text-align: center; letter-spacing: 0.05em;
-      display: none;
+      padding: 5px 14px; text-align: center; z-index: 998;
     }
 
-    /* ── Page ── */
-    .page {
-      position: relative; z-index: 1;
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 48px 24px 80px;
-      display: none;
-    }
+    .page { display: none; }
     .page.visible { display: block; }
+
+    /* ── Page layout ── */
+    .page-wrap {
+      max-width: 1100px; margin: 0 auto;
+      padding: 24px 24px 60px;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px; align-items: start;
+    }
 
     /* ── Hero ── */
     .hero {
+      grid-column: 1 / -1;
       background: var(--white);
-      border-radius: var(--r-xl);
-      box-shadow: var(--shadow-lg);
-      padding: 40px 44px;
-      margin-bottom: 28px;
-      display: flex; align-items: center; gap: 32px;
-      position: relative; overflow: hidden;
-      animation: slideUp 0.5s var(--ease) both;
-    }
-    .hero::before {
-      content: ''; position: absolute; top: 0; right: 0;
-      width: 220px; height: 220px;
-      background: radial-gradient(circle at top right, var(--blue-lt) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero::after {
-      content: ''; position: absolute; bottom: -30px; left: -30px;
-      width: 180px; height: 180px;
-      background: radial-gradient(circle, var(--cream-dark) 0%, transparent 70%);
-      pointer-events: none;
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      margin-bottom: 4px;
+      animation: fadeUp 0.4s ease both;
     }
 
-    .avatar-wrap { position: relative; flex-shrink: 0; }
+    /* Blue top accent bar */
+    .hero-accent {
+      height: 4px;
+      background: linear-gradient(to right, var(--blue), var(--blue-dk));
+    }
 
+    .hero-body {
+      padding: 24px 28px;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 20px;
+    }
+
+    .hero-left { display: flex; align-items: center; gap: 20px; }
+
+    /* Avatar */
     .avatar {
-      width: 96px; height: 96px; border-radius: 50%;
-      background: linear-gradient(135deg, #00abe6 0%, #0087b8 100%);
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--blue-dk));
       display: flex; align-items: center; justify-content: center;
-      font-size: 28px; font-weight: 700;
-      color: var(--white);
-      box-shadow: 0 8px 24px rgba(0,171,230,0.35);
-      position: relative; z-index: 1;
+      font-size: 22px; font-weight: 700; color: var(--white);
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(0,171,230,0.35);
     }
 
-    .avatar-ring {
-      position: absolute; inset: -6px; border-radius: 50%;
-      border: 2px dashed var(--sand-dark);
-      animation: spin 18s linear infinite; opacity: 0.5;
-    }
-
-    .hero-info { flex: 1; position: relative; z-index: 1; }
-
-    .hero-name {
-      font-size: 26px; font-weight: 700;
-      color: var(--ink); line-height: 1.2; margin-bottom: 4px;
-    }
+    .hero-info { flex: 1; }
     .hero-owner {
       font-size: 11px; color: var(--muted);
-      font-weight: 400; letter-spacing: 0.04em;
-      margin-bottom: 5px;
+      margin-bottom: 4px; letter-spacing: 0.02em;
+    }
+    .hero-name {
+      font-size: 22px; font-weight: 700;
+      color: var(--ink); line-height: 1.2;
+      margin-bottom: 3px;
     }
     .hero-role {
-      font-size: 13px; color: var(--ink-soft);
-      margin-bottom: 14px; font-style: italic;
+      font-size: 12px; color: var(--ink-soft);
+      margin-bottom: 10px;
     }
-    .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 7px; }
     .tag {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 13px; border-radius: var(--r-full);
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 11px; border-radius: 20px;
       font-size: 11px; font-weight: 700;
-      transition: transform 0.2s var(--ease);
     }
-    .tag:hover { transform: translateY(-2px); }
     .tag-blue { background: var(--blue-lt); color: var(--blue-dk); }
-    .tag-sand { background: var(--cream-dark); color: var(--ink-mid); }
+    .tag-green { background: var(--green-lt); color: var(--green); }
+    .tag-sand { background: var(--bg-alt); color: var(--ink-mid); }
 
-    .hero-actions {
-      display: flex; flex-direction: column; gap: 10px;
-      flex-shrink: 0; position: relative; z-index: 1;
-    }
-
+    /* Hero actions */
+    .hero-actions { display: flex; gap: 10px; flex-shrink: 0; }
     .btn {
-      display: inline-flex; align-items: center;
-      justify-content: center; gap: 7px;
-      padding: 10px 20px; border-radius: var(--r-full);
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: var(--radius);
       font-family: var(--sans); font-size: 12px; font-weight: 700;
-      cursor: pointer; border: none;
-      transition: all 0.2s var(--ease);
+      cursor: pointer; border: none; transition: all 0.18s ease;
       white-space: nowrap; text-decoration: none;
     }
     .btn-primary {
-      background: linear-gradient(135deg, #00abe6 0%, #0087b8 100%);
-      color: var(--white);
-      box-shadow: 0 4px 14px rgba(0,171,230,0.4);
+      background: var(--blue); color: var(--white);
+      box-shadow: 0 3px 10px rgba(0,171,230,0.35);
     }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,171,230,0.45); }
-    .btn-ghost {
-      background: var(--cream-dark); color: var(--ink-mid);
-      border: 1.5px solid var(--sand);
-    }
-    .btn-ghost:hover { background: var(--sand); transform: translateY(-2px); }
-
-    /* ── Stats ── */
-    .stats-strip {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 16px; margin-bottom: 28px;
-      animation: slideUp 0.5s 0.1s var(--ease) both;
-    }
-    .stat-card {
-      background: var(--white); border-radius: var(--r-lg);
-      padding: 22px 24px; box-shadow: var(--shadow-sm);
+    .btn-primary:hover { background: var(--blue-dk); transform: translateY(-1px); }
+    .btn-outline {
+      background: var(--white); color: var(--ink-mid);
       border: 1.5px solid var(--divider);
-      text-align: center;
-      transition: all 0.25s var(--ease);
     }
-    .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--sand-dark); }
-    .stat-icon { font-size: 24px; margin-bottom: 8px; display: block; }
-    .stat-value { font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1; margin-bottom: 4px; }
-    .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
 
-    /* ── Layout grid ── */
-    .layout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .layout-grid .full-width { grid-column: 1 / -1; }
-
-    /* ── Section cards ── */
-    .section-card {
-      background: var(--white); border-radius: var(--r-lg);
-      box-shadow: var(--shadow-sm); border: 1.5px solid var(--divider);
-      overflow: hidden; transition: box-shadow 0.25s ease;
-      animation: slideUp 0.5s var(--ease) both;
+    /* ── Cards ── */
+    .card {
+      background: var(--white);
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden; margin-bottom: 20px;
+      animation: fadeUp 0.35s ease both;
     }
-    .section-card:hover { box-shadow: var(--shadow-md); }
-    .section-card:nth-child(1) { animation-delay: 0.15s; }
-    .section-card:nth-child(2) { animation-delay: 0.20s; }
-    .section-card:nth-child(3) { animation-delay: 0.25s; }
-    .section-card:nth-child(4) { animation-delay: 0.30s; }
+    .card:nth-child(2) { animation-delay: 0.05s; }
+    .card:nth-child(3) { animation-delay: 0.10s; }
+    .card:nth-child(4) { animation-delay: 0.15s; }
 
-    .section-head {
+    .card-head {
       display: flex; align-items: center; gap: 12px;
-      padding: 18px 24px; border-bottom: 1.5px solid var(--divider);
-      background: linear-gradient(to right, var(--cream) 0%, var(--white) 100%);
+      padding: 14px 20px;
+      border-bottom: 1.5px solid var(--divider);
+      background: linear-gradient(to right, var(--bg-alt) 0%, var(--white) 100%);
     }
-    .section-icon {
-      width: 36px; height: 36px; border-radius: var(--r-sm);
+    .card-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: var(--blue-lt);
       display: flex; align-items: center; justify-content: center;
-      font-size: 17px; flex-shrink: 0;
+      font-size: 14px; flex-shrink: 0;
     }
-    .section-icon.blue  { background: var(--blue-lt); }
-    .section-icon.sand  { background: var(--cream-dark); }
-    .section-title { font-size: 13px; font-weight: 700; color: var(--ink); }
-    .section-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .section-body { padding: 22px 24px; }
+    .card-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--ink);
+    }
+    .card-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .card-body { padding: 18px 20px; }
 
-    /* ── Fields ── */
-    .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; }
-    .field-group.single { grid-template-columns: 1fr; }
+    /* ── Field grid ── */
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--cols, 2), 1fr);
+      gap: 14px 20px;
+    }
+    .cols-3 { --cols: 3; }
+    .cols-4 { --cols: 4; }
+    .cols-5 { --cols: 5; }
+    .span-2 { grid-column: span 2; }
+    .span-full { grid-column: 1 / -1; }
+
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field-label {
       font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--muted);
     }
     .field-value {
       font-size: 13px; font-weight: 500; color: var(--ink);
-      padding: 9px 13px; background: var(--cream);
-      border-radius: var(--r-sm); border: 1.5px solid transparent;
-      transition: border-color 0.2s ease, background 0.2s ease;
-      min-height: 38px; display: flex; align-items: center;
+      padding: 8px 12px; background: var(--bg);
+      border-radius: var(--radius);
+      min-height: 36px; display: flex; align-items: center;
+      border: 1.5px solid transparent;
+      transition: border-color 0.15s ease;
     }
-    .field-value:hover { border-color: var(--sand-dark); background: var(--white); }
-    .field-value a { color: var(--blue-dk); text-decoration: none; font-weight: 600; }
+    .field-value:hover { border-color: var(--divider); }
+    .field-value.empty { color: var(--muted); font-style: italic; }
+    .field-value a { color: var(--blue); text-decoration: none; font-weight: 600; }
     .field-value a:hover { text-decoration: underline; }
-    .field-value.empty { color: var(--muted); font-style: italic; font-weight: 400; }
 
-    /* ── Pills ── */
-    .pill {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 10px; border-radius: var(--r-full);
+    /* ── Risk Profile card (prominent) ── */
+    .risk-card {
+      background: var(--white);
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .risk-head {
+      padding: 14px 20px;
+      border-bottom: 1.5px solid var(--divider);
+      background: linear-gradient(to right, var(--bg-alt), var(--white));
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .risk-body { padding: 20px; }
+
+    .risk-profile-display {
+      display: flex; align-items: center; gap: 20px;
+    }
+
+    /* Big profile gauge */
+    .risk-gauge {
+      width: 90px; height: 90px; border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      flex-shrink: 0; font-weight: 700;
+      border: 4px solid var(--divider);
+    }
+    .risk-gauge .gauge-score { font-size: 22px; line-height: 1; }
+    .risk-gauge .gauge-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-top: 3px; }
+
+    .risk-gauge.conservative   { border-color: var(--green); background: var(--green-lt); color: var(--green); }
+    .risk-gauge.mod-conservative { border-color: #2980b9; background: #e8f4fb; color: #2980b9; }
+    .risk-gauge.balanced       { border-color: var(--blue); background: var(--blue-lt); color: var(--blue-dk); }
+    .risk-gauge.mod-aggressive { border-color: var(--amber); background: var(--amber-lt); color: var(--amber); }
+    .risk-gauge.aggressive     { border-color: var(--red); background: var(--red-lt); color: var(--red); }
+    .risk-gauge.none           { border-color: var(--divider); background: var(--bg); color: var(--muted); }
+
+    .risk-info { flex: 1; }
+    .risk-profile-name {
+      font-size: 18px; font-weight: 700; color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .risk-profile-name.none { color: var(--muted); font-size: 14px; font-style: italic; }
+    .risk-assessed {
+      font-size: 11px; color: var(--muted); margin-bottom: 12px;
+    }
+
+    /* Risk bar */
+    .risk-bar-wrap {
+      background: var(--bg-alt); border-radius: 20px;
+      height: 8px; overflow: hidden; margin-bottom: 8px;
+      max-width: 320px;
+    }
+    .risk-bar-fill {
+      height: 100%; border-radius: 20px;
+      transition: width 0.6s ease;
+    }
+    .risk-bar-labels {
+      display: flex; justify-content: space-between;
+      font-size: 9px; color: var(--muted); font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      max-width: 320px;
+    }
+
+    /* FMA fund type */
+    .risk-fma {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px;
       font-size: 11px; font-weight: 700;
+      margin-top: 8px;
     }
-    .pill-blue { background: var(--blue-lt); color: var(--blue-dk); }
-    .pill-sand { background: var(--cream-dark); color: var(--ink-mid); }
-    .pill-dark { background: var(--sand); color: var(--ink); }
+    .risk-fma.balanced { background: var(--blue-lt); color: var(--blue-dk); }
+    .risk-fma.conservative { background: var(--green-lt); color: var(--green); }
+    .risk-fma.aggressive { background: var(--red-lt); color: var(--red); }
+    .risk-fma.growth { background: var(--amber-lt); color: var(--amber); }
+    .risk-fma.none { background: var(--bg-alt); color: var(--muted); }
 
-    /* ── Profile highlights ── */
-    .profile-highlights {
-      display: grid; grid-template-columns: repeat(2, 1fr);
-      gap: 12px; margin-bottom: 20px;
+    /* Not assessed state */
+    .risk-not-assessed {
+      text-align: center; padding: 20px;
+      color: var(--muted); font-size: 12px;
     }
-    .highlight-box {
-      background: var(--cream); border-radius: var(--r-md);
-      padding: 14px 16px; border: 1.5px solid var(--divider);
-      transition: all 0.2s var(--ease);
+    .risk-not-assessed button {
+      margin-top: 12px;
     }
-    .highlight-box:hover { border-color: var(--sand-dark); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-    .highlight-box-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; }
-    .highlight-box-value { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.2; }
 
-    /* ── Address ── */
-    .address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-    .address-col { padding: 20px 24px; }
+    /* ── Advice Records list ── */
+    .advice-list { list-style: none; }
+    .advice-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 20px;
+      border-bottom: 1px solid var(--divider);
+      transition: background 0.15s ease;
+      cursor: pointer;
+    }
+    .advice-item:last-child { border-bottom: none; }
+    .advice-item:hover { background: var(--bg); }
+
+    .advice-step {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-1 { background: #fde8d8; color: #c0560a; }
+    .step-2 { background: var(--amber-lt); color: var(--amber); }
+    .step-3 { background: var(--green-lt); color: var(--green); }
+    .step-4 { background: var(--blue-lt); color: var(--blue-dk); }
+    .step-5 { background: var(--purple-lt); color: var(--purple); }
+    .step-6 { background: #d4f0f0; color: #0d7f7f; }
+    .step-np { background: var(--red-lt); color: var(--red); }
+
+    .advice-info { flex: 1; }
+    .advice-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .advice-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .advice-status {
+      font-size: 10px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .advice-empty {
+      text-align: center; padding: 28px 20px;
+      color: var(--muted); font-size: 12px;
+    }
+
+    /* ── Address section ── */
+    .address-cols {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    }
+    .address-col { padding: 18px 20px; }
     .address-col:first-child { border-right: 1.5px solid var(--divider); }
-    .address-col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin-bottom: 10px; }
+    .address-col-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--muted); margin-bottom: 10px;
+    }
     .address-line { display: flex; flex-direction: column; gap: 3px; }
-    .address-line span { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.5; }
-    .address-line span.muted { color: var(--muted); font-style: italic; }
+    .address-line span { font-size: 13px; color: var(--ink); line-height: 1.5; }
+    .address-line span.empty { color: var(--muted); font-style: italic; }
 
     /* ── Description ── */
-    .description-body {
-      font-size: 13px; color: var(--ink-mid); line-height: 1.75;
-      padding: 18px 22px; background: var(--cream);
-      border-radius: var(--r-md); border: 1.5px dashed var(--sand-dark);
-      min-height: 70px;
+    .description-text {
+      font-size: 13px; color: var(--ink-mid); line-height: 1.7;
+      padding: 16px 18px; background: var(--bg);
+      border-radius: var(--radius);
+      border: 1.5px dashed var(--divider);
+      min-height: 60px;
     }
-    .description-body.empty { color: var(--muted); font-style: italic; }
+    .description-text.empty { color: var(--muted); font-style: italic; }
 
-    /* ── Opportunities table ── */
-    .opp-table { width: 100%; border-collapse: collapse; }
-    .opp-table th {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.07em; color: var(--muted);
-      padding: 11px 20px; text-align: left;
+    /* ── Sidebar ── */
+    .sidebar { position: sticky; top: 20px; }
+
+    /* Stats card */
+    .stats-card {
+      background: var(--white);
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden; margin-bottom: 16px;
+    }
+    .stats-head {
+      padding: 12px 16px;
       border-bottom: 1.5px solid var(--divider);
-      background: var(--cream);
+      background: var(--bg-alt);
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--muted);
     }
-    .opp-table td {
-      padding: 12px 20px; border-bottom: 1px solid var(--divider);
-      font-size: 12px; color: var(--ink-mid); vertical-align: middle;
+    .stats-body { padding: 0; }
+    .stat-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--divider);
     }
-    .opp-table tr:last-child td { border-bottom: none; }
-    .opp-table tr:hover td { background: var(--cream); }
-    .opp-name { font-weight: 600; color: var(--ink); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 12px; color: var(--ink-mid); }
+    .stat-value { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .stat-icon { font-size: 14px; margin-right: 6px; }
 
-    .stage-pill {
-      display: inline-block; padding: 3px 9px;
-      border-radius: 12px; font-size: 11px; font-weight: 700;
+    /* Adviser card */
+    .adviser-card {
+      background: var(--white);
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden; margin-bottom: 16px;
     }
-    .stage-new        { background: var(--blue-lt); color: var(--blue-dk); }
-    .stage-qualified  { background: #e0f0ff; color: #005a9e; }
-    .stage-proposal   { background: var(--cream-dark); color: var(--ink-mid); }
-    .stage-closed-won { background: #d0f5e8; color: #1a6b45; }
-    .stage-closed-lost{ background: #fde8e8; color: #991b1b; }
-    .stage-default    { background: var(--divider); color: var(--muted); }
+    .adviser-head {
+      background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+      padding: 16px;
+    }
+    .adviser-label { font-size: 10px; color: rgba(255,255,255,0.7); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 4px; }
+    .adviser-name { font-size: 15px; font-weight: 700; color: var(--white); }
+    .adviser-body { padding: 14px 16px; }
+    .adviser-field { margin-bottom: 10px; }
+    .adviser-field:last-child { margin-bottom: 0; }
+    .adviser-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 2px; }
+    .adviser-field-value { font-size: 12px; color: var(--ink); font-weight: 500; }
 
-    /* ── Footer ── */
-    .page-footer {
-      margin-top: 36px; text-align: center;
-      font-size: 11px; color: var(--muted);
-      animation: slideUp 0.5s 0.4s var(--ease) both;
-    }
-    .page-footer a { color: var(--blue); text-decoration: none; }
-    .page-footer a:hover { text-decoration: underline; }
+    /* Divider */
+    .sect-divider { height: 1px; background: var(--divider); margin: 16px 0; }
 
     /* ── Animations ── */
-    @keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
 
     /* ── Responsive ── */
-    @media (max-width: 720px) {
-      .hero { flex-direction: column; text-align: center; padding: 32px 24px; }
-      .hero-actions { flex-direction: row; justify-content: center; }
-      .hero-tags { justify-content: center; }
-      .avatar-wrap { margin: 0 auto; }
-      .layout-grid { grid-template-columns: 1fr; }
-      .layout-grid .full-width { grid-column: 1; }
-      .stats-strip { grid-template-columns: 1fr; }
-      .field-group { grid-template-columns: 1fr; }
-      .profile-highlights { grid-template-columns: 1fr; }
-      .address-grid { grid-template-columns: 1fr; }
-      .address-col:first-child { border-right: none; border-bottom: 1.5px solid var(--divider); }
+    @media (max-width: 820px) {
+      .page-wrap { grid-template-columns: 1fr; padding: 16px; }
+      .sidebar { position: static; }
+      .field-grid.cols-5 { --cols: 3; }
+      .field-grid.cols-4 { --cols: 2; }
     }
-    @media (max-width: 480px) {
-      .page { padding: 24px 16px 60px; }
-      .hero { border-radius: var(--r-lg); }
-      .hero-name { font-size: 20px; }
+    @media (max-width: 540px) {
+      .field-grid { --cols: 1; }
+      .address-cols { grid-template-columns: 1fr; }
+      .address-col:first-child { border-right: none; border-bottom: 1.5px solid var(--divider); }
+      .hero-actions { display: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- Loading screen -->
-<div id="loading-screen">
+<div id="loading">
   <div class="spinner"></div>
-  <div class="loading-label">Loading client profile…</div>
+  <div class="loading-text">Loading client profile…</div>
 </div>
-
-<!-- Mock mode badge (dev only) -->
-<div id="mock-badge">⚙ MOCK MODE — Sample data. Deploy inside Zoho CRM for live data.</div>
+<div id="mock-badge">⚙ MOCK MODE — Sample data. Deploy inside Adviser CRM for live data.</div>
 
 <div class="page" id="main-page">
+<div class="page-wrap">
 
-  <div class="error-banner" id="error-banner"></div>
-
-  <!-- ── HERO ── -->
+  <!-- ── HERO ─────────────────────────────────────────────── -->
   <div class="hero">
-    <div class="avatar-wrap">
-      <div class="avatar-ring"></div>
-      <div class="avatar" id="avatar-initials">…</div>
-    </div>
-    <div class="hero-info">
-      <div class="hero-owner" id="hero-owner"></div>
-      <div class="hero-name" id="hero-name">Loading…</div>
-      <div class="hero-role" id="hero-role"></div>
-      <div class="hero-tags" id="hero-tags"></div>
-    </div>
-    <div class="hero-actions">
-      <button class="btn btn-primary" onclick="sendEmail()">✉ Send Email</button>
-      <button class="btn btn-ghost"   onclick="logCall()">📞 Log Call</button>
-    </div>
-  </div>
-
-  <!-- ── STATS ── -->
-  <div class="stats-strip">
-    <div class="stat-card">
-      <span class="stat-icon">📂</span>
-      <div class="stat-value" id="kpi-opps">—</div>
-      <div class="stat-label">Open Opportunities</div>
-    </div>
-    <div class="stat-card">
-      <span class="stat-icon">💰</span>
-      <div class="stat-value" id="kpi-pipeline">—</div>
-      <div class="stat-label">Pipeline Value</div>
-    </div>
-    <div class="stat-card">
-      <span class="stat-icon">🗓</span>
-      <div class="stat-value" id="kpi-activity" style="font-size:15px;">—</div>
-      <div class="stat-label">Last Activity</div>
-    </div>
-  </div>
-
-  <!-- ── SECTIONS ── -->
-  <div class="layout-grid">
-
-    <!-- Adviser Profile — full width, first -->
-    <div class="section-card full-width">
-      <div class="section-head">
-        <div class="section-icon blue">🏦</div>
-        <div>
-          <div class="section-title">Adviser Profile</div>
-          <div class="section-subtitle">Subscription &amp; adviser details</div>
+    <div class="hero-accent"></div>
+    <div class="hero-body">
+      <div class="hero-left">
+        <div class="avatar" id="hero-avatar">MT</div>
+        <div class="hero-info">
+          <div class="hero-owner" id="hero-owner"></div>
+          <div class="hero-name" id="hero-name">Loading…</div>
+          <div class="hero-role" id="hero-role"></div>
+          <div class="hero-tags" id="hero-tags"></div>
         </div>
       </div>
-      <div class="section-body">
-        <div class="profile-highlights" style="grid-template-columns:repeat(4,1fr);">
-          <div class="highlight-box"><div class="highlight-box-label">Dealer Group</div><div class="highlight-box-value" id="p-dealer">—</div></div>
-          <div class="highlight-box"><div class="highlight-box-label">Adviser FSP</div><div class="highlight-box-value" id="p-fsp">—</div></div>
-          <div class="highlight-box"><div class="highlight-box-label">Subscription Start</div><div class="highlight-box-value" id="p-sub-start">—</div></div>
-          <div class="highlight-box"><div class="highlight-box-label">Payment Frequency</div><div class="highlight-box-value" id="p-payment">—</div></div>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="sendEmail()">✉ Send Email</button>
+        <button class="btn btn-outline" onclick="logCall()">📞 Log Call</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN COLUMN ────────────────────────────────────────── -->
+  <div class="main-col">
+
+    <!-- Risk Profile -->
+    <div class="risk-card">
+      <div class="risk-head">
+        <div class="card-icon">📊</div>
+        <div>
+          <div class="card-title">Risk Profile</div>
+          <div class="card-subtitle">Current investment risk assessment</div>
         </div>
-        <!-- Row 2: Is an Adviser, Primary Contact, Subscriber — matching 4-col grid of highlight row -->
-        <div class="field-group" style="grid-template-columns:repeat(4,1fr); margin-bottom:14px;">
-          <div class="field"><div class="field-label">Is an Adviser</div><div class="field-value" id="p-is-adviser">—</div></div>
-          <div class="field"><div class="field-label">Primary Contact</div><div class="field-value" id="p-primary">—</div></div>
-          <div class="field"><div class="field-label">Subscriber</div><div class="field-value" id="p-subscriber">—</div></div>
+      </div>
+      <div class="risk-body" id="risk-body">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Contact Information -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">👤</div>
+        <div>
+          <div class="card-title">Contact Information</div>
+          <div class="card-subtitle">Personal &amp; communication details</div>
         </div>
-        <!-- Row 3: Subscription End (2 cols) + Adviser Services (3 cols) -->
-        <div class="field-group" style="grid-template-columns:repeat(5,1fr);">
-          <div class="field" style="grid-column:span 2;"><div class="field-label">Subscription End</div><div class="field-value" id="p-sub-end">—</div></div>
-          <div class="field" style="grid-column:span 3;">
-            <div class="field-label">Adviser Services</div>
-            <div class="field-value" id="p-services" style="gap:6px;flex-wrap:wrap;height:auto;padding:8px 10px;">—</div>
+      </div>
+      <div class="card-body">
+
+        <!-- Row 1: Account Name + Title -->
+        <div class="field-grid cols-5" style="margin-bottom:14px;">
+          <div class="field span-2">
+            <div class="field-label">Account Name</div>
+            <div class="field-value" id="f-account">—</div>
+          </div>
+          <div class="field span-2">
+            <div class="field-label">Title / Position</div>
+            <div class="field-value" id="f-title">—</div>
+          </div>
+        </div>
+
+        <!-- Row 2: First Name + Last Name -->
+        <div class="field-grid cols-5" style="margin-bottom:14px;">
+          <div class="field span-2">
+            <div class="field-label">First Name</div>
+            <div class="field-value" id="f-first">—</div>
+          </div>
+          <div class="field span-2">
+            <div class="field-label">Last Name</div>
+            <div class="field-value" id="f-last">—</div>
+          </div>
+        </div>
+
+        <!-- Row 3: Email + Phone + Mobile -->
+        <div class="field-grid" style="grid-template-columns:1fr 2fr 2fr; margin-bottom:14px;">
+          <div class="field">
+            <div class="field-label">Email</div>
+            <div class="field-value" id="f-email">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Phone</div>
+            <div class="field-value" id="f-phone">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Mobile</div>
+            <div class="field-value" id="f-mobile">—</div>
+          </div>
+        </div>
+
+        <!-- Row 4: Lead Source + Status -->
+        <div class="field-grid cols-5">
+          <div class="field span-2">
+            <div class="field-label">Lead Source</div>
+            <div class="field-value" id="f-lead-source">—</div>
+          </div>
+          <div class="field span-2">
+            <div class="field-label">Status</div>
+            <div class="field-value" id="f-status">—</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Recent Advice Records -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📋</div>
+        <div>
+          <div class="card-title">Recent Advice Records</div>
+          <div class="card-subtitle">Last 3 advice engagements</div>
+        </div>
+      </div>
+      <ul class="advice-list" id="advice-list">
+        <li style="padding:20px;text-align:center;color:var(--muted);">Loading…</li>
+      </ul>
+    </div>
+
+    <!-- Address Information -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📍</div>
+        <div>
+          <div class="card-title">Address Information</div>
+          <div class="card-subtitle">Mailing and postal addresses</div>
+        </div>
+      </div>
+      <div class="address-cols">
+        <div class="address-col">
+          <div class="address-col-label">Mailing Address</div>
+          <div class="address-line" id="addr-mailing">
+            <span class="empty">Not recorded</span>
+          </div>
+        </div>
+        <div class="address-col">
+          <div class="address-col-label">Postal Address</div>
+          <div class="address-line" id="addr-postal">
+            <span class="empty">Not recorded</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Contact Information — full width, second -->
-    <div class="section-card full-width">
-      <div class="section-head">
-        <div class="section-icon blue">👤</div>
-        <div>
-          <div class="section-title">Contact Information</div>
-          <div class="section-subtitle">Personal &amp; communication details</div>
-        </div>
-      </div>
-      <div class="section-body">
-        <!-- Row 1: Account Name (2 cols) + Title (2 cols) -->
-        <div class="field-group" style="grid-template-columns:repeat(5,1fr); margin-bottom:14px;">
-          <div class="field" style="grid-column:span 2;"><div class="field-label">Account Name</div><div class="field-value" id="f-account">—</div></div>
-          <div class="field" style="grid-column:span 2;"><div class="field-label">Title</div><div class="field-value" id="f-title">—</div></div>
-        </div>
-        <!-- Row 2: First Name + Last Name each span 2 cols, aligning to end of Title -->
-        <div class="field-group" style="grid-template-columns:repeat(5,1fr); margin-bottom:14px;">
-          <div class="field" style="grid-column:span 2;"><div class="field-label">First Name</div><div class="field-value" id="f-first">—</div></div>
-          <div class="field" style="grid-column:span 2;"><div class="field-label">Last Name</div><div class="field-value" id="f-last">—</div></div>
-        </div>
-        <!-- Row 3: Email (1 col), Phone + Mobile sharing remaining 4 cols equally -->
-        <div class="field-group" style="grid-template-columns:1fr 2fr 2fr; margin-bottom:14px;">
-          <div class="field"><div class="field-label">Email</div><div class="field-value" id="f-email">—</div></div>
-          <div class="field"><div class="field-label">Phone</div><div class="field-value" id="f-phone">—</div></div>
-          <div class="field"><div class="field-label">Mobile</div><div class="field-value" id="f-mobile">—</div></div>
-        </div>
-        <!-- Row 4: Lead Source + Status each span 2 cols, matching First Name width -->
-        <div class="field-group" style="grid-template-columns:repeat(5,1fr);">
-          <div class="field" style="grid-column:span 2;"><div class="field-label">Lead Source</div><div class="field-value" id="f-lead-source">—</div></div>
-          <div class="field" style="grid-column:span 2;"><div class="field-label">Status</div><div class="field-value" id="f-status">—</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Address Information -->
-    <div class="section-card full-width">
-      <div class="section-head">
-        <div class="section-icon sand">📍</div>
-        <div>
-          <div class="section-title">Address Information</div>
-          <div class="section-subtitle">Mailing and postal addresses</div>
-        </div>
-      </div>
-      <div class="address-grid">
-        <div class="address-col">
-          <div class="address-col-label">Mailing Address</div>
-          <div class="address-line" id="addr-mailing"></div>
-        </div>
-        <div class="address-col">
-          <div class="address-col-label">Postal Address</div>
-          <div class="address-line" id="addr-postal"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Opportunities -->
-    <div class="section-card full-width">
-      <div class="section-head">
-        <div class="section-icon blue">💼</div>
-        <div>
-          <div class="section-title">Opportunities</div>
-          <div class="section-subtitle">Linked deals &amp; pipeline</div>
-        </div>
-      </div>
-      <table class="opp-table">
-        <thead>
-          <tr>
-            <th>Name</th><th>Stage</th><th>Value</th><th>Close Date</th>
-          </tr>
-        </thead>
-        <tbody id="opp-tbody">
-          <tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted);">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-
     <!-- Description -->
-    <div class="section-card full-width">
-      <div class="section-head">
-        <div class="section-icon sand">📝</div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📝</div>
         <div>
-          <div class="section-title">Description</div>
-          <div class="section-subtitle">Notes &amp; background</div>
+          <div class="card-title">Description</div>
+          <div class="card-subtitle">Background notes</div>
         </div>
       </div>
-      <div class="section-body">
-        <div class="description-body" id="f-description">Loading…</div>
+      <div class="card-body">
+        <div class="description-text" id="f-description"></div>
       </div>
     </div>
 
-  </div><!-- /layout-grid -->
+  </div><!-- /main-col -->
 
-  <div class="page-footer" id="page-footer"></div>
+  <!-- ── SIDEBAR ────────────────────────────────────────────── -->
+  <div class="sidebar">
 
+    <!-- Adviser Card -->
+    <div class="adviser-card">
+      <div class="adviser-head">
+        <div class="adviser-label">Assigned Adviser</div>
+        <div class="adviser-name" id="sb-adviser">—</div>
+      </div>
+      <div class="adviser-body">
+        <div class="adviser-field">
+          <div class="adviser-field-label">FSP Number</div>
+          <div class="adviser-field-value" id="sb-fsp">—</div>
+        </div>
+        <div class="adviser-field">
+          <div class="adviser-field-label">Dealer Group</div>
+          <div class="adviser-field-value" id="sb-dealer">—</div>
+        </div>
+        <div class="adviser-field">
+          <div class="adviser-field-label">Subscription</div>
+          <div class="adviser-field-value" id="sb-subscription">—</div>
+        </div>
+        <div class="adviser-field">
+          <div class="adviser-field-label">Payment Frequency</div>
+          <div class="adviser-field-value" id="sb-payment">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-card">
+      <div class="stats-head">Client Summary</div>
+      <div class="stats-body">
+        <div class="stat-row">
+          <span class="stat-label"><span class="stat-icon">📂</span>Advice Records</span>
+          <span class="stat-value" id="sb-advice-count">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><span class="stat-icon">📅</span>Last Activity</span>
+          <span class="stat-value" id="sb-last-activity">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><span class="stat-icon">📊</span>Risk Profile</span>
+          <span class="stat-value" id="sb-risk-profile">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><span class="stat-icon">🗓</span>Profile Assessed</span>
+          <span class="stat-value" id="sb-risk-date">—</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+</div><!-- /page-wrap -->
 </div><!-- /page -->
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────
-//  Zoho JS SDK — Contact Layout Page
-//  Pulls live data from: Contacts, Deals (related), Notes (description)
-// ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+//  Adviser CRM — Contact Layout Page
+//  Displays client profile, risk profile, recent advice records
+// ─────────────────────────────────────────────────────────────────
 
-// ── Utilities ────────────────────────────────────────────────────────────
-const fmt      = v  => v || '—';
-const fmtDate  = s  => { if (!s) return '—'; return new Date(s).toLocaleDateString('en-NZ', { day:'numeric', month:'short', year:'numeric' }); };
-const fmtCurr  = n  => { if (n == null || n === '') return '—'; return '$' + Number(n).toLocaleString('en-NZ', { minimumFractionDigits: 0 }); };
-const initials = nm => { if (!nm) return '?'; return nm.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase(); };
+let ENTITY_ID = null;
+let CONTACT   = {};
 
-function set(id, html, isHtml = false) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  isHtml ? (el.innerHTML = html) : (el.textContent = html);
-}
+// ── Utilities ─────────────────────────────────────────────────────
+const fmt     = v => v || '—';
+const fmtDate = s => {
+  if (!s) return '—';
+  const d = new Date(s.includes('T') ? s : s + 'T00:00:00');
+  return isNaN(d) ? s : d.toLocaleDateString('en-NZ', { day:'numeric', month:'short', year:'numeric' });
+};
+const initials = n => n ? n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : '?';
 
-function stagePillClass(stage) {
-  if (!stage) return 'stage-default';
-  const s = stage.toLowerCase();
-  if (s.includes('closed won'))  return 'stage-closed-won';
-  if (s.includes('closed lost')) return 'stage-closed-lost';
-  if (s.includes('proposal') || s.includes('value') || s.includes('present')) return 'stage-proposal';
-  if (s.includes('qualif'))      return 'stage-qualified';
-  if (s.includes('new') || s.includes('prospect')) return 'stage-new';
-  return 'stage-default';
-}
-
-function showError(msg) {
-  const el = document.getElementById('error-banner');
-  el.textContent = msg; el.classList.add('visible');
+function el(id) { return document.getElementById(id); }
+function setEl(id, val, isHtml) {
+  const e = el(id);
+  if (e) isHtml ? (e.innerHTML = val) : (e.textContent = val);
 }
 
 function reveal() {
-  document.getElementById('loading-screen').classList.add('hidden');
-  document.getElementById('main-page').classList.add('visible');
+  el('loading').classList.add('hidden');
+  el('main-page').classList.add('visible');
 }
 
-// ── SDK Mock (dev/preview mode) ───────────────────────────────────────────
-// Waits briefly to allow the real Zoho SDK script to execute fully.
-// If ZOHO is still undefined after the wait, we're in local/preview mode.
-(function () {
-  function initMockIfNeeded() {
-    if (typeof ZOHO !== 'undefined' && typeof ZOHO.embeddedApp !== 'undefined') return;
+// ── Risk Profile ───────────────────────────────────────────────────
+const RISK_CONFIG = {
+  'Conservative':         { cls:'conservative',    bar:20,  fma:'Defensive / Conservative',  fmaCls:'conservative' },
+  'Moderately Conservative': { cls:'mod-conservative', bar:40, fma:'Conservative',             fmaCls:'conservative' },
+  'Balanced':             { cls:'balanced',         bar:60,  fma:'Balanced',                  fmaCls:'balanced' },
+  'Moderately Aggressive':{ cls:'mod-aggressive',   bar:80,  fma:'Growth',                    fmaCls:'growth' },
+  'Aggressive':           { cls:'aggressive',       bar:100, fma:'Aggressive Growth',          fmaCls:'aggressive' },
+};
 
-    const MOCK = {
-    contact: {
-      id: 'demo-001', First_Name: 'Margaret', Last_Name: 'Thornton',
-      Full_Name: 'Margaret Thornton', Title: 'Chief Financial Officer',
+function renderRiskProfile(profile, score, date) {
+  const rb = el('risk-body');
+  if (!rb) return;
+
+  if (!profile) {
+    rb.innerHTML = `
+      <div class="risk-not-assessed">
+        <div style="font-size:28px;margin-bottom:8px;">📊</div>
+        <div style="font-weight:700;color:var(--ink);margin-bottom:4px;">No Risk Profile on Record</div>
+        <div style="font-size:11px;">A risk profile assessment has not yet been completed for this client.</div>
+        <button class="btn btn-primary" style="margin-top:14px;font-size:11px;" onclick="startRiskProfile()">
+          Start Risk Profile Assessment →
+        </button>
+      </div>`;
+    setEl('sb-risk-profile', 'Not assessed');
+    setEl('sb-risk-date', '—');
+    return;
+  }
+
+  const cfg = RISK_CONFIG[profile] || { cls:'none', bar:0, fma:'—', fmaCls:'none' };
+
+  rb.innerHTML = `
+    <div class="risk-profile-display">
+      <div class="risk-gauge ${cfg.cls}">
+        <div class="gauge-score">${score || '—'}<span style="font-size:12px;">%</span></div>
+        <div class="gauge-label">Score</div>
+      </div>
+      <div class="risk-info">
+        <div class="risk-profile-name">${profile}</div>
+        <div class="risk-assessed">Last assessed: ${fmtDate(date)}</div>
+        <div class="risk-bar-wrap">
+          <div class="risk-bar-fill" style="width:${cfg.bar}%;background:${getRiskColor(cfg.cls)};"></div>
+        </div>
+        <div class="risk-bar-labels">
+          <span>Conservative</span>
+          <span>Balanced</span>
+          <span>Aggressive</span>
+        </div>
+        <div class="risk-fma ${cfg.fmaCls}">
+          📊 FMA Fund Type: ${cfg.fma}
+        </div>
+      </div>
+    </div>`;
+
+  setEl('sb-risk-profile', profile);
+  setEl('sb-risk-date', fmtDate(date));
+}
+
+function getRiskColor(cls) {
+  const map = {
+    'conservative':    'var(--green)',
+    'mod-conservative':'#2980b9',
+    'balanced':        'var(--blue)',
+    'mod-aggressive':  'var(--amber)',
+    'aggressive':      'var(--red)',
+  };
+  return map[cls] || 'var(--muted)';
+}
+
+// ── Advice Records ────────────────────────────────────────────────
+function renderAdviceRecords(records) {
+  const list = el('advice-list');
+  if (!list) return;
+
+  setEl('sb-advice-count', records.length + ' record' + (records.length !== 1 ? 's' : ''));
+
+  if (records.length === 0) {
+    list.innerHTML = `
+      <li class="advice-empty">
+        <div style="font-size:24px;margin-bottom:8px;">📋</div>
+        No advice records on file for this client
+      </li>`;
+    return;
+  }
+
+  const stepMap = {
+    'Step 1. Client Engagement':   { cls:'step-1', label:'Step 1' },
+    'Step 2. Data Collection':     { cls:'step-2', label:'Step 2' },
+    'Step 3. Analysis':            { cls:'step-3', label:'Step 3' },
+    'Step 4. Statement of Advice': { cls:'step-4', label:'Step 4' },
+    'Step 5. Implementation':      { cls:'step-5', label:'Step 5' },
+    'Step 6. Review':              { cls:'step-6', label:'Step 6' },
+    'Not Proceeded With':          { cls:'step-np', label:'NPW' },
+  };
+
+  const statusColors = {
+    'Step 1. Client Engagement':   { bg:'#fde8d8', color:'#c0560a' },
+    'Step 2. Data Collection':     { bg:'var(--amber-lt)', color:'var(--amber)' },
+    'Step 3. Analysis':            { bg:'var(--green-lt)', color:'var(--green)' },
+    'Step 4. Statement of Advice': { bg:'var(--blue-lt)', color:'var(--blue-dk)' },
+    'Step 5. Implementation':      { bg:'var(--purple-lt)', color:'var(--purple)' },
+    'Step 6. Review':              { bg:'#d4f0f0', color:'#0d7f7f' },
+    'Not Proceeded With':          { bg:'var(--red-lt)', color:'var(--red)' },
+  };
+
+  list.innerHTML = records.slice(0,3).map(r => {
+    const step   = stepMap[r.Status] || { cls:'step-1', label:'—' };
+    const colors = statusColors[r.Status] || { bg:'var(--bg-alt)', color:'var(--muted)' };
+    const date   = fmtDate(r.Date_Time_of_Meeting || r.Created_Time);
+    const type   = r.Meeting_Type || '';
+
+    return `
+      <li class="advice-item" onclick="openAdviceRecord('${r.id}')">
+        <div class="advice-step ${step.cls}">${step.label}</div>
+        <div class="advice-info">
+          <div class="advice-name">${fmt(r.Name || r.Name_of_Record)}</div>
+          <div class="advice-meta">${[date, type].filter(Boolean).join(' · ')}</div>
+        </div>
+        <div class="advice-status"
+          style="background:${colors.bg};color:${colors.color};">
+          ${r.Status || '—'}
+        </div>
+      </li>`;
+  }).join('');
+}
+
+// ── Address ───────────────────────────────────────────────────────
+function renderAddress(id, street, city, state, zip, country) {
+  const e = el(id);
+  if (!e) return;
+  const parts = [street, city, [state, zip].filter(Boolean).join(' '), country].filter(Boolean);
+  e.innerHTML = parts.length
+    ? parts.map(p => `<span>${p}</span>`).join('')
+    : '<span class="empty">Not recorded</span>';
+}
+
+// ── Populate ──────────────────────────────────────────────────────
+function populateContact(c) {
+  CONTACT = c;
+  const name = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
+
+  // Hero
+  setEl('hero-avatar',  initials(name));
+  setEl('hero-name',    name || '—');
+  setEl('hero-role',    [c.Title, c.Account_Name?.name].filter(Boolean).join(' · '));
+  setEl('hero-owner',   c.Owner?.name ? 'Adviser: ' + c.Owner.name : '');
+
+  // Tags
+  const tags = [];
+  if (c.Lead_Source) tags.push(`<span class="tag tag-blue">📌 ${c.Lead_Source}</span>`);
+  if (c.Status)      tags.push(`<span class="tag tag-green">✓ ${c.Status}</span>`);
+  setEl('hero-tags', tags.join(''), true);
+
+  // Contact fields
+  const accountEl = el('f-account');
+  if (accountEl) {
+    accountEl.innerHTML = c.Account_Name?.name
+      ? `<a href="#" onclick="openAccount('${c.Account_Name.id}')">${c.Account_Name.name}</a>`
+      : '<span class="empty">—</span>';
+  }
+  setEl('f-title',       fmt(c.Title));
+  setEl('f-first',       fmt(c.First_Name));
+  setEl('f-last',        fmt(c.Last_Name));
+
+  const emailEl = el('f-email');
+  if (emailEl) {
+    emailEl.innerHTML = c.Email
+      ? `<a href="mailto:${c.Email}">${c.Email}</a>`
+      : '<span class="empty">—</span>';
+  }
+
+  setEl('f-phone',       fmt(c.Phone));
+  setEl('f-mobile',      fmt(c.Mobile));
+  setEl('f-lead-source', fmt(c.Lead_Source));
+  setEl('f-status',      fmt(c.Status));
+
+  // Description
+  const descEl = el('f-description');
+  if (descEl) {
+    descEl.textContent = c.Description || 'No description on record.';
+    descEl.classList.toggle('empty', !c.Description);
+  }
+
+  // Address
+  renderAddress('addr-mailing',
+    c.Mailing_Street, c.Mailing_City, c.Mailing_State, c.Mailing_Zip, c.Mailing_Country);
+  renderAddress('addr-postal',
+    c.Other_Street, c.Other_City, c.Other_State, c.Other_Zip, c.Other_Country);
+
+  // Sidebar — adviser info
+  setEl('sb-adviser',      fmt(c.Owner?.name));
+  setEl('sb-fsp',          fmt(c.FSP));
+  setEl('sb-dealer',       fmt(c.Dealer_Group));
+  setEl('sb-payment',      fmt(c.Payment_Frequency));
+  setEl('sb-last-activity', fmtDate(c.Last_Activity_Time));
+
+  // Subscription
+  const subStart = c.Subscription_Start ? fmtDate(c.Subscription_Start) : null;
+  const subEnd   = c.Subscription_End   ? fmtDate(c.Subscription_End)   : null;
+  setEl('sb-subscription',
+    subStart && subEnd ? `${subStart} → ${subEnd}` : subStart || '—');
+
+  // Risk Profile
+  renderRiskProfile(c.Risk_Profile, c.Risk_Score, c.Risk_Profile_Date);
+}
+
+// ── CRM actions ───────────────────────────────────────────────────
+function sendEmail() {
+  if (CONTACT.Email) window.location.href = 'mailto:' + CONTACT.Email;
+}
+function logCall() {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.create({
+      Entity: 'Calls',
+      prefill: { 'Contact_Name': { id: ENTITY_ID } }
+    });
+  }
+}
+function openAccount(id) {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.open({ Entity: 'Accounts', RecordID: id });
+  }
+}
+function openAdviceRecord(id) {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.open({ Entity: 'Advice_Records', RecordID: id });
+  }
+}
+function startRiskProfile() {
+  alert('Navigate to the Risk Profile widget to complete the assessment.');
+}
+
+// ── SDK Mock ──────────────────────────────────────────────────────
+(function() {
+  function initMockIfNeeded() {
+    if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) return;
+
+    var MOCK_CONTACT = {
+      id: 'c-001',
+      First_Name: 'Margaret', Last_Name: 'Thornton',
+      Title: 'Chief Financial Officer',
       Email: 'margaret.thornton@bluepeak.co.nz',
       Phone: '+64 9 555 0182', Mobile: '+64 21 555 0182',
       Account_Name: { id: 'acc-001', name: 'BluePeak Capital Group' },
       Owner: { id: 'usr-001', name: 'Sean Davis' },
       Lead_Source: 'Referral', Status: 'Active',
-      Mailing_Street: 'Level 12, 1 Queen Street', Mailing_City: 'Auckland CBD',
-      Mailing_State: 'Auckland', Mailing_Zip: '1010', Mailing_Country: 'New Zealand',
-      Other_Street: 'PO Box 7281', Other_City: 'Wellesley Street',
-      Other_State: 'Auckland', Other_Zip: '1141', Other_Country: 'New Zealand',
-      Description: 'Margaret has been a client since mid-2023, referred by James Thornton. She manages the financial oversight for BluePeak Capital Group and is primarily interested in KiwiSaver restructuring and managed portfolio reviews.',
+      Mailing_Street: 'Level 12, 1 Queen Street',
+      Mailing_City: 'Auckland CBD',
+      Mailing_State: 'Auckland', Mailing_Zip: '1010',
+      Mailing_Country: 'New Zealand',
+      Other_Street: 'PO Box 7281',
+      Other_City: 'Wellesley Street',
+      Other_State: 'Auckland', Other_Zip: '1141',
+      Other_Country: 'New Zealand',
+      Description: 'Margaret has been a client since mid-2023, referred by James Thornton. She manages financial oversight for BluePeak Capital Group and is primarily interested in KiwiSaver restructuring and managed portfolio reviews. Prefers morning calls.',
       Last_Activity_Time: '2025-05-22T14:15:00+12:00',
-      // Custom adviser profile fields
-      Dealer_Group: 'BluePeak Advisers', FSP: 'FSP-44821',
-      Is_An_Adviser: true, Primary_Contact: 'Primary',
-      Subscriber: 'Active', Subscription_Start: '2023-06-01',
-      Subscription_End: '2026-05-31', Payment_Frequency: 'Monthly',
-      Adviser_Services: 'KiwiSaver;Insurance;Investment'
-    },
-    deals: [
-      { id: 'd1', Deal_Name: 'BluePeak — Managed Portfolio Review', Stage: 'Proposal/Price Quote', Amount: 85000, Closing_Date: '2025-07-31' },
-      { id: 'd2', Deal_Name: 'BluePeak — KiwiSaver Restructure',    Stage: 'Qualification',        Amount: 42000, Closing_Date: '2025-08-15' },
-      { id: 'd3', Deal_Name: 'BluePeak — Estate Planning Advisory',  Stage: 'Closed Won',           Amount: 120000, Closing_Date: '2024-12-01' },
-      { id: 'd4', Deal_Name: 'BluePeak — Insurance Review',          Stage: 'Closed Lost',          Amount: 18000,  Closing_Date: '2024-09-30' },
-    ]
-  };
+      FSP: 'FSP-44821',
+      Dealer_Group: 'BluePeak Advisers',
+      Subscription_Start: '2023-06-01',
+      Subscription_End: '2026-05-31',
+      Payment_Frequency: 'Monthly',
+      Risk_Profile: 'Balanced',
+      Risk_Score: '57',
+      Risk_Profile_Date: '2025-05-22',
+    };
 
-  window.ZOHO = {
-    embeddedApp: {
-      _h: {},
-      on(e, fn) { this._h[e] = fn; },
-      init() {
-        setTimeout(() => { const fn = this._h['PageLoad']; if (fn) fn({ EntityId: 'demo-001', Entity: 'Contacts' }); }, 600);
-      }
-    },
-    CRM: {
-      API: {
-        getRecord({ Entity, RecordID }) {
-          return Promise.resolve({ data: [MOCK.contact] });
-        },
-        getRelatedRecords({ Entity, RecordID, RelatedList }) {
-          return Promise.resolve({ data: RelatedList === 'Deals' ? MOCK.deals : [] });
+    var MOCK_ADVICE = [
+      { id:'ar-1', Name:'AR-00042 — Annual Review 2025',        Status:'Step 2. Data Collection',     Date_Time_of_Meeting:'2025-05-22T10:00:00', Meeting_Type:'In Person' },
+      { id:'ar-2', Name:'AR-00038 — KiwiSaver Review 2024',     Status:'Step 6. Review',               Date_Time_of_Meeting:'2024-11-14T14:00:00', Meeting_Type:'Zoom' },
+      { id:'ar-3', Name:'AR-00031 — Initial Advice 2023',       Status:'Step 5. Implementation',       Date_Time_of_Meeting:'2023-09-05T10:00:00', Meeting_Type:'In Person' },
+    ];
+
+    window.ZOHO = {
+      embeddedApp: {
+        _h: {},
+        on(e, fn) { this._h[e] = fn; },
+        init() {
+          var self = this;
+          setTimeout(function() {
+            var fn = self._h['PageLoad'];
+            if (fn) fn({ EntityId:'c-001', Entity:'Contacts' });
+          }, 600);
         }
       },
-      UI: {
-        Record: {
-          edit(o)   { alert(`[Mock] Edit ${o.Entity} ${o.RecordID}`); },
-          create(o) { alert(`[Mock] Create ${o.Entity}`); },
-          open(o)   { alert(`[Mock] Open ${o.Entity} ${o.RecordID}`); }
+      CRM: {
+        API: {
+          getRecord() { return Promise.resolve({ data:[MOCK_CONTACT] }); },
+          getRelatedRecords() { return Promise.resolve({ data:MOCK_ADVICE }); },
+        },
+        UI: {
+          Record: {
+            open(o)   { alert('[Mock] Open ' + o.Entity + ' ' + o.RecordID); },
+            create(o) { alert('[Mock] Create ' + o.Entity); }
+          }
         }
       }
-    }
-  };
-
-    document.getElementById('mock-badge').style.display = 'block';
+    };
+    el('mock-badge').style.display = 'block';
   }
-  // Give the SDK script 300ms to load; if still missing, activate mock
   setTimeout(initMockIfNeeded, 300);
 })();
 
-// ── State ─────────────────────────────────────────────────────────────────
-let ENTITY_ID = null;
-let CONTACT   = {};
-
-// ── Bootstrap ─────────────────────────────────────────────────────────────
-// Deferred so the SDK script (real or mock) has time to fully initialise
-// before we call ZOHO.embeddedApp.on / .init
+// ── Bootstrap ─────────────────────────────────────────────────────
 function startApp() {
-  ZOHO.embeddedApp.on('PageLoad', function (data) {
+  ZOHO.embeddedApp.on('PageLoad', function(data) {
     ENTITY_ID = data.EntityId;
-    Promise.all([loadContact(), loadDeals()])
-      .catch(err => { console.error(err); showError('Some data could not be loaded. Please refresh.'); })
-      .finally(() => reveal());
+    Promise.all([
+      ZOHO.CRM.API.getRecord({ Entity:'Contacts', RecordID:ENTITY_ID }),
+      ZOHO.CRM.API.getRelatedRecords({
+        Entity:'Contacts', RecordID:ENTITY_ID,
+        RelatedList:'Advice_Records', page:1, per_page:3
+      }),
+    ])
+    .then(function(results) {
+      const contact = results[0].data?.[0] || {};
+      const advice  = results[1].data  || [];
+      populateContact(contact);
+      renderAdviceRecords(advice);
+    })
+    .catch(function(err) { console.error(err); })
+    .finally(function() { reveal(); });
   });
   ZOHO.embeddedApp.init();
 }
 
-// Wait for DOM + SDK to be ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function () { setTimeout(startApp, 350); });
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(startApp, 350); });
 } else {
   setTimeout(startApp, 350);
 }
 
-// Hard fallback — if loading screen hasn't dismissed after 3 seconds, force reveal
+// Hard fallback — force reveal after 3 seconds
 setTimeout(function() {
-  var l = document.getElementById('loading-screen');
-  var p = document.getElementById('main-page');
+  var l = el('loading');
+  var p = el('main-page');
   if (l && !l.classList.contains('hidden')) {
     l.classList.add('hidden');
     if (p) p.classList.add('visible');
   }
 }, 3000);
-
-// ── Load Contact ───────────────────────────────────────────────────────────
-async function loadContact() {
-  const resp = await ZOHO.CRM.API.getRecord({ Entity: 'Contacts', RecordID: ENTITY_ID });
-  const c = resp.data?.[0];
-  if (!c) throw new Error('Contact not found');
-  CONTACT = c;
-
-  const fullName = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
-
-  // Hero
-  set('avatar-initials', initials(fullName));
-  set('hero-name', fmt(fullName));
-  set('hero-owner', c.Owner?.name ? `Adviser: ${c.Owner.name}` : '');
-  set('hero-role', [c.Title, c.Account_Name?.name].filter(Boolean).join(' · '));
-
-  // Tags
-  const tags = [];
-  if (c.Lead_Source) tags.push(`<span class="tag tag-blue">📌 ${c.Lead_Source}</span>`);
-  if (c.Status)      tags.push(`<span class="tag tag-blue">✓ ${c.Status}</span>`);
-  if (c.Owner?.name) tags.push(`<span class="tag tag-sand">👤 ${c.Owner.name}</span>`);
-  set('hero-tags', tags.join(''), true);
-
-  // KPI — last activity
-  set('kpi-activity', fmtDate(c.Last_Activity_Time));
-
-  // ── Contact Information ──
-  set('f-first', fmt(c.First_Name));
-  set('f-last',  fmt(c.Last_Name));
-
-  const emailEl = document.getElementById('f-email');
-  emailEl.innerHTML = c.Email ? `<a href="mailto:${c.Email}">${c.Email}</a>` : '—';
-
-  set('f-phone',  fmt(c.Phone));
-  set('f-mobile', fmt(c.Mobile));
-  set('f-title',  fmt(c.Title));
-
-  const acctEl = document.getElementById('f-account');
-  acctEl.innerHTML = c.Account_Name?.name
-    ? `<a href="#" onclick="openAccount('${c.Account_Name.id}')">${c.Account_Name.name}</a>` : '—';
-
-  set('f-lead-source', '', true);
-  if (c.Lead_Source) {
-    document.getElementById('f-lead-source').innerHTML = `<span class="pill pill-blue">📌 ${c.Lead_Source}</span>`;
-  } else {
-    set('f-lead-source', '—');
-  }
-
-  set('f-owner', fmt(c.Owner?.name));
-
-  const statusEl = document.getElementById('f-status');
-  statusEl.innerHTML = c.Status ? `<span class="pill pill-blue">✓ ${c.Status}</span>` : '—';
-
-  // ── Adviser Profile ──
-  set('p-dealer',    fmt(c.Dealer_Group));
-  set('p-fsp',       fmt(c.FSP));
-  set('p-sub-start', fmtDate(c.Subscription_Start));
-  set('p-payment',   fmt(c.Payment_Frequency));
-
-  const adviserEl = document.getElementById('p-is-adviser');
-  adviserEl.innerHTML = c.Is_An_Adviser ? `<span class="pill pill-blue">✓ Yes</span>` : `<span class="pill pill-sand">No</span>`;
-
-  set('p-primary',    fmt(c.Primary_Contact));
-  set('p-subscriber', fmt(c.Subscriber));
-  set('p-sub-end',    fmtDate(c.Subscription_End));
-
-  // Adviser Services (multi-select — semicolon separated in Zoho)
-  const servicesEl = document.getElementById('p-services');
-  const services = (c.Adviser_Services || '').split(';').map(s => s.trim()).filter(Boolean);
-  servicesEl.innerHTML = services.length
-    ? services.map(s => `<span class="pill pill-sand">${s}</span>`).join('')
-    : '—';
-
-  // ── Address ──
-  renderAddress('addr-mailing', c.Mailing_Street, c.Mailing_City, c.Mailing_State, c.Mailing_Zip, c.Mailing_Country);
-  renderAddress('addr-postal',  c.Other_Street,   c.Other_City,   c.Other_State,   c.Other_Zip,   c.Other_Country);
-
-  // ── Description ──
-  const descEl = document.getElementById('f-description');
-  if (c.Description) {
-    descEl.textContent = c.Description;
-    descEl.classList.remove('empty');
-  } else {
-    descEl.textContent = 'No description on record.';
-    descEl.classList.add('empty');
-  }
-
-  // ── Footer ──
-  set('page-footer', `Last updated ${fmtDate(c.Modified_Time || c.Created_Time)} · `, true);
-  document.getElementById('page-footer').innerHTML +=
-    `<a href="#" onclick="editContact()">Edit record</a>`;
-}
-
-function renderAddress(id, street, city, state, zip, country) {
-  const el = document.getElementById(id);
-  const parts = [street, city, [state, zip].filter(Boolean).join(' '), country].filter(Boolean);
-  if (parts.length === 0) {
-    el.innerHTML = '<span class="muted">Not on record</span>';
-  } else {
-    el.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
-  }
-}
-
-// ── Load Deals ─────────────────────────────────────────────────────────────
-async function loadDeals() {
-  const resp  = await ZOHO.CRM.API.getRelatedRecords({
-    Entity: 'Contacts', RecordID: ENTITY_ID,
-    RelatedList: 'Deals', page: 1, per_page: 20
-  });
-  const deals = resp.data || [];
-  const tbody = document.getElementById('opp-tbody');
-
-  if (deals.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted);">No opportunities on record</td></tr>';
-    set('kpi-opps',     '0');
-    set('kpi-pipeline', '$0');
-    return;
-  }
-
-  let openCount = 0, pipeline = 0;
-
-  tbody.innerHTML = deals.map(d => {
-    const stage  = d.Stage || '';
-    const isOpen = !stage.toLowerCase().includes('closed');
-    if (isOpen) { openCount++; pipeline += (d.Amount || 0); }
-    return `
-      <tr>
-        <td><span class="opp-name">${fmt(d.Deal_Name)}</span></td>
-        <td><span class="stage-pill ${stagePillClass(stage)}">${fmt(stage)}</span></td>
-        <td>${fmtCurr(d.Amount)}</td>
-        <td>${fmtDate(d.Closing_Date)}</td>
-      </tr>`;
-  }).join('');
-
-  set('kpi-opps',     String(openCount));
-  set('kpi-pipeline', fmtCurr(pipeline));
-}
-
-// ── CRM Actions ────────────────────────────────────────────────────────────
-function editContact() {
-  ZOHO.CRM.UI.Record.edit({ Entity: 'Contacts', RecordID: ENTITY_ID });
-}
-function sendEmail() {
-  if (CONTACT.Email) window.location.href = `mailto:${CONTACT.Email}`;
-}
-function logCall() {
-  ZOHO.CRM.UI.Record.create({
-    Entity: 'Calls',
-    prefill: { 'Contact_Name': { id: ENTITY_ID } }
-  });
-}
-function openAccount(id) {
-  ZOHO.CRM.UI.Record.open({ Entity: 'Accounts', RecordID: id });
-}
 </script>
 </body>
 </html>
