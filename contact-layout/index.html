@@ -698,10 +698,10 @@ if (document.readyState === 'loading') {
 // Hard fallback — if loading screen hasn't dismissed after 3 seconds, force reveal
 setTimeout(function() {
   var l = document.getElementById('loading-screen');
-  var p = document.getElementById('main-content');
+  var p = document.getElementById('main-page');
   if (l && !l.classList.contains('hidden')) {
     l.classList.add('hidden');
-    if (p) p.style.display = 'block';
+    if (p) p.classList.add('visible');
   }
 }, 3000);
 
