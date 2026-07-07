@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memos — Adviser CRM</title>
+  <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+  <style>
+    /* ── Zoho native UI colour tokens ── */
+    :root {
+      --zoho-blue:       #0091ae;
+      --zoho-blue-dk:    #00728a;
+      --zoho-blue-lt:    #e8f6f9;
+      --zoho-blue-hdr:   #17a2b8;
+      --zoho-link:       #1a73e8;
+      --zoho-link-hover: #0d47a1;
+      --zoho-border:     #e0e0e0;
+      --zoho-border-hdr: #c9e8ee;
+      --zoho-bg:         #ffffff;
+      --zoho-bg-row:     #ffffff;
+      --zoho-bg-alt:     #f9f9f9;
+      --zoho-bg-hdr:     #17a2b8;
+      --zoho-text:       #333333;
+      --zoho-text-mid:   #555555;
+      --zoho-text-muted: #888888;
+      --zoho-text-hdr:   #ffffff;
+      --zoho-red:        #e53935;
+      --zoho-green:      #2e7d32;
+      --zoho-input-bg:   #ffffff;
+      --zoho-input-border: #c8c8c8;
+      --zoho-sans:       -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      --zoho-radius:     4px;
+      --zoho-radius-btn: 3px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--zoho-sans);
+      font-size: 13px;
+      color: var(--zoho-text);
+      background: var(--zoho-bg);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Version badge ── */
+    #version-badge {
+      position: fixed; top: 6px; right: 10px;
+      font-size: 10px; color: #aaa; opacity: 0.5;
+      pointer-events: none; user-select: none;
+      z-index: 999; font-family: var(--zoho-sans);
+    }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed; inset: 0; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; z-index: 998;
+      transition: opacity 0.25s ease;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #e0e0e0;
+      border-top-color: var(--zoho-blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 12px; color: #999; }
+
+    /* ── Page ── */
+    .page { display: none; }
+    .page.visible { display: block; }
+
+    /* ── Widget wrapper ── */
+    .widget-wrap {
+      background: var(--zoho-bg);
+      border: 1px solid var(--zoho-border);
+      border-radius: var(--zoho-radius);
+      overflow: hidden;
+      margin: 0;
+    }
+
+    /* ── Top bar — title + actions ── */
+    .top-bar {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--zoho-border);
+      background: var(--zoho-bg);
+    }
+    .top-bar-left {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .search-wrap {
+      position: relative; display: flex; align-items: center;
+    }
+    .search-icon {
+      position: absolute; left: 8px;
+      font-size: 13px; color: #999; pointer-events: none;
+    }
+    .search-input {
+      padding: 5px 10px 5px 28px;
+      border: 1px solid var(--zoho-input-border);
+      border-radius: var(--zoho-radius);
+      font-family: var(--zoho-sans); font-size: 12px;
+      color: var(--zoho-text); background: var(--zoho-input-bg);
+      width: 220px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-input:focus { border-color: var(--zoho-blue); }
+    .search-input::placeholder { color: #bbb; }
+
+    .record-count {
+      font-size: 12px; color: var(--zoho-text-muted);
+      white-space: nowrap;
+    }
+
+    /* Zoho-style buttons */
+    .top-bar-right { display: flex; align-items: center; gap: 6px; }
+
+    .btn-zoho {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px;
+      border: 1px solid var(--zoho-blue);
+      border-radius: var(--zoho-radius-btn);
+      background: var(--zoho-bg);
+      color: var(--zoho-blue);
+      font-family: var(--zoho-sans); font-size: 12px;
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-zoho:hover { background: var(--zoho-blue-lt); }
+    .btn-zoho.primary {
+      background: var(--zoho-blue); color: #fff;
+      border-color: var(--zoho-blue);
+    }
+    .btn-zoho.primary:hover { background: var(--zoho-blue-dk); }
+    .btn-zoho.icon-only {
+      padding: 5px 8px; font-size: 14px;
+      border-color: var(--zoho-input-border);
+      color: var(--zoho-text-mid);
+    }
+    .btn-zoho.icon-only:hover { border-color: var(--zoho-blue); color: var(--zoho-blue); }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: none;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--zoho-border);
+      background: #fafafa;
+      gap: 12px; flex-wrap: wrap; align-items: flex-end;
+    }
+    .filter-bar.visible { display: flex; }
+
+    .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+    .filter-label { font-size: 11px; color: var(--zoho-text-muted); font-weight: 500; }
+
+    .filter-select, .filter-input {
+      padding: 5px 8px;
+      border: 1px solid var(--zoho-input-border);
+      border-radius: var(--zoho-radius);
+      font-family: var(--zoho-sans); font-size: 12px;
+      color: var(--zoho-text); background: var(--zoho-input-bg);
+      outline: none; width: 100%;
+    }
+    .filter-select:focus, .filter-input:focus { border-color: var(--zoho-blue); }
+
+    .filter-actions { display: flex; gap: 6px; align-items: flex-end; padding-bottom: 1px; }
+
+    /* ── Table ── */
+    .memo-table {
+      width: 100%; border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .memo-table thead tr {
+      background: var(--zoho-bg-hdr);
+    }
+    .memo-table thead th {
+      padding: 9px 14px;
+      text-align: left;
+      font-size: 12px; font-weight: 600;
+      color: var(--zoho-text-hdr);
+      border-right: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .memo-table thead th:last-child { border-right: none; }
+
+    /* Sort indicators in header */
+    .th-inner {
+      display: inline-flex; align-items: center; gap: 5px;
+      cursor: pointer;
+    }
+    .th-inner:hover { opacity: 0.85; }
+    .sort-arrows {
+      display: inline-flex; flex-direction: column;
+      gap: 1px; opacity: 0.6;
+    }
+    .sort-arrows span { font-size: 8px; line-height: 1; }
+    .sort-arrows.active { opacity: 1; }
+
+    /* Table body rows */
+    .memo-table tbody tr {
+      border-bottom: 1px solid var(--zoho-border);
+      background: var(--zoho-bg-row);
+      transition: background 0.1s ease;
+    }
+    .memo-table tbody tr:last-child { border-bottom: none; }
+    .memo-table tbody tr:hover { background: var(--zoho-blue-lt); }
+
+    .memo-table tbody td {
+      padding: 10px 14px;
+      font-size: 12px; color: var(--zoho-text);
+      vertical-align: top;
+      border-right: 1px solid #f0f0f0;
+      word-break: break-word;
+    }
+    .memo-table tbody td:last-child { border-right: none; }
+
+    /* Subject link */
+    .subject-link {
+      color: var(--zoho-link);
+      text-decoration: none;
+      font-weight: 500;
+      display: block;
+    }
+    .subject-link:hover { text-decoration: underline; color: var(--zoho-link-hover); }
+
+    /* Content cell */
+    .content-cell { color: var(--zoho-text-mid); }
+    .content-text { }
+    .content-full { display: none; }
+    .content-full.expanded { display: block; }
+    .content-short.collapsed { display: none; }
+
+    .show-toggle {
+      color: var(--zoho-blue);
+      font-size: 11px; font-weight: 500;
+      cursor: pointer; display: inline-flex;
+      align-items: center; gap: 3px;
+      margin-top: 4px; background: none;
+      border: none; padding: 0; font-family: var(--zoho-sans);
+    }
+    .show-toggle:hover { text-decoration: underline; }
+    .show-toggle::before { content: '▲'; font-size: 8px; }
+    .show-toggle.show-more::before { content: '▼'; }
+
+    /* Date cell */
+    .date-cell { white-space: nowrap; color: var(--zoho-text-mid); }
+
+    /* Owner cell */
+    .owner-cell { white-space: nowrap; }
+
+    /* Column widths */
+    .col-subject  { width: 35%; }
+    .col-created  { width: 14%; }
+    .col-owner    { width: 16%; }
+    .col-content  { width: 35%; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--zoho-text-muted); font-size: 13px;
+    }
+    .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+    /* ── Pagination ── */
+    .pagination {
+      display: flex; align-items: center;
+      justify-content: flex-end;
+      padding: 8px 14px;
+      border-top: 1px solid var(--zoho-border);
+      background: var(--zoho-bg);
+      gap: 8px;
+    }
+    .page-info {
+      font-size: 12px; color: var(--zoho-text-muted);
+    }
+    .page-btn {
+      width: 26px; height: 26px;
+      border: 1px solid var(--zoho-input-border);
+      border-radius: var(--zoho-radius-btn);
+      background: var(--zoho-bg);
+      color: var(--zoho-text-mid);
+      font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--zoho-blue); color: var(--zoho-blue); }
+    .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── New Memo modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal {
+      background: var(--zoho-bg);
+      border-radius: var(--zoho-radius);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      width: 560px; max-width: 95vw;
+      overflow: hidden;
+    }
+    .modal-header {
+      background: var(--zoho-bg-hdr);
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 14px; font-weight: 600; color: #fff; }
+    .modal-close {
+      background: none; border: none; color: rgba(255,255,255,0.8);
+      font-size: 18px; cursor: pointer; line-height: 1;
+      padding: 0 4px;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-body { padding: 20px; }
+    .modal-field { margin-bottom: 16px; }
+    .modal-label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--zoho-text-mid); margin-bottom: 5px;
+    }
+    .modal-label .req { color: var(--zoho-red); margin-left: 2px; }
+    .modal-input, .modal-textarea {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid var(--zoho-input-border);
+      border-radius: var(--zoho-radius);
+      font-family: var(--zoho-sans); font-size: 13px;
+      color: var(--zoho-text); outline: none;
+      transition: border-color 0.15s;
+    }
+    .modal-input:focus, .modal-textarea:focus { border-color: var(--zoho-blue); }
+    .modal-textarea { resize: vertical; min-height: 100px; }
+    .modal-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--zoho-border);
+      display: flex; justify-content: flex-end; gap: 8px;
+      background: #fafafa;
+    }
+
+    /* ── Responsive ── */
+    @media (min-width: 1920px) {
+      body { font-size: 13px; }
+      .memo-table thead th { font-size: 13px; padding: 10px 16px; }
+      .memo-table tbody td { font-size: 13px; padding: 11px 16px; }
+    }
+    @media (min-width: 2560px) {
+      body { font-size: 14px; }
+      .memo-table thead th { font-size: 13px; padding: 11px 18px; }
+      .memo-table tbody td { font-size: 13px; padding: 12px 18px; }
+      .search-input { width: 280px; }
+    }
+    @media (max-width: 700px) {
+      .col-owner { display: none; }
+      .col-content { width: 45%; }
+      .search-input { width: 160px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="version-badge">v1.0.0</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading memos…</div>
+</div>
+
+<div class="page" id="main-page">
+
+  <div class="widget-wrap">
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" id="search-input"
+            placeholder="Search memos…"
+            oninput="applyFilters()" />
+        </div>
+        <span class="record-count" id="record-count"></span>
+      </div>
+      <div class="top-bar-right">
+        <button class="btn-zoho primary" id="filter-btn" onclick="toggleFilterBar()">
+          ⚙ Filter
+        </button>
+        <button class="btn-zoho icon-only" title="Sort" onclick="cycleSortOrder()">⇅ Sort</button>
+        <button class="btn-zoho icon-only" title="Expand All" onclick="toggleExpandAll()">⤢ Expand All</button>
+        <button class="btn-zoho primary" onclick="openNewMemoModal()">＋ New Memo</button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar" id="filter-bar">
+      <div class="filter-group">
+        <div class="filter-label">Subject</div>
+        <select class="filter-select" id="f-subject-op">
+          <option value="contains">Contains</option>
+          <option value="equals">Equals</option>
+          <option value="starts">Starts with</option>
+        </select>
+        <input class="filter-input" id="f-subject-val" placeholder="Filter subject…" oninput="applyFilters()" />
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Created</div>
+        <select class="filter-select" id="f-date-op">
+          <option value="on">On</option>
+          <option value="before">Before</option>
+          <option value="after">After</option>
+        </select>
+        <input class="filter-input" id="f-date-val" type="date" oninput="applyFilters()" />
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Owner</div>
+        <select class="filter-select" id="f-owner-op">
+          <option value="equals">Equals</option>
+          <option value="contains">Contains</option>
+        </select>
+        <select class="filter-select" id="f-owner-val" onchange="applyFilters()">
+          <option value="">All Owners</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Content</div>
+        <select class="filter-select" id="f-content-op">
+          <option value="contains">Contains</option>
+        </select>
+        <input class="filter-input" id="f-content-val" placeholder="Filter content…" oninput="applyFilters()" />
+      </div>
+      <div class="filter-actions">
+        <button class="btn-zoho primary" onclick="applyFilters()">Apply</button>
+        <button class="btn-zoho" onclick="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <table class="memo-table" id="memo-table">
+      <thead>
+        <tr>
+          <th class="col-subject">
+            <div class="th-inner" onclick="sortBy('subject')">
+              Subject
+              <div class="sort-arrows" id="sort-subject">
+                <span>▲</span><span>▼</span>
+              </div>
+            </div>
+          </th>
+          <th class="col-created">
+            <div class="th-inner" onclick="sortBy('created')">
+              Created
+              <div class="sort-arrows active" id="sort-created">
+                <span>▲</span><span>▼</span>
+              </div>
+            </div>
+          </th>
+          <th class="col-owner">
+            <div class="th-inner" onclick="sortBy('owner')">
+              Owner
+              <div class="sort-arrows" id="sort-owner">
+                <span>▲</span><span>▼</span>
+              </div>
+            </div>
+          </th>
+          <th class="col-content">
+            <div class="th-inner">Content</div>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="memo-tbody">
+        <tr><td colspan="4" class="empty-state">
+          <div class="empty-icon">📝</div>
+          Loading memos…
+        </td></tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display:none;">
+      <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>‹</button>
+      <span class="page-info" id="page-info">1 - 10</span>
+      <button class="page-btn" id="next-btn" onclick="changePage(1)">›</button>
+    </div>
+
+  </div><!-- /widget-wrap -->
+
+  <!-- New Memo Modal -->
+  <div class="modal-overlay" id="new-memo-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">New Memo</span>
+        <button class="modal-close" onclick="closeNewMemoModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label class="modal-label">Subject <span class="req">*</span></label>
+          <input class="modal-input" id="new-subject" placeholder="Enter memo subject…" />
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Content</label>
+          <textarea class="modal-textarea" id="new-content" placeholder="Enter memo content…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-zoho" onclick="closeNewMemoModal()">Cancel</button>
+        <button class="btn-zoho primary" onclick="saveMemo()">Save</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+//  Adviser CRM — Memos Widget
+//  Matches Zoho native related list UI
+//  v1.0.0
+// ─────────────────────────────────────────────────────────────────
+
+let ENTITY_ID   = null;
+let ENTITY_TYPE = 'Contacts';
+let ALL_MEMOS   = [];
+let FILTERED    = [];
+let SORT_FIELD  = 'created';
+let SORT_DIR    = 'desc';
+let PAGE        = 1;
+let PER_PAGE    = 10;
+let EXPAND_ALL  = false;
+
+// ── Utilities ─────────────────────────────────────────────────────
+function el(id) { return document.getElementById(id); }
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s.includes('T') ? s : s + 'T00:00:00');
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('en-NZ', { day:'2-digit', month:'2-digit', year:'numeric' })
+    .replace(/\//g,'-');
+}
+function reveal() {
+  el('loading').classList.add('hidden');
+  el('main-page').classList.add('visible');
+}
+function escHtml(str) {
+  return String(str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function render() {
+  const tbody    = el('memo-tbody');
+  const start    = (PAGE - 1) * PER_PAGE;
+  const pageData = FILTERED.slice(start, start + PER_PAGE);
+
+  // Update record count
+  el('record-count').textContent = FILTERED.length + ' memo' + (FILTERED.length !== 1 ? 's' : '');
+
+  if (FILTERED.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">' +
+      '<div class="empty-icon">📝</div>' +
+      (ALL_MEMOS.length === 0 ? 'No memos on file' : 'No memos match your search') +
+      '</td></tr>';
+    el('pagination').style.display = 'none';
+    return;
+  }
+
+  tbody.innerHTML = pageData.map(function(m) {
+    const shortContent = m.content.length > 120
+      ? m.content.substring(0, 120) + '…'
+      : m.content;
+    const hasMore = m.content.length > 120;
+    const expanded = EXPAND_ALL || m.expanded;
+
+    return '<tr>' +
+      '<td class="col-subject">' +
+        '<a class="subject-link" href="#" onclick="openMemo(\'' + m.id + '\');return false;">' +
+          escHtml(m.subject) +
+        '</a>' +
+      '</td>' +
+      '<td class="col-created date-cell">' + fmtDate(m.created) + '</td>' +
+      '<td class="col-owner owner-cell">' + escHtml(m.owner) + '</td>' +
+      '<td class="col-content content-cell">' +
+        '<div class="content-text">' +
+          '<span class="content-short' + (expanded ? ' collapsed' : '') + '" id="short-' + m.id + '">' +
+            escHtml(shortContent) +
+          '</span>' +
+          '<span class="content-full' + (expanded ? ' expanded' : '') + '" id="full-' + m.id + '">' +
+            escHtml(m.content) +
+          '</span>' +
+        '</div>' +
+        (hasMore
+          ? '<button class="show-toggle' + (expanded ? '' : ' show-more') + '" ' +
+              'onclick="toggleContent(\'' + m.id + '\')" id="toggle-' + m.id + '">' +
+              (expanded ? 'Show Less' : 'Show More') +
+            '</button>'
+          : '') +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  // Pagination
+  const totalPages = Math.ceil(FILTERED.length / PER_PAGE);
+  if (totalPages > 1) {
+    el('pagination').style.display = 'flex';
+    const startNum = start + 1;
+    const endNum   = Math.min(start + PER_PAGE, FILTERED.length);
+    el('page-info').textContent = startNum + ' - ' + endNum;
+    el('prev-btn').disabled = PAGE <= 1;
+    el('next-btn').disabled = PAGE >= totalPages;
+  } else {
+    el('pagination').style.display = 'none';
+  }
+}
+
+// ── Toggle content expand ─────────────────────────────────────────
+function toggleContent(id) {
+  const memo = ALL_MEMOS.find(function(m){ return m.id === id; });
+  if (memo) memo.expanded = !memo.expanded;
+  const shortEl  = el('short-' + id);
+  const fullEl   = el('full-'  + id);
+  const toggleEl = el('toggle-' + id);
+  if (shortEl && fullEl && toggleEl) {
+    const expanding = fullEl.classList.contains('expanded') ? false : true;
+    shortEl.classList.toggle('collapsed', expanding);
+    fullEl.classList.toggle('expanded', expanding);
+    toggleEl.classList.toggle('show-more', !expanding);
+    toggleEl.textContent = expanding ? 'Show Less' : 'Show More';
+  }
+}
+
+// ── Toggle expand all ─────────────────────────────────────────────
+function toggleExpandAll() {
+  EXPAND_ALL = !EXPAND_ALL;
+  ALL_MEMOS.forEach(function(m){ m.expanded = EXPAND_ALL; });
+  render();
+}
+
+// ── Filter ────────────────────────────────────────────────────────
+function applyFilters() {
+  const search     = (el('search-input')?.value  || '').toLowerCase().trim();
+  const subjectVal = (el('f-subject-val')?.value || '').toLowerCase().trim();
+  const subjectOp  = el('f-subject-op')?.value   || 'contains';
+  const dateVal    = el('f-date-val')?.value      || '';
+  const dateOp     = el('f-date-op')?.value       || 'on';
+  const ownerVal   = (el('f-owner-val')?.value    || '').toLowerCase();
+  const contentVal = (el('f-content-val')?.value  || '').toLowerCase().trim();
+
+  FILTERED = ALL_MEMOS.filter(function(m) {
+    // Global search
+    if (search && !(
+      m.subject.toLowerCase().includes(search) ||
+      m.content.toLowerCase().includes(search) ||
+      m.owner.toLowerCase().includes(search)
+    )) return false;
+
+    // Subject filter
+    if (subjectVal) {
+      const s = m.subject.toLowerCase();
+      if (subjectOp === 'contains' && !s.includes(subjectVal)) return false;
+      if (subjectOp === 'equals'   && s !== subjectVal)         return false;
+      if (subjectOp === 'starts'   && !s.startsWith(subjectVal))return false;
+    }
+
+    // Date filter
+    if (dateVal) {
+      const mDate = m.created.substring(0, 10);
+      if (dateOp === 'on'     && mDate !== dateVal)  return false;
+      if (dateOp === 'before' && mDate >= dateVal)   return false;
+      if (dateOp === 'after'  && mDate <= dateVal)   return false;
+    }
+
+    // Owner filter
+    if (ownerVal && !m.owner.toLowerCase().includes(ownerVal)) return false;
+
+    // Content filter
+    if (contentVal && !m.content.toLowerCase().includes(contentVal)) return false;
+
+    return true;
+  });
+
+  PAGE = 1;
+  render();
+}
+
+function clearFilters() {
+  ['f-subject-val','f-date-val','f-content-val','search-input'].forEach(function(id){
+    const e = el(id); if(e) e.value = '';
+  });
+  ['f-subject-op','f-date-op'].forEach(function(id){
+    const e = el(id); if(e) e.selectedIndex = 0;
+  });
+  const ownerSel = el('f-owner-val');
+  if (ownerSel) ownerSel.value = '';
+  FILTERED = ALL_MEMOS.slice();
+  PAGE = 1;
+  render();
+}
+
+// ── Sort ──────────────────────────────────────────────────────────
+function sortBy(field) {
+  if (SORT_FIELD === field) {
+    SORT_DIR = SORT_DIR === 'asc' ? 'desc' : 'asc';
+  } else {
+    SORT_FIELD = field;
+    SORT_DIR   = 'desc';
+  }
+  sortData();
+  render();
+}
+
+function cycleSortOrder() {
+  SORT_DIR = SORT_DIR === 'asc' ? 'desc' : 'asc';
+  sortData();
+  render();
+}
+
+function sortData() {
+  FILTERED.sort(function(a, b) {
+    let av = a[SORT_FIELD] || '';
+    let bv = b[SORT_FIELD] || '';
+    if (SORT_FIELD === 'created') {
+      av = new Date(av).getTime() || 0;
+      bv = new Date(bv).getTime() || 0;
+    } else {
+      av = av.toLowerCase();
+      bv = bv.toLowerCase();
+    }
+    if (av < bv) return SORT_DIR === 'asc' ? -1 : 1;
+    if (av > bv) return SORT_DIR === 'asc' ?  1 : -1;
+    return 0;
+  });
+}
+
+// ── Pagination ────────────────────────────────────────────────────
+function changePage(delta) {
+  const totalPages = Math.ceil(FILTERED.length / PER_PAGE);
+  PAGE = Math.max(1, Math.min(PAGE + delta, totalPages));
+  render();
+}
+
+// ── Filter bar toggle ─────────────────────────────────────────────
+function toggleFilterBar() {
+  el('filter-bar').classList.toggle('visible');
+}
+
+// ── Populate owner dropdown ───────────────────────────────────────
+function populateOwnerDropdown() {
+  const owners = [...new Set(ALL_MEMOS.map(function(m){ return m.owner; }))].sort();
+  const sel = el('f-owner-val');
+  if (!sel) return;
+  const existing = sel.innerHTML;
+  owners.forEach(function(o) {
+    sel.innerHTML += '<option value="' + escHtml(o.toLowerCase()) + '">' + escHtml(o) + '</option>';
+  });
+}
+
+// ── Load memos ────────────────────────────────────────────────────
+function loadMemos(records) {
+  ALL_MEMOS = records.map(function(r) {
+    return {
+      id:       r.id || '',
+      subject:  r.Note_Title || r.Subject || r.Name || 'No Subject',
+      content:  r.Note_Content || r.Content || r.Description || '',
+      created:  r.Created_Time || r.Created_At || '',
+      owner:    r.Owner ? (r.Owner.name || r.Owner) : '—',
+      expanded: false,
+    };
+  });
+
+  // Sort by date descending by default
+  ALL_MEMOS.sort(function(a,b){
+    return new Date(b.created) - new Date(a.created);
+  });
+
+  FILTERED = ALL_MEMOS.slice();
+  populateOwnerDropdown();
+  render();
+}
+
+// ── CRM Actions ───────────────────────────────────────────────────
+function openMemo(id) {
+  if (typeof ZOHO !== 'undefined' && ZOHO.CRM) {
+    ZOHO.CRM.UI.Record.open({ Entity: 'Memos', RecordID: id });
+  } else {
+    alert('[Mock] Open Memo: ' + id);
+  }
+}
+
+// ── New Memo Modal ────────────────────────────────────────────────
+function openNewMemoModal() {
+  el('new-subject').value = '';
+  el('new-content').value = '';
+  el('new-memo-modal').classList.add('visible');
+  setTimeout(function(){ el('new-subject').focus(); }, 100);
+}
+function closeNewMemoModal() {
+  el('new-memo-modal').classList.remove('visible');
+}
+function saveMemo() {
+  const subject = el('new-subject').value.trim();
+  const content = el('new-content').value.trim();
+  if (!subject) { el('new-subject').focus(); return; }
+
+  if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ENTITY_ID) {
+    ZOHO.CRM.API.addRecord({
+      Entity: 'Memos',
+      APIData: {
+        Note_Title:    subject,
+        Note_Content:  content,
+        Parent_Id:     ENTITY_ID,
+      }
+    }).then(function(data) {
+      closeNewMemoModal();
+      // Reload memos
+      ZOHO.CRM.API.getRelatedRecords({
+        Entity: ENTITY_TYPE, RecordID: ENTITY_ID,
+        RelatedList: 'Memos', page: 1, per_page: 200,
+      }).then(function(resp){ loadMemos(resp.data || []); });
+    });
+  } else {
+    // Mock — add locally
+    ALL_MEMOS.unshift({
+      id:       'new-' + Date.now(),
+      subject:  subject,
+      content:  content,
+      created:  new Date().toISOString(),
+      owner:    'Sean Davis',
+      expanded: false,
+    });
+    FILTERED = ALL_MEMOS.slice();
+    closeNewMemoModal();
+    render();
+  }
+}
+
+// Close modal on overlay click
+el('new-memo-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeNewMemoModal();
+});
+
+// ── Mock data ─────────────────────────────────────────────────────
+(function() {
+  function initMockIfNeeded() {
+    if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) return;
+
+    var MOCK_MEMOS = [
+      {
+        id:'m1',
+        Note_Title:'=== MORTGAGE APPLICATION LOAN:4492067000005867932 ===',
+        Note_Content:'eyJpZCI6IjQ0OTIwNjcwMDAwMDU4Njc5MzIiLCJsb2FuX2Ftb3VudCI6IjY1MDAwMCIsImxlbmRlciI6IkFOWiIsInR5cGUiOiJIb21lIExvYW4iLCJzdGF0dXMiOiJBcHBsaWNhdGlvbiBTdWJtaXR0ZWQiLCJkYXRlIjoiMjAyNi0wNy0wNCJ9',
+        Created_Time:'2026-07-04T00:00:00',
+        Owner:{ name:'Steven Strange' },
+      },
+      {
+        id:'m2',
+        Note_Title:'=== MORTGAGE APPLICATION LOAN:4492067000005867932 PART[1] ===',
+        Note_Content:'ln0slk93bmVyljp7lm5hbWUiOiJTdGV2ZW4gU3RyYW5nZSIsImlkIjoiNDQ5MjA2NzAwMDAwMTIzNDU2In0sImZpZWxkcyI6eyJob21lX2xvYW4iOnRydWUsImZpeGVkX3JhdGUiOiI2Ljg5IiwiaW50ZXJlc3Rfb25seSI6ZmFsc2V9fQ==',
+        Created_Time:'2026-07-04T00:00:00',
+        Owner:{ name:'Steven Strange' },
+      },
+      {
+        id:'m3',
+        Note_Title:'KiwiSaver Review — Fred Smith',
+        Note_Content:'Reviewed Fred\'s KiwiSaver with AMP Growth Fund. Current balance $148,000. Recommended switching to Balanced fund given upcoming retirement in 8 years. Client agreed to proceed with fund switch.',
+        Created_Time:'2026-06-15T10:30:00',
+        Owner:{ name:'Sean Davis' },
+      },
+      {
+        id:'m4',
+        Note_Title:'Annual Insurance Review 2025',
+        Note_Content:'Completed annual insurance review for Fred and Mary. Life cover adequate at $500K. Recommended increasing trauma cover from $250K to $350K following purchase of investment property. Quote requested from Partners Life.',
+        Created_Time:'2026-05-22T14:00:00',
+        Owner:{ name:'Sean Davis' },
+      },
+      {
+        id:'m5',
+        Note_Title:'Client onboarding notes',
+        Note_Content:'Fred referred by James Thornton. Initial meeting completed. AML verification done. Risk profile assessed as Balanced. Primary goals: mortgage review, life insurance adequacy, KiwiSaver optimisation.',
+        Created_Time:'2023-06-01T09:00:00',
+        Owner:{ name:'Sean Davis' },
+      },
+    ];
+
+    window.ZOHO = {
+      embeddedApp: {
+        _h:{},
+        on(e,fn){ this._h[e]=fn; },
+        init(){
+          var self=this;
+          setTimeout(function(){
+            var fn=self._h['PageLoad'];
+            if(fn) fn({ EntityId:'c-001', Entity:'Contacts' });
+          }, 500);
+        }
+      },
+      CRM:{
+        API:{
+          getRelatedRecords(){ return Promise.resolve({ data: MOCK_MEMOS }); },
+          addRecord(){ return Promise.resolve({ data:[{ id:'new-'+Date.now() }] }); },
+        },
+        CONFIG:{
+          getCurrentUser(){
+            // Mock returns a sample theme — change background hex to
+            // test different colours e.g. '#e84c3d', '#27ae60', '#8e44ad'
+            return Promise.resolve({
+              users:[{
+                id:'usr-001',
+                name:'Sean Davis',
+                theme:{
+                  normal_tab:   { font_color:'#FFFFFF', background:'#17a2b8' },
+                  selected_tab: { font_color:'#FFFFFF', background:'#17a2b8' },
+                  background:   '#f3f0eb',
+                  screen:       'fixed',
+                  type:         'default',
+                }
+              }]
+            });
+          },
+        },
+        UI:{ Record:{ open(o){ alert('[Mock] Open '+o.Entity+' '+o.RecordID); } } }
+      }
+    };
+  }
+  setTimeout(initMockIfNeeded, 300);
+})();
+
+// ── Bootstrap ─────────────────────────────────────────────────────
+// ── Theme detection ───────────────────────────────────────────────
+// Reads the user's personal colour palette selection from their
+// Zoho CRM profile and applies it to the widget CSS variables.
+// This means the widget automatically matches whichever of the
+// 22 Zoho theme colours the adviser has chosen in their profile.
+
+function hexToRgb(hex) {
+  // Normalise 3-digit hex to 6-digit
+  hex = hex.replace('#','');
+  if (hex.length === 3) {
+    hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  }
+  var r = parseInt(hex.substring(0,2),16);
+  var g = parseInt(hex.substring(2,4),16);
+  var b = parseInt(hex.substring(4,6),16);
+  return { r:r, g:g, b:b };
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r,g,b].map(function(v){
+    var h = Math.max(0, Math.min(255, Math.round(v))).toString(16);
+    return h.length === 1 ? '0'+h : h;
+  }).join('');
+}
+
+function darkenHex(hex, amount) {
+  // amount 0–100 — darkens by blending toward black
+  var c = hexToRgb(hex);
+  var f = 1 - (amount / 100);
+  return rgbToHex(c.r * f, c.g * f, c.b * f);
+}
+
+function lightenHex(hex, amount) {
+  // amount 0–100 — lightens by blending toward white
+  var c = hexToRgb(hex);
+  var f = amount / 100;
+  return rgbToHex(
+    c.r + (255 - c.r) * f,
+    c.g + (255 - c.g) * f,
+    c.b + (255 - c.b) * f
+  );
+}
+
+function applyTheme(theme) {
+  if (!theme) return;
+
+  // Primary accent — use selected_tab background as the main colour
+  // Falls back to normal_tab background, then Adviser CRM default blue
+  var primary = (theme.selected_tab && theme.selected_tab.background)
+    || (theme.normal_tab && theme.normal_tab.background)
+    || '#17a2b8';
+
+  // Skip if Zoho returns 'default' or a non-hex value
+  if (!primary || primary === 'default' || primary.indexOf('#') === -1) {
+    primary = '#17a2b8';
+  }
+
+  var primaryDk  = darkenHex(primary, 15);   // darker shade for hover
+  var primaryLt  = lightenHex(primary, 88);  // very light tint for hover rows
+  var primaryXlt = lightenHex(primary, 94);  // ultra light for filter bar bg
+
+  var root = document.documentElement;
+  root.style.setProperty('--zoho-blue',      primary);
+  root.style.setProperty('--zoho-blue-dk',   primaryDk);
+  root.style.setProperty('--zoho-blue-lt',   primaryLt);
+  root.style.setProperty('--zoho-blue-hdr',  primary);
+  root.style.setProperty('--zoho-bg-hdr',    primary);
+  root.style.setProperty('--zoho-link',      primary);
+  root.style.setProperty('--zoho-link-hover',primaryDk);
+
+  // Log for debugging during development
+  console.log('Adviser CRM — Theme applied:', primary);
+}
+
+function startApp() {
+  ZOHO.embeddedApp.on('PageLoad', function(data) {
+    ENTITY_ID   = data.EntityId;
+    ENTITY_TYPE = data.Entity || 'Contacts';
+
+    // Load user theme + memos in parallel
+    Promise.all([
+      ZOHO.CRM.CONFIG.getCurrentUser(),
+      ZOHO.CRM.API.getRelatedRecords({
+        Entity:      ENTITY_TYPE,
+        RecordID:    ENTITY_ID,
+        RelatedList: 'Memos',
+        page:        1,
+        per_page:    200,
+      }),
+    ])
+    .then(function(results) {
+      // Apply the user's chosen theme colour first
+      var userData = results[0];
+      if (userData && userData.users && userData.users[0]) {
+        applyTheme(userData.users[0].theme);
+      }
+
+      // Then load the memos
+      var memosData = results[1];
+      loadMemos(memosData.data || []);
+    })
+    .catch(function(err) {
+      console.error('Memos load error:', err);
+      loadMemos([]);
+    })
+    .finally(function() {
+      reveal();
+    });
+  });
+  ZOHO.embeddedApp.init();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(startApp, 350); });
+} else {
+  setTimeout(startApp, 350);
+}
+
+// Hard fallback
+setTimeout(function(){
+  var l=el('loading');
+  if(l && !l.classList.contains('hidden')){
+    l.classList.add('hidden');
+    el('main-page').classList.add('visible');
+  }
+}, 3000);
+</script>
+</body>
+</html>
