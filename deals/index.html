@@ -181,7 +181,13 @@
   @media (max-width: 560px) { .field-grid, .field-grid.cols-3 { grid-template-columns: 1fr 1fr; } }
   .field .fl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 3px; }
   .field .fv { font-size: 13px; color: var(--ink); font-weight: 600; }
-  .field .fv.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+  .field .fv.empty {
+    color: var(--amber); font-weight: 700; font-style: normal;
+  }
+  /* Lighter amber variant for the dark hero background, kept readable there. */
+  .hero-stat .v.empty, .amount-figure .amount-value.empty {
+    color: #ffc670; font-weight: 700;
+  }
   .field .fv.mono { font-family: 'SF Mono', Menlo, monospace; font-size: 12px; }
 
   .desc-block { font-size: 12.5px; color: var(--ink-mid); margin-top: 4px; white-space: pre-wrap; }
@@ -197,6 +203,7 @@
   /* ── Trial progress ── */
   .trial-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .trial-days { font-size: 22px; font-weight: 700; color: var(--ink); }
+  .trial-days.empty { color: var(--amber); }
   .trial-days-label { font-size: 10.5px; color: var(--muted); }
   .progress-track { height: 8px; border-radius: 6px; background: var(--bg-alt); overflow: hidden; margin-bottom: 4px; }
   .progress-fill { height: 100%; border-radius: 6px; background: var(--blue); transition: width 0.4s ease; }
@@ -263,7 +270,6 @@
     <div class="loading-text">Loading deal…</div>
   </div>
   <div id="mock-badge">MOCK MODE — running outside Zoho CRM (sample data shown)</div>
-  <div id="debug-badge" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#3a1a00; color:#ffcf8a; font-family:monospace; font-size:11px; padding:6px 12px; white-space:pre-wrap; word-break:break-all; max-height:35vh; overflow:auto;"></div>
 
   <div class="page" id="page">
 
@@ -485,7 +491,13 @@ var LICENSE_TYPE_ORDER = ['Adviser License','Admin License','Auditor License','P
 
 // ── Helpers ───────────────────────────────────────────────────────
 function el(id) { return document.getElementById(id); }
-function setEl(id, val) { var e = el(id); if (e) e.textContent = (val === null || val === undefined || val === '') ? '—' : val; }
+function setEl(id, val) {
+  var e = el(id);
+  if (!e) return;
+  var isEmpty = (val === null || val === undefined || val === '');
+  e.textContent = isEmpty ? 'Not set' : val;
+  e.classList.toggle('empty', isEmpty);
+}
 function fmtCurr(n) {
   if (n === null || n === undefined || n === '') return '$0';
   return 'NZ$' + Number(n).toLocaleString('en-NZ', { maximumFractionDigits: 0 });
@@ -539,7 +551,7 @@ function renderTrial(startStr, expiryStr) {
   var badge = el('trial-badge');
   if (!startStr && !expiryStr) {
     badge.textContent = 'Not Started'; badge.className = 'badge badge-muted';
-    setEl('trial-days', '—'); setEl('trial-days-label', 'no trial dates set');
+    setEl('trial-days', null); setEl('trial-days-label', 'no trial dates set');
     el('trial-progress').style.width = '0%';
     setEl('trial-start-lbl', 'Start —'); setEl('trial-end-lbl', 'Expiry —');
     return;
@@ -664,8 +676,8 @@ function populateDeal(d) {
   else { el('pipeline-pill').style.display = 'none'; }
   if (d.Type && d.Type !== '-None-') { el('type-pill').textContent = d.Type; el('type-pill').style.display = 'inline-flex'; }
 
-  setEl('hero-amount', fmtCurr(d.Amount));
-  setEl('hero-probability', (d.Probability !== undefined && d.Probability !== null) ? d.Probability + '%' : '—');
+  setEl('hero-amount', (d.Amount === null || d.Amount === undefined || d.Amount === '') ? null : fmtCurr(d.Amount));
+  setEl('hero-probability', (d.Probability !== undefined && d.Probability !== null && d.Probability !== '') ? d.Probability + '%' : null);
   setEl('hero-closing', fmtDate(d.Closing_Date));
   setEl('hero-owner', ownerName);
 
@@ -811,15 +823,6 @@ function openAccount() {
       var rawEntityId = data && data.EntityId;
       ENTITY_ID = Array.isArray(rawEntityId) ? rawEntityId[0] : (rawEntityId || (data && data.RecordId) || null);
 
-      // TEMPORARY DEBUG — remove once EntityId linking is confirmed working.
-      console.log('[deals debug] PageLoad data:', data);
-      console.log('[deals debug] resolved ENTITY_ID:', ENTITY_ID);
-      var dbg = el('debug-badge');
-      if (dbg) {
-        dbg.style.display = 'block';
-        dbg.textContent = 'DEBUG — PageLoad data: ' + JSON.stringify(data) + '\nresolved ENTITY_ID: ' + ENTITY_ID;
-      }
-
       if (!ENTITY_ID) { reveal(); return; }
 
       Promise.all([
@@ -838,7 +841,6 @@ function openAccount() {
         renderHistory((histResp && histResp.data) || []);
       }).catch(function(err) {
         console.error('Deal page load error', err);
-        if (dbg) dbg.textContent += '\n\nAPI ERROR: ' + JSON.stringify(err);
       }).finally(reveal);
     });
     ZOHO.embeddedApp.init();
