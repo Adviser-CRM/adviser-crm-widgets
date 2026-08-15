@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account — Adviser CRM</title>
+  <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+  <style>
+    :root {
+      --blue:      #00abe6;
+      --blue-dk:   #0087b8;
+      --blue-lt:   #d0eefa;
+      --blue-xlt:  #ebf7fd;
+      --ink:       #00364d;
+      --ink-mid:   #005a7a;
+      --muted:     #5a9ab5;
+      --divider:   #c0e4f5;
+      --bg:        #f0faff;
+      --bg-alt:    #dff3fc;
+      --white:     #ffffff;
+      --green:     #0d7f5f;
+      --green-lt:  #d4f0e8;
+      --amber:     #b86b00;
+      --amber-lt:  #fef0d6;
+      --red:       #c0392b;
+      --red-lt:    #fde8e6;
+      --purple:    #6c3fcf;
+      --purple-lt: #ede8fb;
+      --teal:      #0d7f7f;
+      --teal-lt:   #d4f0f0;
+      --sans:      Verdana, Geneva, sans-serif;
+      --radius:    10px;
+      --radius-lg: 14px;
+      --shadow:    0 2px 10px rgba(0,171,230,0.10);
+      --shadow-md: 0 6px 24px rgba(0,171,230,0.14);
+      --nav-w:     210px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; z-index: 999;
+      transition: opacity 0.3s ease;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 38px; height: 38px;
+      border: 3px solid var(--divider);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 12px; color: var(--muted); }
+
+    #mock-badge {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--ink); color: var(--blue);
+      font-family: monospace; font-size: 11px;
+      padding: 5px 14px; text-align: center; z-index: 998;
+    }
+
+    .page { display: none; }
+    .page.visible { display: block; }
+
+    /* ── Hero / Header ── */
+    .hero {
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink-mid) 100%);
+      padding: 22px 28px 0;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,54,77,0.25);
+    }
+
+    .hero-top {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding-bottom: 16px;
+    }
+
+    .hero-left { display: flex; align-items: center; gap: 16px; }
+
+    .account-type {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--blue); background: rgba(0,171,230,0.15);
+      padding: 3px 10px; border-radius: 20px;
+      border: 1px solid rgba(0,171,230,0.3);
+    }
+
+    .account-name {
+      font-size: 20px; font-weight: 700;
+      color: var(--white); letter-spacing: -0.01em;
+    }
+    .account-meta { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+    .hero-actions { display: flex; gap: 8px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 14px; border-radius: var(--radius);
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      cursor: pointer; border: none; transition: all 0.18s ease;
+      white-space: nowrap; text-decoration: none;
+    }
+    .btn-blue { background: var(--blue); color: var(--white); }
+    .btn-blue:hover { background: var(--blue-dk); }
+    .btn-ghost-white {
+      background: rgba(255,255,255,0.1); color: var(--white);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-ghost-white:hover { background: rgba(255,255,255,0.2); }
+
+    /* ── Financial Health Strip ── */
+    .health-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .health-item {
+      padding: 12px 16px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .health-item:last-child { border-right: none; }
+    .health-item:hover { background: rgba(255,255,255,0.05); }
+
+    .health-label {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.5); margin-bottom: 3px;
+    }
+    .health-value {
+      font-size: 16px; font-weight: 700;
+      color: var(--white); line-height: 1;
+    }
+    .health-value.positive { color: #4dd6a0; }
+    .health-value.negative { color: #f87272; }
+    .health-value.blue     { color: var(--blue); }
+    .health-sub {
+      font-size: 9px; color: rgba(255,255,255,0.4);
+      margin-top: 2px;
+    }
+
+    /* ── Page Layout ── */
+    .page-body {
+      display: grid;
+      grid-template-columns: var(--nav-w) 1fr;
+      gap: 0;
+      min-height: calc(100vh - 120px);
+    }
+
+    /* ── Left Nav ── */
+    .left-nav {
+      position: sticky;
+      top: 120px;
+      height: calc(100vh - 120px);
+      overflow-y: auto;
+      background: var(--white);
+      border-right: 1.5px solid var(--divider);
+      padding: 16px 0;
+    }
+
+    .nav-section-label {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); padding: 10px 18px 6px;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 18px; cursor: pointer;
+      font-size: 12px; font-weight: 600; color: var(--ink-mid);
+      border-left: 3px solid transparent;
+      transition: all 0.15s ease; text-decoration: none;
+    }
+    .nav-item:hover {
+      background: var(--bg);
+      color: var(--blue);
+      border-left-color: var(--blue-lt);
+    }
+    .nav-item.active {
+      background: var(--blue-xlt);
+      color: var(--blue);
+      border-left-color: var(--blue);
+    }
+    .nav-item-icon { font-size: 14px; flex-shrink: 0; }
+    .nav-item-label { flex: 1; }
+    .nav-badge {
+      font-size: 10px; font-weight: 700;
+      background: var(--blue-lt); color: var(--blue-dk);
+      padding: 1px 7px; border-radius: 20px;
+      min-width: 20px; text-align: center;
+    }
+    .nav-badge.green { background: var(--green-lt); color: var(--green); }
+    .nav-badge.amber { background: var(--amber-lt); color: var(--amber); }
+    .nav-badge.red   { background: var(--red-lt);   color: var(--red); }
+    .nav-badge.grey  { background: var(--bg-alt);   color: var(--muted); }
+
+    .nav-divider { height: 1px; background: var(--divider); margin: 8px 0; }
+
+    /* ── Main Content ── */
+    .main-content { padding: 24px 28px 80px; }
+
+    /* ── Module Section ── */
+    .module-section { margin-bottom: 28px; scroll-margin-top: 130px; }
+
+    .module-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .module-title-wrap { display: flex; align-items: center; gap: 10px; }
+    .module-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+    .module-title {
+      font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--ink);
+    }
+    .module-count {
+      font-size: 11px; color: var(--muted);
+      background: var(--bg-alt); padding: 2px 8px;
+      border-radius: 20px; font-weight: 700;
+    }
+    .module-actions { display: flex; gap: 8px; }
+    .btn-sm {
+      padding: 5px 12px; font-size: 11px; border-radius: var(--radius);
+      font-family: var(--sans); font-weight: 700; cursor: pointer;
+      border: 1.5px solid var(--divider); background: var(--white);
+      color: var(--ink-mid); transition: all 0.15s ease;
+    }
+    .btn-sm:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-sm-blue {
+      background: var(--blue); color: var(--white);
+      border-color: var(--blue);
+    }
+    .btn-sm-blue:hover { background: var(--blue-dk); }
+
+    /* ── Module Card ── */
+    .module-card {
+      background: var(--white);
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* ── Compact table ── */
+    .compact-table { width: 100%; border-collapse: collapse; }
+    .compact-table th {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); padding: 9px 14px;
+      text-align: left; background: var(--bg-alt);
+      border-bottom: 1.5px solid var(--divider);
+    }
+    .compact-table td {
+      padding: 10px 14px; font-size: 12px;
+      color: var(--ink-mid); border-bottom: 1px solid var(--divider);
+      vertical-align: middle;
+    }
+    .compact-table tr:last-child td { border-bottom: none; }
+    .compact-table tr:hover td { background: var(--bg); }
+    .compact-table .td-name { font-weight: 700; color: var(--ink); }
+    .compact-table .td-link {
+      color: var(--blue); font-weight: 700; cursor: pointer;
+      text-decoration: none; white-space: nowrap;
+      font-size: 11px;
+    }
+    .compact-table .td-link:hover { text-decoration: underline; }
+
+    /* Status pills */
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 9px; border-radius: 20px;
+      font-size: 10px; font-weight: 700;
+      white-space: nowrap;
+    }
+    .pill-blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .pill-green  { background: var(--green-lt);  color: var(--green); }
+    .pill-amber  { background: var(--amber-lt);  color: var(--amber); }
+    .pill-red    { background: var(--red-lt);    color: var(--red); }
+    .pill-purple { background: var(--purple-lt); color: var(--purple); }
+    .pill-teal   { background: var(--teal-lt);   color: var(--teal); }
+    .pill-grey   { background: var(--bg-alt);    color: var(--muted); }
+
+    /* Contact cards (special layout) */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px; padding: 14px;
+    }
+    .contact-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius);
+      background: var(--bg);
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .contact-card:hover {
+      border-color: var(--blue);
+      background: var(--blue-xlt);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+    .contact-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: var(--white);
+      flex-shrink: 0;
+    }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .contact-role { font-size: 11px; color: var(--muted); }
+    .contact-email { font-size: 11px; color: var(--blue); }
+    .contact-type {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 20px;
+      background: var(--blue-lt); color: var(--blue-dk);
+      white-space: nowrap;
+    }
+    .contact-type.partner { background: var(--purple-lt); color: var(--purple); }
+    .contact-type.child   { background: var(--green-lt);  color: var(--green); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 28px 20px;
+      color: var(--muted); font-size: 12px;
+    }
+    .empty-icon { font-size: 26px; margin-bottom: 6px; }
+
+    /* View all link */
+    .view-all-row {
+      display: flex; align-items: center; justify-content: center;
+      padding: 10px;
+      border-top: 1.5px solid var(--divider);
+      background: var(--bg-alt);
+    }
+    .view-all-link {
+      font-size: 11px; font-weight: 700; color: var(--blue);
+      cursor: pointer; text-decoration: none;
+    }
+    .view-all-link:hover { text-decoration: underline; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .module-section { animation: fadeUp 0.35s ease both; }
+
+    /* ── Responsive ── */
+    @media (max-width: 820px) {
+      .page-body { grid-template-columns: 1fr; }
+      .left-nav { position: static; height: auto; border-right: none; border-bottom: 1.5px solid var(--divider); display: flex; flex-wrap: wrap; padding: 8px; gap: 4px; }
+      .nav-item { padding: 6px 12px; border-left: none; border-radius: 20px; font-size: 11px; }
+      .nav-item.active { border-left: none; }
+      .nav-section-label { display: none; }
+      .nav-divider { display: none; }
+      .health-strip { grid-template-columns: repeat(3,1fr); }
+      .main-content { padding: 16px; }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       FILE MANAGEMENT SECTION
+    ═══════════════════════════════════════════════════ */
+
+    /* Search and filter bar */
+    .fm-toolbar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1.5px solid var(--divider);
+      background: var(--bg-alt);
+      flex-wrap: wrap;
+    }
+
+    .fm-search-wrap {
+      flex: 1; min-width: 200px;
+      position: relative;
+    }
+    .fm-search {
+      width: 100%; padding: 8px 12px 8px 34px;
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius);
+      font-family: var(--sans); font-size: 12px;
+      color: var(--ink); background: var(--white);
+      outline: none; transition: border-color 0.15s;
+    }
+    .fm-search:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,171,230,0.12); }
+    .fm-search-icon {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px; pointer-events: none;
+    }
+
+    /* Category filter pills */
+    .fm-filters {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .fm-filter-pill {
+      padding: 5px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+      cursor: pointer; border: 1.5px solid var(--divider);
+      background: var(--white); color: var(--muted);
+      transition: all 0.15s ease; white-space: nowrap;
+      font-family: var(--sans);
+    }
+    .fm-filter-pill:hover { border-color: var(--blue); color: var(--blue); }
+    .fm-filter-pill.active {
+      background: var(--blue); color: var(--white);
+      border-color: var(--blue);
+    }
+
+    /* View toggle */
+    .fm-view-toggle {
+      display: flex; border: 1.5px solid var(--divider);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .fm-view-btn {
+      padding: 6px 10px; background: var(--white);
+      border: none; cursor: pointer; font-size: 14px;
+      color: var(--muted); transition: all 0.15s;
+      font-family: var(--sans);
+    }
+    .fm-view-btn:not(:last-child) { border-right: 1px solid var(--divider); }
+    .fm-view-btn.active { background: var(--blue); color: var(--white); }
+
+    /* Upload zone */
+    .fm-upload-zone {
+      margin: 14px 16px;
+      border: 2px dashed var(--divider);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--bg);
+    }
+    .fm-upload-zone:hover, .fm-upload-zone.dragover {
+      border-color: var(--blue);
+      background: var(--blue-xlt);
+    }
+    .fm-upload-icon { font-size: 28px; margin-bottom: 6px; }
+    .fm-upload-text { font-size: 12px; color: var(--muted); }
+    .fm-upload-text strong { color: var(--blue); cursor: pointer; }
+    .fm-upload-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* Upload panel (shown when uploading) */
+    .fm-upload-panel {
+      display: none;
+      margin: 0 16px 14px;
+      background: var(--blue-xlt);
+      border: 1.5px solid var(--blue);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+    .fm-upload-panel.visible { display: block; }
+    .fm-upload-panel-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--blue-dk); margin-bottom: 12px;
+    }
+    .fm-upload-fields {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px; margin-bottom: 12px;
+    }
+    .fm-field-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin-bottom: 4px;
+    }
+    .fm-field-input, .fm-field-select {
+      width: 100%; padding: 7px 10px;
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius);
+      font-family: var(--sans); font-size: 12px;
+      color: var(--ink); background: var(--white);
+      outline: none;
+    }
+    .fm-field-input:focus, .fm-field-select:focus { border-color: var(--blue); }
+    .fm-upload-file-name {
+      font-size: 12px; font-weight: 700; color: var(--ink);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .fm-upload-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* File grid view */
+    .fm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px; padding: 16px;
+    }
+    .fm-file-card {
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius-lg);
+      background: var(--bg);
+      padding: 14px;
+      cursor: pointer; transition: all 0.15s ease;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; gap: 8px;
+    }
+    .fm-file-card:hover {
+      border-color: var(--blue);
+      background: var(--white);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .fm-file-icon-wrap {
+      width: 52px; height: 52px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    .fm-file-name {
+      font-size: 11px; font-weight: 700; color: var(--ink);
+      line-height: 1.3; word-break: break-word;
+    }
+    .fm-file-cat {
+      font-size: 10px; padding: 2px 8px; border-radius: 20px;
+      font-weight: 700;
+    }
+    .fm-file-meta {
+      font-size: 10px; color: var(--muted); line-height: 1.4;
+    }
+    .fm-file-actions {
+      display: flex; gap: 6px; margin-top: 4px;
+    }
+    .fm-file-btn {
+      flex: 1; padding: 5px 8px;
+      border: 1.5px solid var(--divider);
+      border-radius: var(--radius);
+      background: var(--white); color: var(--ink-mid);
+      font-family: var(--sans); font-size: 10px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .fm-file-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .fm-file-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+    /* File list view */
+    .fm-list { padding: 0; }
+
+    /* No results */
+    .fm-no-results {
+      text-align: center; padding: 32px 20px;
+      color: var(--muted); font-size: 12px;
+    }
+    .fm-no-results-icon { font-size: 32px; margin-bottom: 8px; }
+
+    /* Hidden file input */
+    #fm-file-input { display: none; }
+
+    /* Expiry warning */
+    .expiry-warn { color: var(--amber); font-weight: 700; }
+    .expiry-expired { color: var(--red); font-weight: 700; }
+
+    /* Stats bar */
+    .fm-stats {
+      display: flex; gap: 0;
+      border-top: 1.5px solid var(--divider);
+      background: var(--bg-alt);
+    }
+    .fm-stat {
+      flex: 1; padding: 8px 14px; text-align: center;
+      border-right: 1px solid var(--divider);
+      font-size: 11px; color: var(--muted);
+    }
+    .fm-stat:last-child { border-right: none; }
+    .fm-stat strong { display: block; font-size: 14px; color: var(--ink); font-weight: 700; }
+
+
+    /* ── File List compact rows ── */
+    .fm-list-table td { padding: 9px 12px; }
+    .fm-row:hover td { background: var(--bg); }
+    .fm-row td { border-bottom: 1px solid var(--divider); }
+    .fm-preview-row td { padding: 0 !important; border-bottom: 2px solid var(--blue); }
+
+    /* Preview panel */
+    .fm-preview-panel {
+      background: var(--white);
+      border-top: 2px solid var(--blue);
+    }
+    .fm-preview-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--blue-xlt);
+      border-bottom: 1px solid var(--divider);
+    }
+    .fm-preview-close {
+      background: none; border: 1.5px solid var(--divider);
+      border-radius: var(--radius); padding: 4px 12px;
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      color: var(--muted); cursor: pointer;
+    }
+    .fm-preview-close:hover { border-color: var(--red); color: var(--red); }
+    .fm-preview-content { min-height: 120px; }
+    .fm-preview-loading {
+      padding: 40px; text-align: center;
+      color: var(--muted); font-size: 12px;
+    }
+
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading account…</div>
+</div>
+<div id="mock-badge">⚙ MOCK MODE — Sample data. Deploy inside Adviser CRM for live data.</div>
+
+<div class="page" id="main-page">
+
+  <!-- ── HERO ── -->
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-left">
+        <span class="account-type" id="account-type">Family Account</span>
+        <div>
+          <div class="account-name" id="account-name">Loading…</div>
+          <div class="account-meta" id="account-meta"></div>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-blue" onclick="newAdviceRecord()">＋ New Advice Record</button>
+        <button class="btn btn-ghost-white" onclick="sendEmail()">✉ Send Email</button>
+        <button class="btn btn-ghost-white" onclick="editAccount()">✎ Edit</button>
+      </div>
+    </div>
+
+    <!-- Financial Health Strip -->
+    <div class="health-strip">
+      <div class="health-item" onclick="scrollTo('assets')">
+        <div class="health-label">Total Assets</div>
+        <div class="health-value positive" id="hs-assets">$0</div>
+        <div class="health-sub" id="hs-assets-count">0 items</div>
+      </div>
+      <div class="health-item" onclick="scrollTo('liabilities')">
+        <div class="health-label">Total Liabilities</div>
+        <div class="health-value negative" id="hs-liabs">$0</div>
+        <div class="health-sub" id="hs-liabs-count">0 items</div>
+      </div>
+      <div class="health-item">
+        <div class="health-label">Net Worth</div>
+        <div class="health-value" id="hs-net-worth">$0</div>
+        <div class="health-sub">Assets minus Liabilities</div>
+      </div>
+      <div class="health-item" onclick="scrollTo('income')">
+        <div class="health-label">Annual Income</div>
+        <div class="health-value blue" id="hs-income">$0</div>
+        <div class="health-sub" id="hs-income-count">0 sources</div>
+      </div>
+      <div class="health-item" onclick="scrollTo('expenses')">
+        <div class="health-label">Annual Expenses</div>
+        <div class="health-value negative" id="hs-expenses">$0</div>
+        <div class="health-sub" id="hs-expenses-count">0 items</div>
+      </div>
+      <div class="health-item">
+        <div class="health-label">Annual Surplus</div>
+        <div class="health-value" id="hs-surplus">$0</div>
+        <div class="health-sub">Income minus Expenses</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-body">
+
+    <!-- ── LEFT NAV ── -->
+    <nav class="left-nav" id="left-nav">
+      <div class="nav-section-label">People</div>
+      <a class="nav-item active" href="#contacts" onclick="setActive(this)">
+        <span class="nav-item-icon">👤</span>
+        <span class="nav-item-label">Contacts</span>
+        <span class="nav-badge" id="nb-contacts">0</span>
+      </a>
+
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Advice</div>
+      <a class="nav-item" href="#advice-records" onclick="setActive(this)">
+        <span class="nav-item-icon">📋</span>
+        <span class="nav-item-label">Advice Records</span>
+        <span class="nav-badge amber" id="nb-advice">0</span>
+      </a>
+
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Insurance</div>
+      <a class="nav-item" href="#policies" onclick="setActive(this)">
+        <span class="nav-item-icon">🛡</span>
+        <span class="nav-item-label">Policies</span>
+        <span class="nav-badge green" id="nb-policies">0</span>
+      </a>
+      <a class="nav-item" href="#claims" onclick="setActive(this)">
+        <span class="nav-item-icon">📄</span>
+        <span class="nav-item-label">Claims</span>
+        <span class="nav-badge red" id="nb-claims">0</span>
+      </a>
+
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Lending</div>
+      <a class="nav-item" href="#loans" onclick="setActive(this)">
+        <span class="nav-item-icon">🏠</span>
+        <span class="nav-item-label">Loans</span>
+        <span class="nav-badge" id="nb-loans">0</span>
+      </a>
+
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Investments</div>
+      <a class="nav-item" href="#investments" onclick="setActive(this)">
+        <span class="nav-item-icon">📈</span>
+        <span class="nav-item-label">Investments</span>
+        <span class="nav-badge" id="nb-investments">0</span>
+      </a>
+
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Financial Position</div>
+      <a class="nav-item" href="#assets" onclick="setActive(this)">
+        <span class="nav-item-icon">🏡</span>
+        <span class="nav-item-label">Assets</span>
+        <span class="nav-badge" id="nb-assets">0</span>
+      </a>
+      <a class="nav-item" href="#liabilities" onclick="setActive(this)">
+        <span class="nav-item-icon">💳</span>
+        <span class="nav-item-label">Liabilities</span>
+        <span class="nav-badge" id="nb-liabilities">0</span>
+      </a>
+      <a class="nav-item" href="#income" onclick="setActive(this)">
+        <span class="nav-item-icon">💵</span>
+        <span class="nav-item-label">Income</span>
+        <span class="nav-badge" id="nb-income">0</span>
+      </a>
+      <a class="nav-item" href="#expenses" onclick="setActive(this)">
+        <span class="nav-item-icon">🧾</span>
+        <span class="nav-item-label">Expenses</span>
+        <span class="nav-badge" id="nb-expenses">0</span>
+      </a>
+
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Other</div>
+      <a class="nav-item" href="#general-policies" onclick="setActive(this)">
+        <span class="nav-item-icon">📑</span>
+        <span class="nav-item-label">General Policies</span>
+        <span class="nav-badge grey" id="nb-gen-policies">0</span>
+      </a>
+      <a class="nav-item" href="#complaints" onclick="setActive(this)">
+        <span class="nav-item-icon">⚠️</span>
+        <span class="nav-item-label">Complaints</span>
+        <span class="nav-badge red" id="nb-complaints">0</span>
+      </a>
+      <a class="nav-item" href="#notes" onclick="setActive(this)">
+        <span class="nav-item-icon">📝</span>
+        <span class="nav-item-label">Notes</span>
+        <span class="nav-badge grey" id="nb-notes">0</span>
+      </a>
+      <a class="nav-item" href="#file-management" onclick="setActive(this)">
+        <span class="nav-item-icon">📁</span>
+        <span class="nav-item-label">Files</span>
+        <span class="nav-badge grey" id="nb-files">0</span>
+      </a>
+    </nav>
+
+    <!-- ── MAIN CONTENT ── -->
+    <div class="main-content">
+
+      <!-- CONTACTS -->
+      <div class="module-section" id="contacts">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--blue-lt);">👤</div>
+            <div class="module-title">Contacts</div>
+            <span class="module-count" id="mc-contacts">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Contacts')">＋ New Contact</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="contact-grid" id="contacts-grid">
+            <div class="empty-state"><div class="empty-icon">👤</div>No contacts on file</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADVICE RECORDS -->
+      <div class="module-section" id="advice-records">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--amber-lt);">📋</div>
+            <div class="module-title">Advice Records</div>
+            <span class="module-count" id="mc-advice">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Advice_Records')">＋ New Advice Record</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Record</th>
+                <th>Name of Record</th>
+                <th>Status</th>
+                <th>Meeting Type</th>
+                <th>Date</th>
+                <th>Adviser</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="advice-tbody">
+              <tr><td colspan="7" class="empty-state"><div class="empty-icon">📋</div>No advice records on file</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="advice-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Advice_Records')">View all advice records →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- POLICIES -->
+      <div class="module-section" id="policies">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--green-lt);">🛡</div>
+            <div class="module-title">Policies</div>
+            <span class="module-count" id="mc-policies">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Policies')">＋ New Policy</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Policy Number</th>
+                <th>Policy Type</th>
+                <th>Insurer</th>
+                <th>Life Assured</th>
+                <th>Sum Insured</th>
+                <th>Premium</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="policies-tbody">
+              <tr><td colspan="8" class="empty-state"><div class="empty-icon">🛡</div>No policies on file</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="policies-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Policies')">View all policies →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOANS -->
+      <div class="module-section" id="loans">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:#fff3d4;">🏠</div>
+            <div class="module-title">Loans</div>
+            <span class="module-count" id="mc-loans">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Loans')">＋ New Loan</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Loan Type</th>
+                <th>Lender</th>
+                <th>Balance</th>
+                <th>Interest Rate</th>
+                <th>Monthly Repayment</th>
+                <th>Fixed Expiry</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="loans-tbody">
+              <tr><td colspan="8" class="empty-state"><div class="empty-icon">🏠</div>No loans on file</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="loans-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Loans')">View all loans →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVESTMENTS -->
+      <div class="module-section" id="investments">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--purple-lt);">📈</div>
+            <div class="module-title">Investments</div>
+            <span class="module-count" id="mc-investments">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Investments')">＋ New Investment</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Investment Name</th>
+                <th>Type</th>
+                <th>Provider</th>
+                <th>Fund</th>
+                <th>Balance</th>
+                <th>Owner</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="investments-tbody">
+              <tr><td colspan="7" class="empty-state"><div class="empty-icon">📈</div>No investments on file</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="investments-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Investments')">View all investments →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASSETS -->
+      <div class="module-section" id="assets">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--blue-lt);">🏡</div>
+            <div class="module-title">Assets</div>
+            <span class="module-count" id="mc-assets">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Loan_Assets')">＋ New Asset</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Owner</th>
+                <th style="text-align:right;">Value</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="assets-tbody">
+              <tr><td colspan="5" class="empty-state"><div class="empty-icon">🏡</div>No assets on file</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="assets-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Loan_Assets')">View all assets →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIABILITIES -->
+      <div class="module-section" id="liabilities">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--red-lt);">💳</div>
+            <div class="module-title">Liabilities</div>
+            <span class="module-count" id="mc-liabilities">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Loan_Liabilities')">＋ New Liability</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Owner</th>
+                <th style="text-align:right;">Balance</th>
+                <th style="text-align:right;">Monthly Repayment</th>
+                <th style="text-align:right;">Rate %</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="liabilities-tbody">
+              <tr><td colspan="7" class="empty-state"><div class="empty-icon">💳</div>No liabilities on file</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="liabilities-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Loan_Liabilities')">View all liabilities →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- INCOME -->
+      <div class="module-section" id="income">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--green-lt);">💵</div>
+            <div class="module-title">Income</div>
+            <span class="module-count" id="mc-income">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Loan_Incomes')">＋ New Income</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Type</th>
+                <th>Owner</th>
+                <th>Frequency</th>
+                <th style="text-align:right;">Amount</th>
+                <th style="text-align:right;">Annual</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="income-tbody">
+              <tr><td colspan="7" class="empty-state"><div class="empty-icon">💵</div>No income recorded</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="income-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Loan_Incomes')">View all income →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPENSES -->
+      <div class="module-section" id="expenses">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--amber-lt);">🧾</div>
+            <div class="module-title">Expenses</div>
+            <span class="module-count" id="mc-expenses">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Loan_Expenses')">＋ New Expense</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Owner</th>
+                <th>Frequency</th>
+                <th style="text-align:right;">Amount</th>
+                <th style="text-align:right;">Annual</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="expenses-tbody">
+              <tr><td colspan="7" class="empty-state"><div class="empty-icon">🧾</div>No expenses recorded</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="expenses-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('Loan_Expenses')">View all expenses →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- GENERAL POLICIES -->
+      <div class="module-section" id="general-policies">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--bg-alt);">📑</div>
+            <div class="module-title">General Policies</div>
+            <span class="module-count" id="mc-gen-policies">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('General_Policies')">＋ New</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Policy Name</th>
+                <th>Type</th>
+                <th>Provider</th>
+                <th>Status</th>
+                <th>Premium</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="gen-policies-tbody">
+              <tr><td colspan="6" class="empty-state"><div class="empty-icon">📑</div>No general policies on file</td></tr>
+            </tbody>
+          </table>
+          <div class="view-all-row" id="gen-policies-view-all" style="display:none;">
+            <a class="view-all-link" onclick="viewAll('General_Policies')">View all general policies →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLAIMS -->
+      <div class="module-section" id="claims">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--red-lt);">📄</div>
+            <div class="module-title">Claims</div>
+            <span class="module-count" id="mc-claims">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Claims')">＋ New Claim</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Claim Reference</th>
+                <th>Type</th>
+                <th>Policy</th>
+                <th>Date Lodged</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="claims-tbody">
+              <tr><td colspan="7" class="empty-state"><div class="empty-icon">📄</div>No claims on file</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- COMPLAINTS -->
+      <div class="module-section" id="complaints">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--red-lt);">⚠️</div>
+            <div class="module-title">Complaints</div>
+            <span class="module-count" id="mc-complaints">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Complaints')">＋ New Complaint</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Resolved</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="complaints-tbody">
+              <tr><td colspan="6" class="empty-state"><div class="empty-icon">⚠️</div>No complaints on file</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="module-section" id="notes">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--bg-alt);">📝</div>
+            <div class="module-title">Notes</div>
+            <span class="module-count" id="mc-notes">0</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="newRecord('Notes')">＋ New Note</button>
+          </div>
+        </div>
+        <div class="module-card">
+          <div id="notes-list" style="padding:14px;">
+            <div class="empty-state"><div class="empty-icon">📝</div>No notes on file</div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- FILE MANAGEMENT -->
+      <div class="module-section" id="file-management">
+        <div class="module-header">
+          <div class="module-title-wrap">
+            <div class="module-icon" style="background:var(--blue-lt);">📁</div>
+            <div class="module-title">File Management</div>
+            <span class="module-count" id="mc-files">0 files</span>
+          </div>
+          <div class="module-actions">
+            <button class="btn-sm btn-sm-blue" onclick="triggerUpload()">↑ Upload File</button>
+          </div>
+        </div>
+
+        <div class="module-card">
+
+          <!-- Hidden file input -->
+          <input type="file" id="fm-file-input" multiple onchange="handleFileSelect(this)" />
+
+          <!-- Upload zone -->
+          <div class="fm-upload-zone" id="fm-upload-zone"
+            onclick="triggerUpload()"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            ondrop="handleDrop(event)">
+            <div class="fm-upload-icon">📎</div>
+            <div class="fm-upload-text">
+              Drag & drop files here or <strong>click to browse</strong>
+            </div>
+            <div class="fm-upload-sub">PDF, Word, Excel, Images — max 20MB per file</div>
+          </div>
+
+          <!-- Upload panel (shown after file selected) -->
+          <div class="fm-upload-panel" id="fm-upload-panel">
+            <div class="fm-upload-panel-title">📎 Add File Details</div>
+            <div class="fm-upload-file-name" id="fm-selected-filename">
+              <span>📄</span>
+              <span id="fm-filename-text">filename.pdf</span>
+            </div>
+            <div class="fm-upload-fields">
+              <div>
+                <div class="fm-field-label">Category <span style="color:var(--red);">*</span></div>
+                <select class="fm-field-select" id="fm-cat-select">
+                  <option value="">— Select Category —</option>
+                  <option value="SOA / ROA">📋 SOA / ROA</option>
+                  <option value="ID Verification">🪪 ID Verification</option>
+                  <option value="AML / CFT">🔒 AML / CFT</option>
+                  <option value="Policy Document">🛡 Policy Document</option>
+                  <option value="Policy Schedule">📑 Policy Schedule</option>
+                  <option value="Insurance Application">📝 Insurance Application</option>
+                  <option value="Medical Evidence">🏥 Medical Evidence</option>
+                  <option value="Loan Application">🏠 Loan Application</option>
+                  <option value="Loan Document">📄 Loan Document</option>
+                  <option value="Valuation Report">🏡 Valuation Report</option>
+                  <option value="Investment Document">📈 Investment Document</option>
+                  <option value="KiwiSaver Document">🌱 KiwiSaver Document</option>
+                  <option value="Trust / Legal">⚖️ Trust / Legal</option>
+                  <option value="Will / Estate">📜 Will / Estate</option>
+                  <option value="Tax Document">💰 Tax Document</option>
+                  <option value="Correspondence">✉️ Correspondence</option>
+                  <option value="Meeting Notes">📝 Meeting Notes</option>
+                  <option value="Other">📎 Other</option>
+                </select>
+              </div>
+              <div>
+                <div class="fm-field-label">Description</div>
+                <input class="fm-field-input" id="fm-desc-input" placeholder="Brief description of this file…" />
+              </div>
+              <div>
+                <div class="fm-field-label">Expiry Date (optional)</div>
+                <input class="fm-field-input" id="fm-expiry-input" type="date" />
+              </div>
+            </div>
+            <div class="fm-upload-actions">
+              <button class="btn-sm" onclick="cancelUpload()">Cancel</button>
+              <button class="btn-sm btn-sm-blue" onclick="confirmUpload()">↑ Upload File</button>
+            </div>
+          </div>
+
+          <!-- Toolbar: search + category filter -->
+          <div class="fm-toolbar">
+            <div class="fm-search-wrap">
+              <span class="fm-search-icon">🔍</span>
+              <input class="fm-search" id="fm-search"
+                placeholder="Search by file name, category or description…"
+                oninput="filterFiles()" />
+            </div>
+            <div class="fm-filters" id="fm-category-filters">
+              <button class="fm-filter-pill active" onclick="filterByCategory(this,'all')">All</button>
+            </div>
+          </div>
+
+          <!-- File display area -->
+          <div id="fm-display-area">
+            <div class="fm-no-results">
+              <div class="fm-no-results-icon">📁</div>
+              <div style="font-weight:700;color:var(--ink);margin-bottom:4px;">No files on file yet</div>
+              <div>Upload files using the area above — SOAs, policy documents, ID verification, loan documents and more</div>
+            </div>
+          </div>
+
+          <!-- Stats bar -->
+          <div class="fm-stats" id="fm-stats-bar" style="display:none;">
+            <div class="fm-stat"><strong id="fm-stat-total">0</strong>Total Files</div>
+            <div class="fm-stat"><strong id="fm-stat-cats">0</strong>Categories</div>
+            <div class="fm-stat"><strong id="fm-stat-size">0 MB</strong>Total Size</div>
+            <div class="fm-stat"><strong id="fm-stat-expiring">0</strong>Expiring Soon</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /page-body -->
+</div><!-- /page -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+//  Adviser CRM — Account Page
+//  Hub page showing all related modules for a family or business
+// ─────────────────────────────────────────────────────────────────
+
+let ENTITY_ID = null;
+let ACCOUNT   = {};
+let DATA      = {};
+
+// ── Utilities ─────────────────────────────────────────────────────
+const fmt     = v  => v || '—';
+const fmtCurr = n  => {
+  if (n === null || n === undefined || n === '') return '—';
+  return '$' + Number(n).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+const fmtPct  = n  => n ? n + '%' : '—';
+const fmtDate = s  => {
+  if (!s) return '—';
+  const d = new Date(s.includes('T') ? s : s + 'T00:00:00');
+  return isNaN(d) ? s : d.toLocaleDateString('en-NZ', { day:'numeric', month:'short', year:'numeric' });
+};
+const fmtFreq = f  => ({ '52':'Weekly','26':'Fortnightly','12':'Monthly','1':'Annual' }[String(f)] || f || '—');
+const annualise = (amt, freq) => (parseFloat(amt)||0) * (parseInt(freq)||12);
+const initials  = n => n ? n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : '?';
+
+function el(id)  { return document.getElementById(id); }
+function setEl(id, val, isHtml) { const e=el(id); if(e) isHtml?(e.innerHTML=val):(e.textContent=val); }
+function reveal() { el('loading').classList.add('hidden'); el('main-page').classList.add('visible'); }
+
+// ── Nav ───────────────────────────────────────────────────────────
+function setActive(link) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  link.classList.add('active');
+}
+
+function scrollTo(sectionId) {
+  const sec = el(sectionId);
+  if (sec) sec.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// Scroll spy — highlight nav item as user scrolls
+function initScrollSpy() {
+  const sections = document.querySelectorAll('.module-section');
+  const navItems = document.querySelectorAll('.nav-item');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navItems.forEach(n => {
+          n.classList.toggle('active', n.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-100px 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+}
+
+// ── Render helpers ────────────────────────────────────────────────
+function statusPill(status) {
+  if (!status) return '—';
+  const map = {
+    'Active':'pill-green', 'In Force':'pill-green', 'Current':'pill-green',
+    'Lapsed':'pill-red', 'Cancelled':'pill-red', 'Declined':'pill-red',
+    'Pending':'pill-amber', 'Under Review':'pill-amber',
+    'Step 1. Client Engagement':'pill-amber',
+    'Step 2. Data Collection':'pill-amber',
+    'Step 3. Analysis':'pill-green',
+    'Step 4. Statement of Advice':'pill-blue',
+    'Step 5. Implementation':'pill-purple',
+    'Step 6. Review':'pill-teal',
+    'Not Proceeded With':'pill-red',
+  };
+  const cls = map[status] || 'pill-grey';
+  return `<span class="pill ${cls}">${status}</span>`;
+}
+
+function openBtn(entity, id) {
+  return `<a class="td-link" onclick="openRecord('${entity}','${id}')">Open →</a>`;
+}
+
+// ── Render each module ────────────────────────────────────────────
+function renderContacts(records) {
+  const grid = el('contacts-grid');
+  const count = records.length;
+  setEl('nb-contacts', count); setEl('mc-contacts', count + ' contact' + (count!==1?'s':''));
+  if (!count) { grid.innerHTML='<div class="empty-state"><div class="empty-icon">👤</div>No contacts on file</div>'; return; }
+  grid.innerHTML = records.map(c => {
+    const name = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
+    const typeMap = { 'Client':'', 'Partner':'partner', 'Child':'child', 'Spouse':'partner' };
+    const typeCls = typeMap[c.Contact_Type] || '';
+    return `<div class="contact-card" onclick="openRecord('Contacts','${c.id}')">
+      <div class="contact-avatar">${initials(name)}</div>
+      <div class="contact-info">
+        <div class="contact-name">${name || '—'}</div>
+        <div class="contact-role">${fmt(c.Title)}</div>
+        <div class="contact-email">${c.Email || c.Phone || ''}</div>
+      </div>
+      <span class="contact-type ${typeCls}">${fmt(c.Contact_Type) || 'Contact'}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAdviceRecords(records) {
+  const tbody = el('advice-tbody');
+  const count = records.length;
+  setEl('nb-advice', count); setEl('mc-advice', count + ' record' + (count!==1?'s':''));
+  if (!count) { tbody.innerHTML='<tr><td colspan="7" class="empty-state"><div class="empty-icon">📋</div>No advice records</td></tr>'; return; }
+  const show = records.slice(0,5);
+  tbody.innerHTML = show.map(r => `<tr>
+    <td class="td-name">${fmt(r.Name)}</td>
+    <td>${fmt(r.Name_of_Record)}</td>
+    <td>${statusPill(r.Status)}</td>
+    <td>${fmt(r.Meeting_Type)}</td>
+    <td>${fmtDate(r.Date_Time_of_Meeting || r.Created_Time)}</td>
+    <td>${r.Owner?.name || '—'}</td>
+    <td>${openBtn('Advice_Records', r.id)}</td>
+  </tr>`).join('');
+  if (count > 5) { el('advice-view-all').style.display='flex'; }
+}
+
+function renderPolicies(records) {
+  const tbody = el('policies-tbody');
+  const count = records.length;
+  setEl('nb-policies', count); setEl('mc-policies', count + ' polic' + (count!==1?'ies':'y'));
+  if (!count) { tbody.innerHTML='<tr><td colspan="8" class="empty-state"><div class="empty-icon">🛡</div>No policies on file</td></tr>'; return; }
+  const show = records.slice(0,5);
+  tbody.innerHTML = show.map(r => `<tr>
+    <td class="td-name">${fmt(r.Policy_Number || r.Name)}</td>
+    <td>${fmt(r.Policy_Type || r.Type)}</td>
+    <td>${fmt(r.Insurer || r.Provider)}</td>
+    <td>${fmt(r.Life_Assured || r.Life_Insured)}</td>
+    <td>${fmtCurr(r.Sum_Insured || r.Cover_Amount)}</td>
+    <td>${fmtCurr(r.Premium || r.Annual_Premium)}</td>
+    <td>${statusPill(r.Status || r.Policy_Status)}</td>
+    <td>${openBtn('Policies', r.id)}</td>
+  </tr>`).join('');
+  if (count > 5) { el('policies-view-all').style.display='flex'; }
+}
+
+function renderLoans(records) {
+  const tbody = el('loans-tbody');
+  const count = records.length;
+  setEl('nb-loans', count); setEl('mc-loans', count + ' loan' + (count!==1?'s':''));
+  if (!count) { tbody.innerHTML='<tr><td colspan="8" class="empty-state"><div class="empty-icon">🏠</div>No loans on file</td></tr>'; return; }
+  const show = records.slice(0,5);
+  tbody.innerHTML = show.map(r => `<tr>
+    <td class="td-name">${fmt(r.Name || r.Loan_Description)}</td>
+    <td>${fmt(r.Loan_Type || r.Type)}</td>
+    <td>${fmt(r.Lender || r.Bank)}</td>
+    <td style="text-align:right;">${fmtCurr(r.Balance || r.Loan_Balance || r.Outstanding_Balance)}</td>
+    <td style="text-align:right;">${fmtPct(r.Interest_Rate || r.Rate)}</td>
+    <td style="text-align:right;">${fmtCurr(r.Monthly_Repayment || r.Repayment)}</td>
+    <td>${fmtDate(r.Fixed_Expiry || r.Fixed_Rate_Expiry)}</td>
+    <td>${openBtn('Loans', r.id)}</td>
+  </tr>`).join('');
+  if (count > 5) { el('loans-view-all').style.display='flex'; }
+}
+
+function renderInvestments(records) {
+  const tbody = el('investments-tbody');
+  const count = records.length;
+  setEl('nb-investments', count); setEl('mc-investments', count + ' investment' + (count!==1?'s':''));
+  if (!count) { tbody.innerHTML='<tr><td colspan="7" class="empty-state"><div class="empty-icon">📈</div>No investments on file</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => `<tr>
+    <td class="td-name">${fmt(r.Name || r.Investment_Name)}</td>
+    <td>${fmt(r.Investment_Type || r.Type)}</td>
+    <td>${fmt(r.Provider || r.Fund_Manager)}</td>
+    <td>${fmt(r.Fund_Name || r.Fund)}</td>
+    <td style="text-align:right;">${fmtCurr(r.Balance || r.Current_Value)}</td>
+    <td>${fmt(r.Owner)}</td>
+    <td>${openBtn('Investments', r.id)}</td>
+  </tr>`).join('');
+  if (records.length > 5) { el('investments-view-all').style.display='flex'; }
+}
+
+function renderAssets(records) {
+  const tbody = el('assets-tbody');
+  const count = records.length;
+  setEl('nb-assets', count); setEl('mc-assets', count + ' asset' + (count!==1?'s':''));
+  let total = 0;
+  if (!count) { tbody.innerHTML='<tr><td colspan="5" class="empty-state"><div class="empty-icon">🏡</div>No assets on file</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => {
+    const val = parseFloat(r.Loan_Assets_Amount || r.Value || r.Estimated_Value || 0);
+    total += val;
+    return `<tr>
+      <td class="td-name">${fmt(r.Name || r.Asset_Description)}</td>
+      <td>${fmt(r.Asset_Type || r.Type)}</td>
+      <td>${fmt(r.Owner)}</td>
+      <td style="text-align:right;font-weight:700;">${fmtCurr(val)}</td>
+      <td>${openBtn('Loan_Assets', r.id)}</td>
+    </tr>`;
+  }).join('');
+  if (records.length > 5) { el('assets-view-all').style.display='flex'; }
+  return total;
+}
+
+function renderLiabilities(records) {
+  const tbody = el('liabilities-tbody');
+  const count = records.length;
+  setEl('nb-liabilities', count); setEl('mc-liabilities', count + ' liabilit' + (count!==1?'ies':'y'));
+  let total = 0;
+  if (!count) { tbody.innerHTML='<tr><td colspan="7" class="empty-state"><div class="empty-icon">💳</div>No liabilities on file</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => {
+    const bal = parseFloat(r.Loan_Liabilities_Amount || r.Balance || r.Outstanding_Balance || 0);
+    total += bal;
+    return `<tr>
+      <td class="td-name">${fmt(r.Name || r.Liability_Description)}</td>
+      <td>${fmt(r.Liability_Type || r.Type)}</td>
+      <td>${fmt(r.Owner)}</td>
+      <td style="text-align:right;font-weight:700;">${fmtCurr(bal)}</td>
+      <td style="text-align:right;">${fmtCurr(r.Monthly_Repayment)}</td>
+      <td style="text-align:right;">${fmtPct(r.Interest_Rate)}</td>
+      <td>${openBtn('Loan_Liabilities', r.id)}</td>
+    </tr>`;
+  }).join('');
+  if (records.length > 5) { el('liabilities-view-all').style.display='flex'; }
+  return total;
+}
+
+function renderIncome(records) {
+  const tbody = el('income-tbody');
+  const count = records.length;
+  setEl('nb-income', count); setEl('mc-income', count + ' source' + (count!==1?'s':''));
+  let totalAnnual = 0;
+  if (!count) { tbody.innerHTML='<tr><td colspan="7" class="empty-state"><div class="empty-icon">💵</div>No income recorded</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => {
+    const amt  = parseFloat(r.Loan_Incomes_Amount || r.Amount || r.Gross_Amount || 0);
+    const freq = r.Frequency_Value || r.Frequency || 12;
+    const ann  = parseFloat(r.Annual_Amount || annualise(amt, freq));
+    totalAnnual += ann;
+    return `<tr>
+      <td class="td-name">${fmt(r.Name || r.Income_Source)}</td>
+      <td>${fmt(r.Income_Type || r.Type)}</td>
+      <td>${fmt(r.Owner)}</td>
+      <td>${fmtFreq(freq)}</td>
+      <td style="text-align:right;">${fmtCurr(amt)}</td>
+      <td style="text-align:right;font-weight:700;">${fmtCurr(ann)}</td>
+      <td>${openBtn('Loan_Incomes', r.id)}</td>
+    </tr>`;
+  }).join('');
+  if (records.length > 5) { el('income-view-all').style.display='flex'; }
+  return totalAnnual;
+}
+
+function renderExpenses(records) {
+  const tbody = el('expenses-tbody');
+  const count = records.length;
+  setEl('nb-expenses', count); setEl('mc-expenses', count + ' expense' + (count!==1?'s':''));
+  let totalAnnual = 0;
+  if (!count) { tbody.innerHTML='<tr><td colspan="7" class="empty-state"><div class="empty-icon">🧾</div>No expenses recorded</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => {
+    const amt  = parseFloat(r.Loan_Expenses_Amount || r.Amount || 0);
+    const freq = r.Frequency_Value || r.Frequency || 12;
+    const ann  = parseFloat(r.Annual_Amount || annualise(amt, freq));
+    totalAnnual += ann;
+    return `<tr>
+      <td class="td-name">${fmt(r.Name || r.Expense_Description)}</td>
+      <td>${fmt(r.Expense_Type || r.Type)}</td>
+      <td>${fmt(r.Owner)}</td>
+      <td>${fmtFreq(freq)}</td>
+      <td style="text-align:right;">${fmtCurr(amt)}</td>
+      <td style="text-align:right;font-weight:700;">${fmtCurr(ann)}</td>
+      <td>${openBtn('Loan_Expenses', r.id)}</td>
+    </tr>`;
+  }).join('');
+  if (records.length > 5) { el('expenses-view-all').style.display='flex'; }
+  return totalAnnual;
+}
+
+function renderGenPolicies(records) {
+  const tbody = el('gen-policies-tbody');
+  const count = records.length;
+  setEl('nb-gen-policies', count); setEl('mc-gen-policies', count);
+  if (!count) { tbody.innerHTML='<tr><td colspan="6" class="empty-state"><div class="empty-icon">📑</div>No general policies on file</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => `<tr>
+    <td class="td-name">${fmt(r.Name)}</td>
+    <td>${fmt(r.Type || r.Policy_Type)}</td>
+    <td>${fmt(r.Provider || r.Insurer)}</td>
+    <td>${statusPill(r.Status)}</td>
+    <td>${fmtCurr(r.Premium)}</td>
+    <td>${openBtn('General_Policies', r.id)}</td>
+  </tr>`).join('');
+  if (records.length > 5) { el('gen-policies-view-all').style.display='flex'; }
+}
+
+function renderClaims(records) {
+  const tbody = el('claims-tbody');
+  const count = records.length;
+  setEl('nb-claims', count); setEl('mc-claims', count + ' claim' + (count!==1?'s':''));
+  if (!count) { tbody.innerHTML='<tr><td colspan="7" class="empty-state"><div class="empty-icon">📄</div>No claims on file</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => `<tr>
+    <td class="td-name">${fmt(r.Name || r.Claim_Reference)}</td>
+    <td>${fmt(r.Claim_Type || r.Type)}</td>
+    <td>${fmt(r.Policy_Name || r.Policy)}</td>
+    <td>${fmtDate(r.Date_Lodged || r.Created_Time)}</td>
+    <td>${statusPill(r.Status || r.Claim_Status)}</td>
+    <td>${fmtCurr(r.Claim_Amount || r.Amount)}</td>
+    <td>${openBtn('Claims', r.id)}</td>
+  </tr>`).join('');
+}
+
+function renderComplaints(records) {
+  const tbody = el('complaints-tbody');
+  const count = records.length;
+  setEl('nb-complaints', count); setEl('mc-complaints', count);
+  if (!count) { tbody.innerHTML='<tr><td colspan="6" class="empty-state"><div class="empty-icon">⚠️</div>No complaints on file</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0,5).map(r => `<tr>
+    <td class="td-name">${fmt(r.Name)}</td>
+    <td>${fmt(r.Description || r.Complaint_Description)}</td>
+    <td>${fmtDate(r.Date || r.Created_Time)}</td>
+    <td>${statusPill(r.Status)}</td>
+    <td>${r.Resolved ? '<span class="pill pill-green">✓ Resolved</span>' : '<span class="pill pill-red">Open</span>'}</td>
+    <td>${openBtn('Complaints', r.id)}</td>
+  </tr>`).join('');
+}
+
+function renderNotes(records) {
+  const list = el('notes-list');
+  const count = records.length;
+  setEl('nb-notes', count); setEl('mc-notes', count + ' note' + (count!==1?'s':''));
+  if (!count) { list.innerHTML='<div class="empty-state"><div class="empty-icon">📝</div>No notes on file</div>'; return; }
+  list.innerHTML = records.slice(0,3).map(r => `
+    <div style="padding:10px 0;border-bottom:1px solid var(--divider);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${fmtDate(r.Created_Time)} · ${r.Owner?.name||'—'}</div>
+      <div style="font-size:12px;color:var(--ink);">${(r.Note_Content||r.Description||'').substring(0,160)}${(r.Note_Content||'').length>160?'…':''}</div>
+    </div>`).join('');
+}
+
+// ── Health strip ──────────────────────────────────────────────────
+function updateHealthStrip(totalAssets, totalLiabs, totalIncome, totalExpenses) {
+  const netWorth = totalAssets - totalLiabs;
+  const surplus  = totalIncome - totalExpenses;
+
+  setEl('hs-assets',   fmtCurr(totalAssets));
+  setEl('hs-liabs',    fmtCurr(totalLiabs));
+  setEl('hs-net-worth',fmtCurr(netWorth));
+  setEl('hs-income',   fmtCurr(totalIncome));
+  setEl('hs-expenses', fmtCurr(totalExpenses));
+  setEl('hs-surplus',  fmtCurr(surplus));
+
+  const nwEl = el('hs-net-worth');
+  const spEl = el('hs-surplus');
+  if (nwEl) nwEl.className = 'health-value ' + (netWorth>=0?'positive':'negative');
+  if (spEl) spEl.className = 'health-value ' + (surplus>=0?'positive':'negative');
+}
+
+// ── CRM Actions ───────────────────────────────────────────────────
+function openRecord(entity, id) {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.open({ Entity: entity, RecordID: id });
+  } else {
+    alert('[Mock] Open ' + entity + ' ' + id);
+  }
+}
+function viewAll(entity) {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Listview.open({ Entity: entity });
+  }
+}
+function newRecord(entity) {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.create({ Entity: entity,
+      prefill: { 'Account_Name': { id: ENTITY_ID } } });
+  } else {
+    alert('[Mock] New ' + entity + ' record');
+  }
+}
+function newAdviceRecord() { newRecord('Advice_Records'); }
+function sendEmail() {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.sendMail({ Entity: 'Accounts', RecordID: ENTITY_ID });
+  }
+}
+function editAccount() {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.edit({ Entity: 'Accounts', RecordID: ENTITY_ID });
+  }
+}
+
+// ── Populate account header ───────────────────────────────────────
+function populateAccount(acc) {
+  ACCOUNT = acc;
+  setEl('account-name', acc.Name || 'Account');
+  setEl('account-meta', [acc.Account_Type, acc.Owner?.name ? 'Adviser: ' + acc.Owner.name : ''].filter(Boolean).join(' · '));
+  if (acc.Account_Type) setEl('account-type', acc.Account_Type);
+}
+
+// ── SDK Mock ──────────────────────────────────────────────────────
+(function() {
+  function initMockIfNeeded() {
+    if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) return;
+
+    var MOCK_ACCOUNT = {
+      id:'acc-001', Name:'Frederick James Smith FAMILY',
+      Account_Type:'Family Account',
+      Owner:{ name:'Sean Davis' },
+    };
+    var MOCK_CONTACTS = [
+      { id:'c1', First_Name:'Fred', Last_Name:'Smith', Title:'Client', Email:'advisercrm@gmail.com', Phone:'07 123 4567', Mobile:'027 123 4567', Contact_Type:'Client' },
+      { id:'c2', First_Name:'Mary', Last_Name:'Jane Smith', Title:'Partner', Email:'noreply2@bigplans.co.nz', Phone:'07 123 4567', Mobile:'027 123 4567', Contact_Type:'Partner' },
+      { id:'c3', First_Name:'John', Last_Name:'Junior Smith', Title:'Child', Contact_Type:'Child' },
+    ];
+    var MOCK_ADVICE = [
+      { id:'ar1', Name:'ADV-3289', Name_of_Record:'Annual Insurance Review 2025', Status:'Step 2. Data Collection', Meeting_Type:'In Person', Date_Time_of_Meeting:'2026-01-02T01:17:00', Owner:{name:'Sean Davis'} },
+    ];
+    var MOCK_POLICIES = [
+      { id:'p1', Name:'POL-00142', Policy_Type:'Life Insurance', Insurer:'AIA', Life_Assured:'Fred Smith', Sum_Insured:500000, Premium:1240, Status:'Active' },
+      { id:'p2', Name:'POL-00143', Policy_Type:'Trauma Cover', Insurer:'Partners Life', Life_Assured:'Fred Smith', Sum_Insured:250000, Premium:860, Status:'Active' },
+      { id:'p3', Name:'POL-00144', Policy_Type:'Income Protection', Insurer:'Asteron', Life_Assured:'Fred Smith', Sum_Insured:8500, Premium:2100, Status:'Active' },
+      { id:'p4', Name:'POL-00145', Policy_Type:'Life Insurance', Insurer:'AIA', Life_Assured:'Mary Smith', Sum_Insured:300000, Premium:780, Status:'Active' },
+      { id:'p5', Name:'POL-00146', Policy_Type:'Medical Insurance', Insurer:'Southern Cross', Life_Assured:'Fred & Mary', Sum_Insured:0, Premium:420, Status:'Active' },
+    ];
+    var MOCK_LOANS = [
+      { id:'l1', Name:'ANZ Home Loan', Loan_Type:'Home Loan', Lender:'ANZ', Outstanding_Balance:650000, Interest_Rate:'6.89', Monthly_Repayment:4200, Fixed_Expiry:'2026-06-30' },
+      { id:'l2', Name:'ANZ Investment Loan', Loan_Type:'Investment Loan', Lender:'ANZ', Outstanding_Balance:180000, Interest_Rate:'7.25', Monthly_Repayment:1100, Fixed_Expiry:'2025-12-31' },
+    ];
+    var MOCK_INVESTMENTS = [
+      { id:'inv1', Name:'Fred KiwiSaver', Investment_Type:'KiwiSaver', Provider:'AMP', Fund_Name:'Growth Fund', Balance:148000, Owner:'Fred Smith' },
+    ];
+    var MOCK_ASSETS = [
+      { id:'a1', Name:'Family Home — 42 Remuera Road', Asset_Type:'Property — Home', Owner:'Joint', Loan_Assets_Amount:1100000 },
+      { id:'a2', Name:'Investment Property — 8B Link Rd', Asset_Type:'Property — Investment', Owner:'Joint', Loan_Assets_Amount:680000 },
+      { id:'a3', Name:'Fred KiwiSaver — AMP Growth', Asset_Type:'KiwiSaver', Owner:'Fred', Loan_Assets_Amount:148000 },
+      { id:'a4', Name:'ANZ Term Deposit', Asset_Type:'Cash / Term Deposit', Owner:'Fred', Loan_Assets_Amount:45000 },
+      { id:'a5', Name:'Share Portfolio — NZX', Asset_Type:'Shares', Owner:'Fred', Loan_Assets_Amount:32000 },
+    ];
+    var MOCK_LIABS = [
+      { id:'l1', Name:'ANZ Home Loan', Liability_Type:'Home Loan', Owner:'Joint', Loan_Liabilities_Amount:650000, Monthly_Repayment:4200, Interest_Rate:'6.89' },
+      { id:'l2', Name:'ANZ Investment Loan', Liability_Type:'Investment Loan', Owner:'Joint', Loan_Liabilities_Amount:180000, Monthly_Repayment:1100, Interest_Rate:'7.25' },
+      { id:'l3', Name:'Visa Credit Card', Liability_Type:'Credit Card', Owner:'Fred', Loan_Liabilities_Amount:8500, Monthly_Repayment:500, Interest_Rate:'20.95' },
+    ];
+    var MOCK_INCOME = [
+      { id:'i1', Name:'Salary — BluePeak Capital', Income_Type:'Salary', Owner:'Fred', Loan_Incomes_Amount:13500, Frequency_Value:'12', Annual_Amount:162000 },
+      { id:'i2', Name:'Rental Income — 8B Link Rd', Income_Type:'Rental', Owner:'Joint', Loan_Incomes_Amount:2200, Frequency_Value:'12', Annual_Amount:26400 },
+      { id:'i3', Name:'Mary Part-time Salary', Income_Type:'Salary', Owner:'Mary', Loan_Incomes_Amount:3200, Frequency_Value:'12', Annual_Amount:38400 },
+    ];
+    var MOCK_EXPENSES = [
+      { id:'e1', Name:'Household Living Costs', Expense_Type:'Living', Owner:'Joint', Loan_Expenses_Amount:4500, Frequency_Value:'12', Annual_Amount:54000 },
+      { id:'e2', Name:'Insurance Premiums', Expense_Type:'Insurance', Owner:'Fred', Loan_Expenses_Amount:540, Frequency_Value:'12', Annual_Amount:6480 },
+      { id:'e3', Name:'Home Loan Repayment', Expense_Type:'Loan Repayment', Owner:'Joint', Loan_Expenses_Amount:4200, Frequency_Value:'12', Annual_Amount:50400 },
+      { id:'e4', Name:'Investment Loan Repayment', Expense_Type:'Loan Repayment', Owner:'Joint', Loan_Expenses_Amount:1100, Frequency_Value:'12', Annual_Amount:13200 },
+    ];
+    var MOCK_CLAIMS = [
+      { id:'cl1', Name:'CLM-001', Claim_Type:'Income Protection', Policy:'POL-00144', Date_Lodged:'2025-03-15', Status:'Under Review', Claim_Amount:8500 },
+    ];
+    var MOCK_COMPLAINTS = [];
+    var MOCK_NOTES = [
+      { id:'n1', Note_Content:'Fred called to discuss reviewing his life cover following the purchase of the investment property. Advised to schedule an annual review.', Created_Time:'2025-05-22', Owner:{name:'Sean Davis'} },
+    ];
+    var MOCK_ATTACHMENTS = [
+      { id:'att1', File_Name:'SOA / ROA — Annual Insurance Review 2025 — SOA-2025-042.pdf', Size:2457600, Created_Time:'2025-05-22', Owner:{name:'Sean Davis'}, Attachment_URL:'' },
+      { id:'att2', File_Name:'ID Verification — NZ Passport — fred-smith-passport.pdf', Size:1048576, Created_Time:'2024-06-01', Owner:{name:'Sean Davis'}, Attachment_URL:'', $expiry:'2029-06-01' },
+      { id:'att3', File_Name:'ID Verification — NZ Passport — mary-smith-passport.pdf', Size:1048576, Created_Time:'2024-06-01', Owner:{name:'Sean Davis'}, Attachment_URL:'', $expiry:'2027-03-15' },
+      { id:'att4', File_Name:'AML / CFT — AML Verification Form — smith-family-aml-2024.pdf', Size:524288, Created_Time:'2024-06-01', Owner:{name:'Sean Davis'}, Attachment_URL:'', $expiry:'2026-06-01' },
+      { id:'att5', File_Name:'Policy Document — AIA Life Policy Schedule — pol-00142-schedule.pdf', Size:892928, Created_Time:'2024-03-15', Owner:{name:'Sean Davis'}, Attachment_URL:'' },
+      { id:'att6', File_Name:'Loan Document — ANZ Home Loan Agreement — anz-home-loan-2023.pdf', Size:3145728, Created_Time:'2023-08-10', Owner:{name:'Sean Davis'}, Attachment_URL:'' },
+      { id:'att7', File_Name:'Valuation Report — Remuera Property Valuation 2025 — 42-remuera-rd-valuation.pdf', Size:5242880, Created_Time:'2025-01-20', Owner:{name:'Sean Davis'}, Attachment_URL:'' },
+      { id:'att8', File_Name:'KiwiSaver Document — AMP Fund Switch Confirmation — ks-fund-switch-2024.pdf', Size:262144, Created_Time:'2024-11-14', Owner:{name:'Sean Davis'}, Attachment_URL:'' },
+      { id:'att9', File_Name:'Correspondence — Meeting Confirmation Email — meeting-22-may-2025.pdf', Size:131072, Created_Time:'2025-05-20', Owner:{name:'Sean Davis'}, Attachment_URL:'' },
+    ];
+    var MOCK_GEN_POLICIES = [
+      { id:'gp1', Name:'AA Car Insurance', Type:'Vehicle', Provider:'AA Insurance', Status:'Active', Premium:1200 },
+      { id:'gp2', Name:'House & Contents — Remuera', Type:'House & Contents', Provider:'Tower', Status:'Active', Premium:2400 },
+    ];
+
+    window.ZOHO = {
+      embeddedApp: {
+        _h:{},
+        on(e,fn){this._h[e]=fn;},
+        init(){var self=this;setTimeout(function(){var fn=self._h['PageLoad'];if(fn)fn({EntityId:'acc-001',Entity:'Accounts'});},600);}
+      },
+      CRM:{
+        API:{
+          getRecord(){return Promise.resolve({data:[MOCK_ACCOUNT]});},
+          getRelatedRecords(opts){
+            var map={
+              'Contacts':       MOCK_CONTACTS,
+              'Advice_Records': MOCK_ADVICE,
+              'Policies':       MOCK_POLICIES,
+              'Loans':          MOCK_LOANS,
+              'Investments':    MOCK_INVESTMENTS,
+              'Loan_Assets':    MOCK_ASSETS,
+              'Loan_Liabilities':MOCK_LIABS,
+              'Loan_Incomes':   MOCK_INCOME,
+              'Loan_Expenses':  MOCK_EXPENSES,
+              'Claims':         MOCK_CLAIMS,
+              'Complaints':     MOCK_COMPLAINTS,
+              'Notes':          MOCK_NOTES,
+              'General_Policies':MOCK_GEN_POLICIES,
+              'Attachments':    MOCK_ATTACHMENTS,
+            };
+            return Promise.resolve({data:map[opts.RelatedList]||[]});
+          },
+        },
+        UI:{
+          Record:{
+            open(o){alert('[Mock] Open '+o.Entity+' '+o.RecordID);},
+            create(o){alert('[Mock] New '+o.Entity);},
+            edit(o){alert('[Mock] Edit '+o.Entity+' '+o.RecordID);},
+            sendMail(o){alert('[Mock] Send email for '+o.Entity+' '+o.RecordID);}
+          },
+          Listview:{open(o){alert('[Mock] List view: '+o.Entity);}}
+        }
+      }
+    };
+    el('mock-badge').style.display='block';
+  }
+  setTimeout(initMockIfNeeded,300);
+})();
+
+// ═══════════════════════════════════════════════════════════════
+//  FILE MANAGEMENT
+//  Category tagging, keyword search, upload, open, delete
+// ═══════════════════════════════════════════════════════════════
+
+var FM = {
+  files:          [],
+  filtered:       [],
+  view:           'list',
+  activeCategory: 'all',
+  pendingFile:    null,
+};
+
+function fileIcon(name) {
+  if (!name) return { icon:'📎', bg:'var(--bg-alt)' };
+  var ext = name.split('.').pop().toLowerCase();
+  var map = {
+    pdf:  { icon:'📄', bg:'#fde8e6' },
+    doc:  { icon:'📝', bg:'#e8f0fe' },
+    docx: { icon:'📝', bg:'#e8f0fe' },
+    xls:  { icon:'📊', bg:'#e8f8e8' },
+    xlsx: { icon:'📊', bg:'#e8f8e8' },
+    png:  { icon:'🖼', bg:'#e8f4fb' },
+    jpg:  { icon:'🖼', bg:'#e8f4fb' },
+    jpeg: { icon:'🖼', bg:'#e8f4fb' },
+    ppt:  { icon:'📊', bg:'#fff0e8' },
+    pptx: { icon:'📊', bg:'#fff0e8' },
+    txt:  { icon:'📃', bg:'var(--bg-alt)' },
+    msg:  { icon:'✉️', bg:'#e8f0fe' },
+  };
+  return map[ext] || { icon:'📎', bg:'var(--bg-alt)' };
+}
+
+function catStyle(cat) {
+  var map = {
+    'SOA / ROA':             { bg:'var(--blue-lt)',   color:'var(--blue-dk)' },
+    'ID Verification':       { bg:'var(--purple-lt)', color:'var(--purple)' },
+    'AML / CFT':             { bg:'var(--purple-lt)', color:'var(--purple)' },
+    'Policy Document':       { bg:'var(--green-lt)',  color:'var(--green)' },
+    'Policy Schedule':       { bg:'var(--green-lt)',  color:'var(--green)' },
+    'Insurance Application': { bg:'var(--green-lt)',  color:'var(--green)' },
+    'Medical Evidence':      { bg:'var(--red-lt)',    color:'var(--red)' },
+    'Loan Application':      { bg:'#fff3d4',          color:'var(--amber)' },
+    'Loan Document':         { bg:'#fff3d4',          color:'var(--amber)' },
+    'Valuation Report':      { bg:'#fff3d4',          color:'var(--amber)' },
+    'Investment Document':   { bg:'var(--purple-lt)', color:'var(--purple)' },
+    'KiwiSaver Document':    { bg:'var(--teal-lt)',   color:'var(--teal)' },
+    'Trust / Legal':         { bg:'var(--bg-alt)',    color:'var(--muted)' },
+    'Will / Estate':         { bg:'var(--bg-alt)',    color:'var(--muted)' },
+    'Tax Document':          { bg:'var(--amber-lt)',  color:'var(--amber)' },
+    'Correspondence':        { bg:'var(--blue-lt)',   color:'var(--blue-dk)' },
+    'Meeting Notes':         { bg:'var(--bg-alt)',    color:'var(--muted)' },
+  };
+  return map[cat] || { bg:'var(--bg-alt)', color:'var(--muted)' };
+}
+
+function expiryStatus(expiryDate) {
+  if (!expiryDate) return null;
+  var today  = new Date();
+  var expiry = new Date(expiryDate);
+  var days   = Math.ceil((expiry - today) / (1000*60*60*24));
+  if (days < 0)   return { label:'Expired',                    cls:'expiry-expired', days:days };
+  if (days <= 30) return { label:'Expires in '+days+' days',   cls:'expiry-warn',    days:days };
+  if (days <= 90) return { label:'Expires '+fmtDate(expiryDate), cls:'expiry-warn',  days:days };
+  return { label:'Expires '+fmtDate(expiryDate), cls:'', days:days };
+}
+
+function fmtFileSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function loadFiles(attachments) {
+  FM.files = attachments.map(function(a) {
+    var rawName = a.File_Name || a.name || 'Unknown File';
+    // Parse "Category — Description — filename.ext" naming convention
+    var parts       = rawName.split(' — ');
+    var category    = parts.length >= 3 ? parts[0].trim() : 'Other';
+    var description = parts.length >= 3 ? parts[1].trim() : (parts.length === 2 ? parts[0].trim() : '');
+    var fileName    = parts[parts.length-1].trim();
+    return {
+      id:           a.id,
+      fileName:     fileName,
+      rawName:      rawName,
+      category:     category,
+      description:  description,
+      size:         a.Size || a.size || 0,
+      uploadedBy:   a.Owner ? a.Owner.name : '—',
+      uploadedDate: a.Created_Time || '',
+      expiry:       a['$expiry'] || a.Expiry_Date || '',
+      url:          a.Attachment_URL || '',
+    };
+  });
+  FM.filtered = FM.files.slice();
+  buildCategoryFilters();
+  renderFiles();
+  updateFmStats();
+  var count = FM.files.length;
+  setEl('nb-files',  count);
+  setEl('mc-files',  count + ' file' + (count!==1?'s':''));
+}
+
+function buildCategoryFilters() {
+  var cats = [];
+  FM.files.forEach(function(f) { if (f.category && cats.indexOf(f.category)===-1) cats.push(f.category); });
+  cats.sort();
+  var container = el('fm-category-filters');
+  if (!container) return;
+  var allBtn = '<button class="fm-filter-pill '+(FM.activeCategory==='all'?'active':'')+'" onclick="filterByCategory(this,\'all\')">All ('+FM.files.length+')</button>';
+  var catBtns = cats.map(function(cat) {
+    var count  = FM.files.filter(function(f){ return f.category===cat; }).length;
+    var active = FM.activeCategory===cat ? 'active' : '';
+    return '<button class="fm-filter-pill '+active+'" onclick="filterByCategory(this,\''+cat.replace(/\'/g,"\\'")+'\')">'+cat+' ('+count+')</button>';
+  }).join('');
+  container.innerHTML = allBtn + catBtns;
+}
+
+function filterByCategory(btn, cat) {
+  FM.activeCategory = cat;
+  document.querySelectorAll('.fm-filter-pill').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function filterFiles() { applyFilters(); }
+
+function applyFilters() {
+  var query = (el('fm-search') ? el('fm-search').value : '').toLowerCase().trim();
+  FM.filtered = FM.files.filter(function(f) {
+    var matchCat   = FM.activeCategory==='all' || f.category===FM.activeCategory;
+    var matchQuery = !query ||
+      f.fileName.toLowerCase().indexOf(query)    !== -1 ||
+      f.category.toLowerCase().indexOf(query)    !== -1 ||
+      f.description.toLowerCase().indexOf(query) !== -1 ||
+      f.uploadedBy.toLowerCase().indexOf(query)  !== -1;
+    return matchCat && matchQuery;
+  });
+  renderFiles();
+}
+
+function renderFiles() {
+  var area = el('fm-display-area');
+  if (!area) return;
+  if (FM.files.length === 0) {
+    area.innerHTML = '<div class="fm-no-results"><div class="fm-no-results-icon">📁</div><div style="font-weight:700;color:var(--ink);margin-bottom:4px;">No files on record yet</div><div>Upload files using the area above — SOAs, policy documents, ID verification and more</div></div>';
+    return;
+  }
+  if (FM.filtered.length === 0) {
+    area.innerHTML = '<div class="fm-no-results"><div class="fm-no-results-icon">🔍</div><div style="font-weight:700;color:var(--ink);margin-bottom:4px;">No files match your search</div><div>Try a different keyword or select a different category</div></div>';
+    return;
+  }
+  FM.view === 'grid' ? renderGrid(area) : renderList(area);
+}
+
+function renderGrid(area) {
+  var html = '<div class="fm-grid">';
+  FM.filtered.forEach(function(f) {
+    var fi  = fileIcon(f.fileName);
+    var cs  = catStyle(f.category);
+    var exp = expiryStatus(f.expiry);
+    html += '<div class="fm-file-card">' +
+      '<div class="fm-file-icon-wrap" style="background:'+fi.bg+';">'+fi.icon+'</div>' +
+      '<div class="fm-file-name">'+f.fileName+'</div>' +
+      '<span class="fm-file-cat" style="background:'+cs.bg+';color:'+cs.color+';">'+f.category+'</span>' +
+      (f.description ? '<div class="fm-file-meta" style="font-style:italic;">'+f.description.substring(0,50)+'</div>' : '') +
+      '<div class="fm-file-meta">'+fmtDate(f.uploadedDate)+' · '+f.uploadedBy+'</div>' +
+      '<div class="fm-file-meta">'+fmtFileSize(f.size)+'</div>' +
+      (exp ? '<div class="fm-file-meta '+exp.cls+'">'+exp.label+'</div>' : '') +
+      '<div class="fm-file-actions">' +
+        '<button class="fm-file-btn" onclick="openFile(\''+f.id+'\',\''+f.url+'\')">Open</button>' +
+        '<button class="fm-file-btn danger" onclick="deleteFile(\''+f.id+'\')">✕</button>' +
+      '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function renderList(area) {
+  var rows = '';
+  FM.filtered.forEach(function(f) {
+    var fi  = fileIcon(f.fileName);
+    var cs  = catStyle(f.category);
+    var exp = expiryStatus(f.expiry);
+    rows += '<tr>' +
+      '<td class="td-name"><span style="margin-right:6px;">'+fi.icon+'</span>'+f.fileName+'</td>' +
+      '<td><span class="pill" style="background:'+cs.bg+';color:'+cs.color+';">'+f.category+'</span></td>' +
+      '<td style="color:var(--muted);">'+(f.description||'—')+'</td>' +
+      '<td>'+f.uploadedBy+'</td>' +
+      '<td>'+fmtDate(f.uploadedDate)+'</td>' +
+      '<td>'+fmtFileSize(f.size)+'</td>' +
+      '<td>'+(exp?'<span class="'+exp.cls+'">'+exp.label+'</span>':'—')+'</td>' +
+      '<td><a class="td-link" onclick="openFile(\''+f.id+'\',\''+f.url+'\')">Open →</a> '+
+           '<a class="td-link" style="color:var(--red);" onclick="deleteFile(\''+f.id+'\')">✕</a></td>' +
+    '</tr>';
+  });
+  area.innerHTML = '<table class="compact-table">' +
+    '<thead><tr><th>File Name</th><th>Category</th><th>Description</th><th>Uploaded By</th><th>Date</th><th>Size</th><th>Expiry</th><th></th></tr></thead>' +
+    '<tbody>'+rows+'</tbody></table>';
+}
+
+function updateFmStats() {
+  var statsBar = el('fm-stats-bar');
+  if (!statsBar) return;
+  if (FM.files.length === 0) { statsBar.style.display='none'; return; }
+  statsBar.style.display='flex';
+  var totalSize = FM.files.reduce(function(s,f){ return s+(f.size||0); }, 0);
+  var cats      = [];
+  FM.files.forEach(function(f){ if(cats.indexOf(f.category)===-1) cats.push(f.category); });
+  var expiring  = FM.files.filter(function(f){
+    var exp = expiryStatus(f.expiry);
+    return exp && exp.days <= 90;
+  }).length;
+  setEl('fm-stat-total',   FM.files.length);
+  setEl('fm-stat-cats',    cats.length);
+  setEl('fm-stat-size',    fmtFileSize(totalSize));
+  setEl('fm-stat-expiring',expiring);
+}
+
+function toggleFmView(view) {
+  FM.view = view;
+  var gb = el('fm-grid-btn');
+  var lb = el('fm-list-btn');
+  if (gb) gb.className = 'btn-sm' + (view==='grid'?' btn-sm-blue':'');
+  if (lb) lb.className = 'btn-sm' + (view==='list'?' btn-sm-blue':'');
+  renderFiles();
+}
+
+function triggerUpload() { var fi=el('fm-file-input'); if(fi) fi.click(); }
+
+function handleFileSelect(input) {
+  if (!input.files || !input.files[0]) return;
+  showUploadPanel(input.files[0]);
+}
+function handleDragOver(e) { e.preventDefault(); var z=el('fm-upload-zone'); if(z) z.classList.add('dragover'); }
+function handleDragLeave()  { var z=el('fm-upload-zone'); if(z) z.classList.remove('dragover'); }
+function handleDrop(e) {
+  e.preventDefault();
+  var z=el('fm-upload-zone'); if(z) z.classList.remove('dragover');
+  var files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files[0]) showUploadPanel(files[0]);
+}
+
+function showUploadPanel(file) {
+  FM.pendingFile = file;
+  var fi = fileIcon(file.name);
+  var fnEl = el('fm-selected-filename');
+  if (fnEl) {
+    fnEl.innerHTML = '<span>'+fi.icon+'</span><span>'+file.name+' ('+fmtFileSize(file.size)+')</span>';
+  }
+  var panel = el('fm-upload-panel'); if(panel) panel.classList.add('visible');
+  var zone  = el('fm-upload-zone');  if(zone)  zone.style.display='none';
+  var cat   = el('fm-cat-select');   if(cat)   cat.focus();
+}
+
+function cancelUpload() {
+  FM.pendingFile = null;
+  var panel = el('fm-upload-panel'); if(panel) panel.classList.remove('visible');
+  var zone  = el('fm-upload-zone');  if(zone)  zone.style.display='';
+  ['fm-cat-select','fm-desc-input','fm-expiry-input','fm-file-input'].forEach(function(id){
+    var e=el(id); if(e) e.value='';
+  });
+}
+
+function confirmUpload() {
+  var catEl  = el('fm-cat-select');
+  var descEl = el('fm-desc-input');
+  var expEl  = el('fm-expiry-input');
+  var category = catEl  ? catEl.value  : '';
+  var desc     = descEl ? descEl.value.trim() : '';
+  var expiry   = expEl  ? expEl.value  : '';
+  var file     = FM.pendingFile;
+
+  if (!category) { alert('Please select a category for this file.'); if(catEl) catEl.focus(); return; }
+  if (!file)     { alert('No file selected.'); return; }
+
+  var encodedName = category + (desc?' — '+desc:'') + ' — ' + file.name;
+
+  // Add to local store immediately
+  var newFile = {
+    id:           'new-'+Date.now(),
+    fileName:     file.name,
+    rawName:      encodedName,
+    category:     category,
+    description:  desc,
+    size:         file.size,
+    uploadedBy:   ACCOUNT.Owner ? ACCOUNT.Owner.name : 'You',
+    uploadedDate: new Date().toISOString(),
+    expiry:       expiry,
+    url:          '',
+  };
+  FM.files.unshift(newFile);
+  FM.filtered = FM.files.slice();
+
+  // Upload to CRM
+  if (ENTITY_ID && typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.API.attachFile({
+      Entity:'Accounts', RecordID:ENTITY_ID,
+      File:{ Name:encodedName, Content:file },
+    }).catch(function(err){ console.error('Upload failed:', err); });
+  }
+
+  cancelUpload();
+  buildCategoryFilters();
+  renderFiles();
+  updateFmStats();
+  setEl('nb-files', FM.files.length);
+  setEl('mc-files', FM.files.length+' file'+(FM.files.length!==1?'s':''));
+}
+
+function openFile(id, url) {
+  if (url) { window.open(url,'_blank'); return; }
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.API.downloadFile({ id:id })
+      .then(function(data){
+        if (data.data && data.data[0] && data.data[0].File) {
+          window.open(URL.createObjectURL(data.data[0].File),'_blank');
+        }
+      }).catch(function(err){ console.error(err); alert('Could not open file.'); });
+  } else { alert('[Mock] Open file: '+id); }
+}
+
+function deleteFile(id) {
+  if (!confirm('Delete this file? This cannot be undone.')) return;
+  FM.files    = FM.files.filter(function(f){ return f.id!==id; });
+  FM.filtered = FM.filtered.filter(function(f){ return f.id!==id; });
+  buildCategoryFilters();
+  renderFiles();
+  updateFmStats();
+  setEl('nb-files', FM.files.length);
+  setEl('mc-files', FM.files.length+' file'+(FM.files.length!==1?'s':''));
+  if (typeof ZOHO !== 'undefined' && id.indexOf('new-')===-1) {
+    ZOHO.CRM.API.deleteRecord({ Entity:'Attachments', RecordID:id })
+      .catch(function(err){ console.error('Delete failed:',err); });
+  }
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────
+function startApp() {
+  ZOHO.embeddedApp.on('PageLoad', function(data) {
+    ENTITY_ID = data.EntityId;
+
+    // Load account + all related lists in parallel
+    Promise.allSettled([
+      ZOHO.CRM.API.getRecord({ Entity:'Accounts', RecordID:ENTITY_ID }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Contacts',        page:1, per_page:50 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Advice_Records',  page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Policies',        page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Loans',           page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Investments',     page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Loan_Assets',     page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Loan_Liabilities',page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Loan_Incomes',    page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Loan_Expenses',   page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Claims',          page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Complaints',      page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Notes',           page:1, per_page:5  }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'General_Policies',page:1, per_page:10 }),
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Accounts', RecordID:ENTITY_ID, RelatedList:'Attachments',      page:1, per_page:100}),
+    ]).then(function(results) {
+      var get = (r) => r.status==='fulfilled' ? (r.value.data||[]) : [];
+
+      populateAccount(get(results[0])[0] || {});
+      renderContacts(get(results[1]));
+      renderAdviceRecords(get(results[2]));
+      renderPolicies(get(results[3]));
+      renderLoans(get(results[4]));
+      renderInvestments(get(results[5]));
+
+      var totalAssets   = renderAssets(get(results[6]))   || 0;
+      var totalLiabs    = renderLiabilities(get(results[7])) || 0;
+      var totalIncome   = renderIncome(get(results[8]))   || 0;
+      var totalExpenses = renderExpenses(get(results[9])) || 0;
+
+      renderClaims(get(results[10]));
+      renderComplaints(get(results[11]));
+      renderNotes(get(results[12]));
+      renderGenPolicies(get(results[13]));
+      loadFiles(get(results[14]));
+
+      updateHealthStrip(totalAssets, totalLiabs, totalIncome, totalExpenses);
+
+      // Update health strip counts
+      setEl('hs-assets-count',   get(results[6]).length + ' items');
+      setEl('hs-liabs-count',    get(results[7]).length + ' items');
+      setEl('hs-income-count',   get(results[8]).length + ' sources');
+      setEl('hs-expenses-count', get(results[9]).length + ' items');
+
+    }).finally(function() {
+      reveal();
+      initScrollSpy();
+    });
+  });
+  ZOHO.embeddedApp.init();
+}
+
+if (document.readyState==='loading') {
+  document.addEventListener('DOMContentLoaded', function(){setTimeout(startApp,350);});
+} else {
+  setTimeout(startApp,350);
+}
+
+// Hard fallback
+setTimeout(function(){
+  var l=el('loading');
+  if(l&&!l.classList.contains('hidden')){
+    l.classList.add('hidden');
+    el('main-page').classList.add('visible');
+    initScrollSpy();
+  }
+},3000);
+</script>
+</body>
+</html>
