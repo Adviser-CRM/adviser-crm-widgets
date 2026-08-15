@@ -263,6 +263,7 @@
     <div class="loading-text">Loading deal…</div>
   </div>
   <div id="mock-badge">MOCK MODE — running outside Zoho CRM (sample data shown)</div>
+  <div id="debug-badge" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#3a1a00; color:#ffcf8a; font-family:monospace; font-size:11px; padding:6px 12px; white-space:pre-wrap; word-break:break-all; max-height:35vh; overflow:auto;"></div>
 
   <div class="page" id="page">
 
@@ -805,6 +806,16 @@ function openAccount() {
     ZOHO.embeddedApp.on('PageLoad', function(data) {
       loaded = true;
       ENTITY_ID = (data && data.EntityId && data.EntityId[0]) || (data && data.RecordId) || null;
+
+      // TEMPORARY DEBUG — remove once EntityId linking is confirmed working.
+      console.log('[deals debug] PageLoad data:', data);
+      console.log('[deals debug] resolved ENTITY_ID:', ENTITY_ID);
+      var dbg = el('debug-badge');
+      if (dbg) {
+        dbg.style.display = 'block';
+        dbg.textContent = 'DEBUG — PageLoad data: ' + JSON.stringify(data) + '\nresolved ENTITY_ID: ' + ENTITY_ID;
+      }
+
       if (!ENTITY_ID) { reveal(); return; }
 
       Promise.all([
@@ -823,6 +834,7 @@ function openAccount() {
         renderHistory((histResp && histResp.data) || []);
       }).catch(function(err) {
         console.error('Deal page load error', err);
+        if (dbg) dbg.textContent += '\n\nAPI ERROR: ' + JSON.stringify(err);
       }).finally(reveal);
     });
     ZOHO.embeddedApp.init();
