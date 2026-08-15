@@ -805,7 +805,11 @@ function openAccount() {
   if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) {
     ZOHO.embeddedApp.on('PageLoad', function(data) {
       loaded = true;
-      ENTITY_ID = (data && data.EntityId && data.EntityId[0]) || (data && data.RecordId) || null;
+      // EntityId comes through as an array in some Zoho contexts and a plain
+      // string in others (e.g. a Widget embedded via a Canvas Custom Page
+      // element) — handle both rather than assuming it's always an array.
+      var rawEntityId = data && data.EntityId;
+      ENTITY_ID = Array.isArray(rawEntityId) ? rawEntityId[0] : (rawEntityId || (data && data.RecordId) || null);
 
       // TEMPORARY DEBUG — remove once EntityId linking is confirmed working.
       console.log('[deals debug] PageLoad data:', data);
