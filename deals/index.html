@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deal — Adviser CRM</title>
+<script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+<style>
+  :root {
+    --blue:      #00abe6;
+    --blue-dk:   #0087b8;
+    --blue-lt:   #d0eefa;
+    --blue-xlt:  #ebf7fd;
+    --ink:       #00364d;
+    --ink-mid:   #005a7a;
+    --muted:     #5a9ab5;
+    --divider:   #c0e4f5;
+    --bg:        #f0faff;
+    --bg-alt:    #dff3fc;
+    --white:     #ffffff;
+    --green:     #0d7f5f;
+    --green-lt:  #d4f0e8;
+    --amber:     #b86b00;
+    --amber-lt:  #fef0d6;
+    --red:       #c0392b;
+    --red-lt:    #fde8e6;
+    --purple:    #6c3fcf;
+    --purple-lt: #ede8fb;
+    --teal:      #0d7f7f;
+    --teal-lt:   #d4f0f0;
+    --sans:      Verdana, Geneva, sans-serif;
+    --radius:    10px;
+    --radius-lg: 14px;
+    --shadow:    0 2px 10px rgba(0,171,230,0.10);
+    --shadow-md: 0 6px 24px rgba(0,171,230,0.14);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Loading ── */
+  #loading {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px; z-index: 999;
+    transition: opacity 0.3s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 38px; height: 38px;
+    border: 3px solid var(--divider);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 12px; color: var(--muted); }
+
+  #mock-badge {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--ink); color: var(--blue);
+    font-family: monospace; font-size: 11px;
+    padding: 5px 14px; text-align: center; z-index: 998;
+  }
+
+  .page { display: none; }
+  .page.visible { display: block; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, var(--ink) 0%, var(--ink-mid) 100%);
+    padding: 22px 28px 0;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,54,77,0.25);
+  }
+  .hero-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; padding-bottom: 18px; flex-wrap: wrap;
+  }
+  .hero-left { min-width: 0; }
+  .deal-badges { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .pill {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 3px 10px; border-radius: 20px;
+    border: 1px solid rgba(0,171,230,0.3);
+    color: var(--blue); background: rgba(0,171,230,0.15);
+    white-space: nowrap;
+  }
+  .pill-lost { color: #ff9c8f; background: rgba(192,57,43,0.22); border-color: rgba(255,140,120,0.4); }
+  .pill-won  { color: #7be0bc; background: rgba(13,127,95,0.25); border-color: rgba(123,224,188,0.4); }
+  .deal-name { font-size: 20px; font-weight: 700; color: var(--white); letter-spacing: -0.01em; word-break: break-word; }
+  .deal-meta { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 3px; }
+  .deal-meta a { color: rgba(255,255,255,0.85); text-decoration: none; cursor: pointer; }
+  .deal-meta a:hover { text-decoration: underline; }
+
+  .hero-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 14px; border-radius: var(--radius);
+    font-family: var(--sans); font-size: 11px; font-weight: 700;
+    cursor: pointer; border: none; transition: all 0.18s ease;
+    white-space: nowrap; text-decoration: none;
+  }
+  .btn-blue { background: var(--blue); color: var(--white); }
+  .btn-blue:hover { background: var(--blue-dk); }
+  .btn-ghost-white {
+    background: rgba(255,255,255,0.1); color: var(--white);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .btn-ghost-white:hover { background: rgba(255,255,255,0.2); }
+
+  .hero-amount-row { display: flex; align-items: baseline; gap: 22px; padding-bottom: 16px; flex-wrap: wrap; }
+  .amount-figure .amount-value { font-size: 26px; font-weight: 700; color: var(--white); line-height: 1; }
+  .amount-figure .amount-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .hero-stat { display: flex; flex-direction: column; gap: 4px; }
+  .hero-stat .v { font-size: 14px; font-weight: 700; color: var(--white); }
+  .hero-stat .l { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
+
+  /* ── Stage tracker ── */
+  .stage-tracker {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  .stage-step {
+    padding: 12px 14px 14px; position: relative;
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+  .stage-step:last-child { border-right: none; }
+  .stage-step-bar { height: 4px; border-radius: 3px; background: rgba(255,255,255,0.14); margin-bottom: 8px; }
+  .stage-step.done .stage-step-bar { background: var(--blue); }
+  .stage-step.current .stage-step-bar { background: linear-gradient(90deg, var(--blue) 0%, rgba(0,171,230,0.35) 100%); }
+  .stage-step-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.45); }
+  .stage-step.done .stage-step-name, .stage-step.current .stage-step-name { color: rgba(255,255,255,0.9); }
+  .stage-step-sub { font-size: 10.5px; color: rgba(255,255,255,0.5); margin-top: 2px; min-height: 14px; }
+  .stage-step.current .stage-step-sub { color: var(--blue); font-weight: 700; }
+  .stage-step.current::after {
+    content: ''; position: absolute; left: 14px; bottom: -1px; height: 2px; width: 34px;
+    background: var(--blue); border-radius: 2px;
+  }
+  .lost-banner {
+    margin: 0 28px; padding: 10px 16px; border-radius: var(--radius) var(--radius) 0 0;
+    background: rgba(192,57,43,0.18); border: 1px solid rgba(255,140,120,0.35); border-bottom: none;
+    color: #ffcfc7; font-size: 11.5px; font-weight: 700; display: none;
+    align-items: center; gap: 8px; transform: translateY(1px);
+  }
+  .lost-banner.visible { display: flex; }
+
+  /* ── Layout ── */
+  .content { max-width: 1280px; margin: 0 auto; padding: 22px 28px 60px; }
+  .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 980px) { .grid-2 { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+  .card {
+    background: var(--white); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow); border: 1px solid var(--divider);
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--divider);
+  }
+  .card-title { font-size: 12.5px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .card-title .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); }
+  .card-link { font-size: 11px; font-weight: 700; color: var(--blue); cursor: pointer; text-decoration: none; }
+  .card-link:hover { text-decoration: underline; }
+  .card-body { padding: 16px 18px; }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+  .field-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 560px) { .field-grid, .field-grid.cols-3 { grid-template-columns: 1fr 1fr; } }
+  .field .fl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 3px; }
+  .field .fv { font-size: 13px; color: var(--ink); font-weight: 600; }
+  .field .fv.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+  .field .fv.mono { font-family: 'SF Mono', Menlo, monospace; font-size: 12px; }
+
+  .desc-block { font-size: 12.5px; color: var(--ink-mid); margin-top: 4px; white-space: pre-wrap; }
+
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700; }
+  .badge-green  { background: var(--green-lt); color: var(--green); }
+  .badge-amber  { background: var(--amber-lt); color: var(--amber); }
+  .badge-red    { background: var(--red-lt); color: var(--red); }
+  .badge-blue   { background: var(--blue-xlt); color: var(--blue-dk); }
+  .badge-purple { background: var(--purple-lt); color: var(--purple); }
+  .badge-muted  { background: var(--bg-alt); color: var(--muted); }
+
+  /* ── Trial progress ── */
+  .trial-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .trial-days { font-size: 22px; font-weight: 700; color: var(--ink); }
+  .trial-days-label { font-size: 10.5px; color: var(--muted); }
+  .progress-track { height: 8px; border-radius: 6px; background: var(--bg-alt); overflow: hidden; margin-bottom: 4px; }
+  .progress-fill { height: 100%; border-radius: 6px; background: var(--blue); transition: width 0.4s ease; }
+  .progress-fill.warn { background: var(--amber); }
+  .progress-fill.danger { background: var(--red); }
+  .progress-endpoints { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); }
+
+  /* ── Arrears ── */
+  .arrears-figure { text-align: center; padding: 6px 0 4px; }
+  .arrears-figure .av { font-size: 30px; font-weight: 700; }
+  .arrears-figure .av.clear { color: var(--green); }
+  .arrears-figure .av.due { color: var(--red); }
+  .arrears-figure .al { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+  .arrears-sub { text-align: center; margin-top: 8px; }
+
+  /* ── License stats ── */
+  .license-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .license-stat { background: var(--bg-alt); border-radius: var(--radius); padding: 10px 12px; }
+  .license-stat .lv { font-size: 19px; font-weight: 700; color: var(--ink); line-height: 1; }
+  .license-stat .ll { font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .license-total-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--blue-xlt); border-radius: var(--radius); margin-bottom: 14px; }
+  .license-total-row .lt-v { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .license-total-row .lt-l { font-size: 10.5px; color: var(--ink-mid); font-weight: 700; }
+
+  .license-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 0; border-top: 1px solid var(--divider);
+  }
+  .license-row:first-of-type { border-top: none; }
+  .license-holder { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .license-holder-email { font-size: 10.5px; color: var(--muted); }
+  .license-tags { display: flex; gap: 6px; align-items: center; }
+
+  .picklist-note {
+    margin-top: 12px; padding: 9px 11px; background: var(--amber-lt);
+    border-radius: var(--radius); font-size: 11px; color: var(--amber); line-height: 1.5;
+  }
+  .empty-state { padding: 18px 0; text-align: center; color: var(--muted); font-size: 12px; }
+
+  /* ── Stage history timeline ── */
+  .timeline-row { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--divider); }
+  .timeline-row:first-of-type { border-top: none; }
+  .timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); margin-top: 5px; flex-shrink: 0; }
+  .timeline-stage { font-size: 12px; font-weight: 700; color: var(--ink); }
+  .timeline-date { font-size: 10.5px; color: var(--muted); }
+
+  .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .qa-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px; border-radius: var(--radius); background: var(--blue-xlt);
+    color: var(--ink-mid); font-size: 11.5px; font-weight: 700; cursor: pointer;
+    border: 1px solid var(--divider); transition: all 0.15s ease;
+  }
+  .qa-btn:hover { background: var(--blue-lt); border-color: var(--blue); }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--divider); border-radius: 6px; }
+</style>
+</head>
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading deal…</div>
+  </div>
+  <div id="mock-badge">MOCK MODE — running outside Zoho CRM (sample data shown)</div>
+
+  <div class="page" id="page">
+
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-left">
+          <div class="deal-badges">
+            <span class="pill" id="pipeline-pill">Pipeline</span>
+            <span class="pill" id="type-pill" style="display:none;">Type</span>
+          </div>
+          <div class="deal-name" id="deal-name">Deal</div>
+          <div class="deal-meta" id="deal-meta">—</div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn btn-ghost-white" onclick="sendEmail()">✉ Email</button>
+          <button class="btn btn-ghost-white" onclick="editDeal()">✎ Edit</button>
+          <button class="btn btn-blue" onclick="openThisRecord()">Open in Zoho ↗</button>
+        </div>
+      </div>
+
+      <div class="hero-amount-row">
+        <div class="amount-figure">
+          <div class="amount-value" id="hero-amount">$0</div>
+          <div class="amount-label">Deal Amount</div>
+        </div>
+        <div class="hero-stat"><div class="v" id="hero-probability">—</div><div class="l">Probability</div></div>
+        <div class="hero-stat"><div class="v" id="hero-closing">—</div><div class="l">Closing Date</div></div>
+        <div class="hero-stat"><div class="v" id="hero-owner">—</div><div class="l">Owner</div></div>
+      </div>
+
+      <div class="lost-banner" id="lost-banner">⚠ <span id="lost-banner-text">This deal is closed/lost.</span></div>
+
+      <div class="stage-tracker" id="stage-tracker">
+        <!-- 6 stage-step nodes injected here -->
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="grid-2">
+
+        <!-- ── LEFT COLUMN ── -->
+        <div class="col">
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Opportunity Overview</div>
+            </div>
+            <div class="card-body">
+              <div class="field-grid cols-3">
+                <div class="field"><div class="fl">Type</div><div class="fv" id="f-type">—</div></div>
+                <div class="field"><div class="fl">Lead Source</div><div class="fv" id="f-source">—</div></div>
+                <div class="field"><div class="fl">Group Size</div><div class="fv" id="f-groupsize">—</div></div>
+                <div class="field"><div class="fl">Payment Frequency</div><div class="fv" id="f-pmtfreq">—</div></div>
+                <div class="field"><div class="fl">Expected Revenue</div><div class="fv" id="f-exprev">—</div></div>
+                <div class="field"><div class="fl">Next Step</div><div class="fv" id="f-nextstep">—</div></div>
+              </div>
+              <div class="desc-block" id="f-description"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Free Trial</div>
+              <span class="badge" id="trial-badge">—</span>
+            </div>
+            <div class="card-body">
+              <div class="trial-status-row">
+                <div>
+                  <div class="trial-days" id="trial-days">—</div>
+                  <div class="trial-days-label" id="trial-days-label">days remaining</div>
+                </div>
+              </div>
+              <div class="progress-track"><div class="progress-fill" id="trial-progress" style="width:0%"></div></div>
+              <div class="progress-endpoints">
+                <span id="trial-start-lbl">Start —</span>
+                <span id="trial-end-lbl">Expiry —</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Subscription Lifecycle</div>
+            </div>
+            <div class="card-body">
+              <div class="field-grid cols-3">
+                <div class="field"><div class="fl">Subscription ID</div><div class="fv mono" id="f-subid">—</div></div>
+                <div class="field"><div class="fl">Start Date</div><div class="fv" id="f-startdate">—</div></div>
+                <div class="field"><div class="fl">End Date</div><div class="fv" id="f-enddate">—</div></div>
+                <div class="field"><div class="fl">Renewal Date</div><div class="fv" id="f-renewal">—</div></div>
+                <div class="field"><div class="fl">Notice Date</div><div class="fv" id="f-notice">—</div></div>
+                <div class="field"><div class="fl">Months as Client</div><div class="fv" id="f-months">—</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="onboarding-card" style="display:none;">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Onboarding &amp; Data Migration</div>
+            </div>
+            <div class="card-body">
+              <div class="field-grid">
+                <div class="field"><div class="fl">Migrating Data</div><div class="fv" id="f-migrating">—</div></div>
+                <div class="field"><div class="fl">Previous CRM</div><div class="fv" id="f-prevcrm">—</div></div>
+              </div>
+              <div class="desc-block" id="f-migration-summary"></div>
+            </div>
+          </div>
+
+          <div class="card" id="loss-card" style="display:none;">
+            <div class="card-header">
+              <div class="card-title"><span class="dot" style="background:var(--red);"></span>Lost / Cancellation Detail</div>
+            </div>
+            <div class="card-body">
+              <div class="field-grid">
+                <div class="field"><div class="fl">Reason</div><div class="fv" id="f-lossreason">—</div></div>
+                <div class="field"><div class="fl">Lost To</div><div class="fv" id="f-lostto">—</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="history-card" style="display:none;">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Stage History</div>
+            </div>
+            <div class="card-body" id="history-body"></div>
+          </div>
+
+        </div>
+
+        <!-- ── RIGHT COLUMN ── -->
+        <div class="col">
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="dot" style="background:var(--red);"></span>Arrears</div>
+              <span class="badge" id="arrears-badge">—</span>
+            </div>
+            <div class="card-body">
+              <div class="arrears-figure">
+                <div class="av" id="arrears-amount">$0</div>
+                <div class="al">Amount Overdue</div>
+              </div>
+              <div class="arrears-sub" id="arrears-days">—</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Licenses</div>
+              <span class="card-link" onclick="newLicense()">+ New License</span>
+            </div>
+            <div class="card-body">
+              <div class="license-total-row">
+                <span class="lt-l">Total Active Licenses</span>
+                <span class="lt-v" id="license-total">0</span>
+              </div>
+              <div class="license-stat-grid" id="license-stat-grid"></div>
+              <div id="license-list"></div>
+              <div class="picklist-note" id="pa-note" style="display:none;">
+                ⚠ "Personal Assistant License" isn't a License Type option in Zoho yet. Add it under
+                Setup → Customization → Modules → Licenses → License Type to have it appear here automatically.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Key Contacts</div>
+            </div>
+            <div class="card-body">
+              <div class="field-grid">
+                <div class="field"><div class="fl">Account</div><div class="fv" id="f-account">—</div></div>
+                <div class="field"><div class="fl">Primary Contact</div><div class="fv" id="f-contact">—</div></div>
+                <div class="field"><div class="fl">Owner</div><div class="fv" id="f-owner">—</div></div>
+                <div class="field"><div class="fl">Created</div><div class="fv" id="f-created">—</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="dot"></span>Quick Actions</div>
+            </div>
+            <div class="card-body">
+              <div class="quick-actions">
+                <div class="qa-btn" onclick="newLicense()">+ Add License</div>
+                <div class="qa-btn" onclick="openAccount()">View Account</div>
+                <div class="qa-btn" onclick="editDeal()">Edit Deal</div>
+                <div class="qa-btn" onclick="openThisRecord()">Open in Zoho</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────
+var ENTITY_ID = null;
+var DEAL = null;
+var LICENSES = [];
+
+// Bucket order shown in the stage tracker, and which real Stage values fall into each.
+var STAGE_BUCKETS = [
+  { key:'demos',     label:'Demos',       stages:['Identified','Discovery','Proposal','Proposal/Price Quote','Demo Scheduled','Demo Completed'] },
+  { key:'trial',      label:'Free Trials', stages:['Trial','Trial Activated','Trial Expired'] },
+  { key:'legal',      label:'Legal',       stages:['Awaiting Approval','Agreement Sent','Agreement Signed','Agreement Executed','Accepted in Process'] },
+  { key:'payments',   label:'Payments',    stages:['Subscription Sent','Subscription Completed','In Process'] },
+  { key:'onboarding', label:'Onboarding',  stages:['Data Migration','Migrating Data','User Profiles','Content','In Development','Go Live'] },
+  { key:'closedwon',  label:'Closed/Won',  stages:['Active Subscription','Closed Won'] },
+];
+var LOST_STAGES = ['Closed Lost','Not Converted','Cancellation Pending'];
+
+// Canonical display order + colours for known license types.
+var LICENSE_TYPE_ORDER = ['Adviser License','Admin License','Auditor License','Personal Assistant License'];
+
+// ── Helpers ───────────────────────────────────────────────────────
+function el(id) { return document.getElementById(id); }
+function setEl(id, val) { var e = el(id); if (e) e.textContent = (val === null || val === undefined || val === '') ? '—' : val; }
+function fmtCurr(n) {
+  if (n === null || n === undefined || n === '') return '$0';
+  return 'NZ$' + Number(n).toLocaleString('en-NZ', { maximumFractionDigits: 0 });
+}
+function fmtDate(d) {
+  if (!d) return null;
+  var dt = new Date(d);
+  if (isNaN(dt.getTime())) return d;
+  return dt.toLocaleDateString('en-NZ', { day:'2-digit', month:'short', year:'numeric' });
+}
+function daysBetween(a, b) {
+  var MS = 1000 * 60 * 60 * 24;
+  return Math.round((b.setHours(0,0,0,0) - a.setHours(0,0,0,0)) / MS);
+}
+function lookupName(field) {
+  if (!field) return null;
+  if (typeof field === 'string') return field;
+  return field.name || field.Name || null;
+}
+
+// ── Stage tracker ────────────────────────────────────────────────
+function renderStageTracker(stage) {
+  var isLost = LOST_STAGES.indexOf(stage) !== -1;
+  el('lost-banner').className = 'lost-banner' + (isLost ? ' visible' : '');
+  if (isLost) setEl('lost-banner-text', 'This deal is ' + stage.toLowerCase() + '.');
+
+  var currentBucketIdx = -1;
+  STAGE_BUCKETS.forEach(function(b, i) { if (b.stages.indexOf(stage) !== -1) currentBucketIdx = i; });
+  // Deals sitting in a "won" style stage not explicitly mapped default to the final bucket.
+  if (currentBucketIdx === -1 && !isLost && stage) currentBucketIdx = 0;
+
+  var html = '';
+  STAGE_BUCKETS.forEach(function(b, i) {
+    var cls = 'stage-step';
+    if (!isLost) {
+      if (i < currentBucketIdx) cls += ' done';
+      else if (i === currentBucketIdx) cls += ' current';
+    }
+    var sub = (i === currentBucketIdx && !isLost) ? stage : '';
+    html += '<div class="' + cls + '">' +
+              '<div class="stage-step-bar"></div>' +
+              '<div class="stage-step-name">' + b.label + '</div>' +
+              '<div class="stage-step-sub">' + sub + '</div>' +
+            '</div>';
+  });
+  el('stage-tracker').innerHTML = html;
+}
+
+// ── Trial card ────────────────────────────────────────────────────
+function renderTrial(startStr, expiryStr) {
+  var badge = el('trial-badge');
+  if (!startStr && !expiryStr) {
+    badge.textContent = 'Not Started'; badge.className = 'badge badge-muted';
+    setEl('trial-days', '—'); setEl('trial-days-label', 'no trial dates set');
+    el('trial-progress').style.width = '0%';
+    setEl('trial-start-lbl', 'Start —'); setEl('trial-end-lbl', 'Expiry —');
+    return;
+  }
+  var today = new Date();
+  var start = startStr ? new Date(startStr) : null;
+  var expiry = expiryStr ? new Date(expiryStr) : null;
+  setEl('trial-start-lbl', 'Start ' + (fmtDate(startStr) || '—'));
+  setEl('trial-end-lbl', 'Expiry ' + (fmtDate(expiryStr) || '—'));
+
+  if (expiry && today > expiry) {
+    badge.textContent = 'Expired'; badge.className = 'badge badge-red';
+    var overdue = daysBetween(new Date(expiry), new Date(today));
+    setEl('trial-days', overdue); setEl('trial-days-label', 'days since expiry');
+    el('trial-progress').style.width = '100%';
+    el('trial-progress').className = 'progress-fill danger';
+    return;
+  }
+  if (start && today < start) {
+    badge.textContent = 'Not Started'; badge.className = 'badge badge-muted';
+    setEl('trial-days', daysBetween(new Date(today), new Date(start)));
+    setEl('trial-days-label', 'days until start');
+    el('trial-progress').style.width = '0%';
+    return;
+  }
+  badge.textContent = 'Active'; badge.className = 'badge badge-green';
+  if (start && expiry) {
+    var total = daysBetween(new Date(start), new Date(expiry)) || 1;
+    var elapsed = daysBetween(new Date(start), new Date(today));
+    var remaining = daysBetween(new Date(today), new Date(expiry));
+    var pct = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+    setEl('trial-days', Math.max(0, remaining)); setEl('trial-days-label', 'days remaining');
+    var fill = el('trial-progress');
+    fill.style.width = pct + '%';
+    fill.className = 'progress-fill' + (remaining <= 3 ? ' danger' : remaining <= 7 ? ' warn' : '');
+  }
+}
+
+// ── Arrears card ──────────────────────────────────────────────────
+function renderArrears(amount, days) {
+  var amt = Number(amount) || 0;
+  var amtEl = el('arrears-amount');
+  amtEl.textContent = fmtCurr(amt);
+  amtEl.className = 'av ' + (amt > 0 ? 'due' : 'clear');
+
+  var badge = el('arrears-badge');
+  if (amt <= 0) {
+    badge.textContent = 'Current'; badge.className = 'badge badge-green';
+    setEl('arrears-days', 'No overdue balance');
+  } else if (Number(days) >= 30) {
+    badge.textContent = 'Critical'; badge.className = 'badge badge-red';
+    setEl('arrears-days', days + ' days overdue');
+  } else {
+    badge.textContent = 'Overdue'; badge.className = 'badge badge-amber';
+    setEl('arrears-days', (days || 0) + ' days overdue');
+  }
+}
+
+// ── Licenses ──────────────────────────────────────────────────────
+function renderLicenses(licenses) {
+  LICENSES = licenses || [];
+  var active = LICENSES.filter(function(l) { return l.Status === 'Active'; });
+  setEl('license-total', active.length);
+
+  var counts = {};
+  active.forEach(function(l) {
+    var t = l.License_Type || 'Unassigned';
+    counts[t] = (counts[t] || 0) + 1;
+  });
+  var seenTypes = Object.keys(counts);
+  var order = LICENSE_TYPE_ORDER.filter(function(t) { return seenTypes.indexOf(t) !== -1; })
+                .concat(seenTypes.filter(function(t) { return LICENSE_TYPE_ORDER.indexOf(t) === -1; }));
+
+  var gridHtml = '';
+  order.forEach(function(t) {
+    gridHtml += '<div class="license-stat"><div class="lv">' + counts[t] + '</div><div class="ll">' + t.replace(' License','') + '</div></div>';
+  });
+  el('license-stat-grid').innerHTML = gridHtml || '<div class="empty-state" style="grid-column:1/-1;">No active licenses yet</div>';
+
+  el('pa-note').style.display = (seenTypes.indexOf('Personal Assistant License') === -1) ? 'block' : 'none';
+
+  var listHtml = '';
+  LICENSES.slice(0, 8).forEach(function(l) {
+    var statusClass = l.Status === 'Active' ? 'badge-green' : l.Status === 'Pending' ? 'badge-blue' : l.Status === 'Suspended' ? 'badge-amber' : 'badge-red';
+    var holderName = lookupName(l.License_Holder) || l.Email || 'Unassigned';
+    listHtml += '<div class="license-row">' +
+                  '<div><div class="license-holder">' + holderName + '</div>' +
+                  (l.Holder_Email ? '<div class="license-holder-email">' + l.Holder_Email + '</div>' : '') + '</div>' +
+                  '<div class="license-tags">' +
+                    '<span class="badge badge-muted">' + (l.License_Type || '—').replace(' License','') + '</span>' +
+                    '<span class="badge ' + statusClass + '">' + (l.Status || '—') + '</span>' +
+                  '</div>' +
+                '</div>';
+  });
+  if (LICENSES.length > 8) listHtml += '<div class="empty-state">+' + (LICENSES.length - 8) + ' more — view all on the Licensing related list</div>';
+  el('license-list').innerHTML = listHtml || '<div class="empty-state">No license records linked to this deal yet</div>';
+}
+
+// ── Stage history ─────────────────────────────────────────────────
+function renderHistory(history) {
+  if (!history || !history.length) return;
+  el('history-card').style.display = 'block';
+  var html = '';
+  history.forEach(function(h) {
+    html += '<div class="timeline-row"><div class="timeline-dot"></div><div>' +
+              '<div class="timeline-stage">' + (h.Stage || h.stage || '—') + '</div>' +
+              '<div class="timeline-date">' + (fmtDate(h.Modified_Time || h.date) || '') + '</div>' +
+            '</div></div>';
+  });
+  el('history-body').innerHTML = html;
+}
+
+// ── Main populate ─────────────────────────────────────────────────
+function populateDeal(d) {
+  DEAL = d;
+  setEl('deal-name', d.Deal_Name || 'Deal');
+  var accountName = lookupName(d.Account_Name);
+  var ownerName = lookupName(d.Owner);
+  setEl('deal-meta', [accountName, ownerName ? 'Owner: ' + ownerName : ''].filter(Boolean).join(' · '));
+
+  if (d.Pipeline && d.Pipeline !== '-None-') { el('pipeline-pill').textContent = d.Pipeline; }
+  else { el('pipeline-pill').style.display = 'none'; }
+  if (d.Type && d.Type !== '-None-') { el('type-pill').textContent = d.Type; el('type-pill').style.display = 'inline-flex'; }
+
+  setEl('hero-amount', fmtCurr(d.Amount));
+  setEl('hero-probability', (d.Probability !== undefined && d.Probability !== null) ? d.Probability + '%' : '—');
+  setEl('hero-closing', fmtDate(d.Closing_Date));
+  setEl('hero-owner', ownerName);
+
+  renderStageTracker(d.Stage);
+
+  setEl('f-type', d.Type);
+  setEl('f-source', d.Lead_Source);
+  setEl('f-groupsize', d.Group_Size);
+  setEl('f-pmtfreq', d.Pmt_Frequency);
+  setEl('f-exprev', d.Expected_Revenue ? fmtCurr(d.Expected_Revenue) : null);
+  setEl('f-nextstep', d.Next_Step);
+  el('f-description').textContent = d.Description || '';
+
+  renderTrial(d.Trial_Start, d.Trial_Expiry);
+
+  setEl('f-subid', d.Subscription_ID);
+  setEl('f-startdate', fmtDate(d.Start_Date));
+  setEl('f-enddate', fmtDate(d.End_Date));
+  setEl('f-renewal', fmtDate(d.Renewal_Date));
+  setEl('f-notice', fmtDate(d.Notice_Date));
+  setEl('f-months', (d.Months_as_Client !== undefined && d.Months_as_Client !== null) ? d.Months_as_Client : null);
+
+  if (d.Migrating === 'Yes' || d.Current_CRM1 || d.Migration_Summary) {
+    el('onboarding-card').style.display = 'block';
+    setEl('f-migrating', d.Migrating);
+    setEl('f-prevcrm', d.Current_CRM1);
+    el('f-migration-summary').textContent = d.Migration_Summary || '';
+  }
+
+  if (LOST_STAGES.indexOf(d.Stage) !== -1) {
+    el('loss-card').style.display = 'block';
+    setEl('f-lossreason', d.Reason_For_Loss__s || d.Loss_Reason);
+    setEl('f-lostto', d.Lost_to);
+  }
+
+  renderArrears(d.Arrears_Amount, d.Days_Overdue);
+
+  setEl('f-account', accountName);
+  setEl('f-contact', lookupName(d.Contact_Name));
+  setEl('f-owner', ownerName);
+  setEl('f-created', fmtDate(d.Created_Time));
+}
+
+// ── CRM actions ───────────────────────────────────────────────────
+function openThisRecord() {
+  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity: 'Deals', RecordID: ENTITY_ID });
+  else alert('[Mock] Open Deals ' + ENTITY_ID);
+}
+function editDeal() {
+  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.edit({ Entity: 'Deals', RecordID: ENTITY_ID });
+  else alert('[Mock] Edit deal');
+}
+function sendEmail() {
+  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.sendMail({ Entity: 'Deals', RecordID: ENTITY_ID });
+  else alert('[Mock] Send email');
+}
+function newLicense() {
+  if (typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.create({ Entity: 'Licenses', prefill: { 'Opportunity': { id: ENTITY_ID } } });
+  } else alert('[Mock] New License record, prefilled with this Deal');
+}
+function openAccount() {
+  if (!DEAL || !DEAL.Account_Name) return;
+  var id = DEAL.Account_Name.id || DEAL.Account_Name;
+  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity: 'Accounts', RecordID: id });
+  else alert('[Mock] Open Account ' + id);
+}
+
+// ── SDK bootstrap / mock mode ───────────────────────────────────────
+(function() {
+  var loaded = false;
+  function reveal() {
+    el('loading').classList.add('hidden');
+    el('page').classList.add('visible');
+  }
+
+  function initMockIfNeeded() {
+    if (loaded) return;
+    loaded = true;
+
+    var MOCK_DEAL = {
+      id: 'deal-001',
+      Deal_Name: 'Bay Financial Group — 12 Adviser Licenses',
+      Account_Name: { id: 'acc-01', name: 'Bay Financial Group' },
+      Contact_Name: { id: 'c-01', name: 'Rachel Ngata' },
+      Owner: { id: 'u-01', name: 'Sean Davis' },
+      Amount: 14400,
+      Expected_Revenue: 14400,
+      Probability: 70,
+      Closing_Date: '2026-09-01',
+      Stage: 'Agreement Sent',
+      Pipeline: 'Sales Pipeline',
+      Type: 'Adviser CRM',
+      Lead_Source: 'Referral',
+      Group_Size: '10 to 20',
+      Pmt_Frequency: 'Monthly',
+      Next_Step: 'Follow up on signed agreement, confirm data migration start date',
+      Description: 'Moving from Xplan. 12 advisers, 2 admin, 1 auditor (external accountant). Wants trial extended by a week to finish testing loan calculators.',
+      Trial_Start: '2026-07-20',
+      Trial_Expiry: '2026-08-24',
+      Subscription_ID: 'SUB-10432',
+      Start_Date: '2026-09-01',
+      End_Date: null,
+      Renewal_Date: '2027-09-01',
+      Notice_Date: null,
+      Months_as_Client: 0,
+      Migrating: 'Yes',
+      Current_CRM1: 'Xplan',
+      Migration_Summary: 'Full client, policy and loan data export supplied 12 Aug. Migration slotted for onboarding stage.',
+      Arrears_Amount: 0,
+      Days_Overdue: 0,
+      Created_Time: '2026-06-02T10:00:00+12:00',
+    };
+    var MOCK_LICENSES = [
+      { id:'lic1', License_Type:'Adviser License', Status:'Active', License_Holder:{name:'Rachel Ngata'}, Holder_Email:'rachel@bayfinancial.co.nz' },
+      { id:'lic2', License_Type:'Adviser License', Status:'Active', License_Holder:{name:'Tom Marsh'}, Holder_Email:'tom@bayfinancial.co.nz' },
+      { id:'lic3', License_Type:'Adviser License', Status:'Pending', License_Holder:{name:'Priya Patel'}, Holder_Email:'priya@bayfinancial.co.nz' },
+      { id:'lic4', License_Type:'Admin License', Status:'Active', License_Holder:{name:'Grace Wilson'}, Holder_Email:'grace@bayfinancial.co.nz' },
+      { id:'lic5', License_Type:'Auditor License', Status:'Active', License_Holder:{name:'Chen & Associates'}, Holder_Email:'audit@chenassoc.co.nz' },
+    ];
+    var MOCK_HISTORY = [
+      { Stage:'Discovery', Modified_Time:'2026-06-02T10:00:00+12:00' },
+      { Stage:'Demo Completed', Modified_Time:'2026-06-18T10:00:00+12:00' },
+      { Stage:'Trial Activated', Modified_Time:'2026-07-20T10:00:00+12:00' },
+      { Stage:'Agreement Sent', Modified_Time:'2026-08-10T10:00:00+12:00' },
+    ];
+
+    ENTITY_ID = MOCK_DEAL.id;
+    populateDeal(MOCK_DEAL);
+    renderLicenses(MOCK_LICENSES);
+    renderHistory(MOCK_HISTORY);
+
+    el('mock-badge').style.display = 'block';
+    reveal();
+  }
+
+  if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) {
+    ZOHO.embeddedApp.on('PageLoad', function(data) {
+      loaded = true;
+      ENTITY_ID = (data && data.EntityId && data.EntityId[0]) || (data && data.RecordId) || null;
+      if (!ENTITY_ID) { reveal(); return; }
+
+      Promise.all([
+        ZOHO.CRM.API.getRecord({ Entity:'Deals', RecordID: ENTITY_ID }),
+        ZOHO.CRM.API.getRelatedRecords({ Entity:'Deals', RecordID: ENTITY_ID, RelatedList:'Opportunity1', page:1, per_page:200 }),
+        ZOHO.CRM.API.getRelatedRecords({ Entity:'Deals', RecordID: ENTITY_ID, RelatedList:'Stage_History', page:1, per_page:20 }),
+      ]).then(function(results) {
+        var dealResp = results[0];
+        var deal = dealResp && dealResp.data && dealResp.data[0];
+        if (deal) populateDeal(deal);
+
+        var licResp = results[1];
+        renderLicenses((licResp && licResp.data) || []);
+
+        var histResp = results[2];
+        renderHistory((histResp && histResp.data) || []);
+      }).catch(function(err) {
+        console.error('Deal page load error', err);
+      }).finally(reveal);
+    });
+    ZOHO.embeddedApp.init();
+  }
+
+  // If real Zoho PageLoad hasn't fired shortly (e.g. previewing standalone,
+  // not inside a Zoho Canvas View iframe), fall back to mock data.
+  setTimeout(initMockIfNeeded, 900);
+
+  // Hard fallback: never leave the spinner up indefinitely.
+  setTimeout(function() { if (!loaded) reveal(); }, 4000);
+})();
+</script>
+</body>
+</html>
