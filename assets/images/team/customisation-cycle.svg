@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 620" role="img" aria-labelledby="title desc">
+<title id="title">Adviser CRM customisation cycle</title><desc id="desc">Four connected stages: Listen, Improve, Support and Deliver, arranged in a continuous cycle.</desc>
+<defs>
+ <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00abe6"/><stop offset="1" stop-color="#22355a"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#00375c" flood-opacity=".18"/></filter>
+ <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#00abe6"/></marker>
+</defs>
+<rect width="760" height="620" rx="34" fill="#f7fbfd"/>
+<circle cx="380" cy="310" r="195" fill="none" stroke="#d8ecf4" stroke-width="28"/>
+<path d="M380 100 A210 210 0 0 1 590 310" fill="none" stroke="url(#ring)" stroke-width="14" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M590 310 A210 210 0 0 1 380 520" fill="none" stroke="url(#ring)" stroke-width="14" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M380 520 A210 210 0 0 1 170 310" fill="none" stroke="url(#ring)" stroke-width="14" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M170 310 A210 210 0 0 1 380 100" fill="none" stroke="url(#ring)" stroke-width="14" stroke-linecap="round" marker-end="url(#arrow)"/>
+<g filter="url(#shadow)">
+ <circle cx="380" cy="100" r="82" fill="#fff" stroke="#00abe6" stroke-width="5"/><circle cx="590" cy="310" r="82" fill="#fff" stroke="#00abe6" stroke-width="5"/><circle cx="380" cy="520" r="82" fill="#fff" stroke="#22355a" stroke-width="5"/><circle cx="170" cy="310" r="82" fill="#fff" stroke="#22355a" stroke-width="5"/>
+</g>
+<g font-family="Arial,Helvetica,sans-serif" text-anchor="middle">
+ <text x="380" y="92" font-size="28" font-weight="800" fill="#00375c">LISTEN</text><text x="380" y="121" font-size="15" fill="#607785">Understand the need</text>
+ <text x="590" y="302" font-size="28" font-weight="800" fill="#00375c">IMPROVE</text><text x="590" y="331" font-size="15" fill="#607785">Shape the solution</text>
+ <text x="380" y="512" font-size="28" font-weight="800" fill="#00375c">SUPPORT</text><text x="380" y="541" font-size="15" fill="#607785">Help teams adopt it</text>
+ <text x="170" y="302" font-size="28" font-weight="800" fill="#00375c">DELIVER</text><text x="170" y="331" font-size="15" fill="#607785">Put it into practice</text>
+ <circle cx="380" cy="310" r="105" fill="#00375c"/>
+ <text x="380" y="286" font-size="18" font-weight="700" fill="#8edcf4">HOW WE CUSTOMISE</text><text x="380" y="326" font-size="36" font-weight="900" fill="#fff">ADVISER CRM</text><text x="380" y="356" font-size="16" fill="#d8e8ef">A continuous client-led cycle</text>
+</g></svg>
