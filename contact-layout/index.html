@@ -767,6 +767,37 @@ function reveal() {
   // Always update debug URL
   var du = el('debug-url');
   if (du) du.textContent = window.location.href;
+  // Tell Zoho to resize the iframe to fit the full page content
+  resizeToFit();
+}
+
+function resizeToFit() {
+  try {
+    // Get the full scrollable height of the page content
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight
+    );
+    if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+      ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' });
+    }
+    // Also re-run after a short delay to catch any dynamic content
+    setTimeout(function() {
+      var h2 = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
+      if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+        ZOHO.CRM.UI.Resize({ height: String(h2), width: '100%' });
+      }
+    }, 800);
+  } catch(e) {
+    console.log('Resize error:', e);
+  }
 }
 
 // ── Multiselect tags ───────────────────────────────────────────────
@@ -1087,6 +1118,36 @@ function startApp() {
       var contact = result.data?.[0] || {};
       dbg('Contact loaded: ' + (contact.First_Name||'?') + ' ' + (contact.Last_Name||'?'));
       populateContact(contact);
+
+      // Discover correct Advice Records related list name
+      // Try all likely names and log which one works
+      var candidates = [
+        'Advice_Records',
+        'nzadvisercrm__Advice_Records',
+        'Advice_Record',
+        'Advice_Records1',
+        'Notes',
+      ];
+
+      function discover(index) {
+        if (index >= candidates.length) {
+          dbg('Discovery complete — no matching related list found');
+          return;
+        }
+        var name = candidates[index];
+        ZOHO.CRM.API.getRelatedRecords({
+          Entity:'Contacts', RecordID:ENTITY_ID,
+          RelatedList:name, page:1, per_page:1
+        })
+        .then(function(resp) {
+          dbg('✅ FOUND related list: ' + name + ' (' + (resp.data||[]).length + ' records)');
+        })
+        .catch(function() {
+          dbg('✗ ' + name);
+          discover(index + 1);
+        });
+      }
+      discover(0);
     })
     .catch(function(err){
       dbg('ERROR fetching contact: ' + JSON.stringify(err));
