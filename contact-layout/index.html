@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Client Profile — Adviser CRM</title>
-  <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+  <!-- Zoho Embedded App SDK — hosted locally in same folder as index.html -->
+  <script src="./ZohoEmbededAppSDK.min.js"></script>
   <style>
     /* ── Design Tokens ── */
     :root {
@@ -310,7 +311,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.3.0</div>
+<div id="vbadge">v1.3.1</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -750,10 +751,10 @@
 
 </div><!-- /page-wrap -->
 <!-- Debug panel — only shows if PageLoad never fires -->
-<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
+<div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#94a3b8;font-size:10px;">v1.3.0 — share this with your developer</span>
+    <span style="color:#94a3b8;font-size:10px;">v1.3.1 — share this with your developer</span>
     <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #475569;color:#94a3b8;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
   <div id="debug-log" style="line-height:1.8;color:#e2e8f0;"></div>
@@ -766,7 +767,7 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.3.0
+//  Adviser CRM — Contact Layout Page v1.3.1
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1149,7 +1150,7 @@ function startApp() {
     return;
   }
 
-  // SDK mode
+  // SDK mode — works for both Canvas View and Related List widget types
   dbg('Registering PageLoad handler...');
   ZOHO.embeddedApp.on('PageLoad', function(data) {
     dbg('PageLoad fired! EntityId: ' + data.EntityId + ' Entity: ' + data.Entity);
@@ -1192,8 +1193,12 @@ function startApp() {
   });
 
   dbg('Calling ZOHO.embeddedApp.init()...');
-  ZOHO.embeddedApp.init();
-  dbg('init() called');
+  try {
+    ZOHO.embeddedApp.init();
+    dbg('init() called successfully');
+  } catch(e) {
+    dbg('init() ERROR: ' + e.message);
+  }
 }
 
 function getMockContact() {
@@ -1212,22 +1217,26 @@ if (document.readyState==='loading') {
   setTimeout(startApp, 350);
 }
 
-// Hard fallback — show debug info after 5 seconds if still loading
+// Always show debug panel in bottom corner for troubleshooting
+// Remove this once data is loading correctly
+setTimeout(function(){
+  var dbgPanel = el('debug-panel');
+  if (dbgPanel) dbgPanel.style.display = 'block';
+  var du = el('debug-url');
+  if (du) du.textContent = window.location.href;
+}, 1000);
+
+// Hard fallback — force reveal after 8 seconds if PageLoad never fires
 setTimeout(function(){
   var l=el('loading');
   if(l&&!l.classList.contains('hidden')){
-    dbg('FALLBACK: 5s timeout — PageLoad never fired');
-    dbg('Possible causes:');
-    dbg('1. Widget type mismatch');
-    dbg('2. SDK not loaded');
-    dbg('3. Canvas View not configured');
+    dbg('FALLBACK: 8s timeout — PageLoad never fired');
+    dbg('SDK defined: ' + (typeof ZOHO !== 'undefined'));
+    dbg('URL: ' + window.location.href);
     l.classList.add('hidden');
     el('main-page').classList.add('visible');
-    // Show debug panel
-    var dbgPanel = el('debug-panel');
-    if (dbgPanel) dbgPanel.style.display = 'block';
   }
-}, 5000);
+}, 8000);
 </script>
 </body>
 </html>
