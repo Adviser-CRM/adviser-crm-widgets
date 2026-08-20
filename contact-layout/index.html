@@ -6,43 +6,51 @@
   <title>Client Profile — Adviser CRM</title>
   <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
   <style>
+    /* ── Design Tokens ── */
     :root {
-      --blue:      #00abe6;
-      --blue-dk:   #0087b8;
+      --blue:      #00ABE6;
+      --blue-dk:   #0089c0;
       --blue-lt:   #d0eefa;
       --blue-xlt:  #ebf7fd;
-      --ink:       #00364d;
-      --ink-mid:   #005a7a;
-      --ink-soft:  #007da8;
-      --muted:     #5a9ab5;
-      --divider:   #c0e4f5;
-      --bg:        #f0faff;
-      --bg-alt:    #dff3fc;
+      --navy:      #0d4b82;
+      --ink:       #1e293b;
+      --ink-mid:   #475569;
+      --muted:     #94a3b8;
+      --divider:   #e2e8f0;
+      --bg:        #f8fafc;
+      --bg-alt:    #f1f5f9;
       --white:     #ffffff;
-      --green:     #0d7f5f;
-      --green-lt:  #d4f0e8;
-      --amber:     #b86b00;
-      --amber-lt:  #fef0d6;
-      --red:       #c0392b;
-      --red-lt:    #fde8e6;
-      --purple:    #6c3fcf;
-      --purple-lt: #ede8fb;
+      --green:     #059669;
+      --green-lt:  #d1fae5;
+      --amber:     #d97706;
+      --amber-lt:  #fef3c7;
+      --red:       #dc2626;
+      --red-lt:    #fee2e2;
+      --purple:    #7c3aed;
+      --purple-lt: #ede9fe;
       --sans:      Verdana, Geneva, sans-serif;
-      --radius:    10px;
-      --radius-lg: 16px;
-      --shadow:    0 2px 10px rgba(0,171,230,0.10);
-      --shadow-md: 0 6px 24px rgba(0,171,230,0.14);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { -webkit-font-smoothing: antialiased; }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    html, body { height:100%; }
     body {
       font-family: var(--sans);
       background: var(--bg);
       color: var(--ink);
-      font-size: 13px;
-      line-height: 1.6;
-      min-height: 100vh;
+      font-size: 12px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Version badge ── */
+    #vbadge {
+      position: fixed; top: 6px; right: 10px;
+      font-size: 10px; color: var(--muted); opacity: 0.45;
+      pointer-events: none; z-index: 999;
     }
 
     /* ── Loading ── */
@@ -50,539 +58,555 @@
       position: fixed; inset: 0; background: var(--bg);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 14px; z-index: 999;
+      gap: 12px; z-index: 998;
       transition: opacity 0.3s ease;
     }
-    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading.hidden { opacity:0; pointer-events:none; }
     .spinner {
-      width: 38px; height: 38px;
-      border: 3px solid var(--divider);
+      width:36px; height:36px;
+      border:3px solid var(--divider);
       border-top-color: var(--blue);
-      border-radius: 50%;
+      border-radius:50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: 12px; color: var(--muted); }
+    .loading-text { font-size:12px; color:var(--muted); }
 
-    #mock-badge {
-      display: none; position: fixed; bottom: 0; left: 0; right: 0;
-      background: var(--ink); color: var(--blue);
-      font-family: monospace; font-size: 11px;
-      padding: 5px 14px; text-align: center; z-index: 998;
-    }
+    /* ── Page ── */
+    .page { display:none; }
+    .page.visible { display:block; }
 
-    .page { display: none; }
-    .page.visible { display: block; }
-
-    /* ── Page layout ── */
+    /* ── Layout ── */
     .page-wrap {
-      max-width: 1100px; margin: 0 auto;
-      padding: 24px 24px 60px;
       display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px; align-items: start;
+      grid-template-columns: 1fr 280px;
+      gap: 16px;
+      padding: 16px 20px 60px;
+      width: 100%;
+      align-items: start;
     }
+    @media (min-width:1400px) { .page-wrap { padding:20px 28px 60px; gap:20px; grid-template-columns:1fr 300px; } }
+    @media (min-width:1920px) { .page-wrap { padding:24px 36px 60px; gap:24px; grid-template-columns:1fr 310px; } }
+    @media (min-width:2560px) { .page-wrap { padding:28px 48px 80px; gap:28px; grid-template-columns:1fr 320px; } body { font-size:13px; } }
+    @media (max-width:900px)  { .page-wrap { grid-template-columns:1fr; } .sidebar { position:static; } }
 
     /* ── Hero ── */
     .hero {
       grid-column: 1 / -1;
-      background: var(--white);
-      border: 1.5px solid var(--divider);
+      background: linear-gradient(135deg, var(--navy) 0%, #1a5f9e 100%);
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
-      overflow: hidden;
-      margin-bottom: 4px;
-      animation: fadeUp 0.4s ease both;
-    }
-
-    /* Blue top accent bar */
-    .hero-accent {
-      height: 4px;
-      background: linear-gradient(to right, var(--blue), var(--blue-dk));
-    }
-
-    .hero-body {
-      padding: 24px 28px;
+      padding: 20px 24px;
       display: flex; align-items: center;
       justify-content: space-between; gap: 20px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 4px;
     }
-
-    .hero-left { display: flex; align-items: center; gap: 20px; }
-
-    /* Avatar */
+    .hero-left { display:flex; align-items:center; gap:16px; }
     .avatar {
-      width: 64px; height: 64px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--blue), var(--blue-dk));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; font-weight: 700; color: var(--white);
-      flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(0,171,230,0.35);
+      width:56px; height:56px; border-radius:50%;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px; font-weight:700; color:var(--white);
+      flex-shrink:0;
     }
-
-    .hero-info { flex: 1; }
-    .hero-owner {
-      font-size: 11px; color: var(--muted);
-      margin-bottom: 4px; letter-spacing: 0.02em;
-    }
-    .hero-name {
-      font-size: 22px; font-weight: 700;
-      color: var(--ink); line-height: 1.2;
-      margin-bottom: 3px;
-    }
-    .hero-role {
-      font-size: 12px; color: var(--ink-soft);
-      margin-bottom: 10px;
-    }
-    .hero-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+    .hero-info { flex:1; }
+    .hero-name { font-size:20px; font-weight:700; color:var(--white); line-height:1.2; margin-bottom:3px; }
+    .hero-role { font-size:12px; color:rgba(255,255,255,0.65); margin-bottom:8px; }
+    .hero-tags { display:flex; flex-wrap:wrap; gap:6px; }
     .tag {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 4px 11px; border-radius: 20px;
-      font-size: 11px; font-weight: 700;
+      display:inline-flex; align-items:center; gap:3px;
+      padding:3px 10px; border-radius:20px;
+      font-size:10px; font-weight:700;
     }
-    .tag-blue { background: var(--blue-lt); color: var(--blue-dk); }
-    .tag-green { background: var(--green-lt); color: var(--green); }
-    .tag-sand { background: var(--bg-alt); color: var(--ink-mid); }
+    .tag-blue   { background:rgba(0,171,230,0.25); color:#7dd3fc; border:1px solid rgba(0,171,230,0.3); }
+    .tag-green  { background:rgba(5,150,105,0.25);  color:#6ee7b7; border:1px solid rgba(5,150,105,0.3); }
+    .tag-amber  { background:rgba(217,119,6,0.25);  color:#fcd34d; border:1px solid rgba(217,119,6,0.3); }
+    .tag-red    { background:rgba(220,38,38,0.25);   color:#fca5a5; border:1px solid rgba(220,38,38,0.3); }
+    .tag-white  { background:rgba(255,255,255,0.15); color:var(--white); border:1px solid rgba(255,255,255,0.2); }
 
-    /* Hero actions */
-    .hero-actions { display: flex; gap: 10px; flex-shrink: 0; }
+    .hero-actions { display:flex; gap:8px; flex-shrink:0; }
     .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 9px 18px; border-radius: var(--radius);
-      font-family: var(--sans); font-size: 12px; font-weight: 700;
-      cursor: pointer; border: none; transition: all 0.18s ease;
-      white-space: nowrap; text-decoration: none;
+      display:inline-flex; align-items:center; gap:5px;
+      padding:7px 14px; border-radius:var(--radius);
+      font-family:var(--sans); font-size:11px; font-weight:700;
+      cursor:pointer; border:none; transition:all 0.15s;
+      white-space:nowrap;
     }
-    .btn-primary {
-      background: var(--blue); color: var(--white);
-      box-shadow: 0 3px 10px rgba(0,171,230,0.35);
-    }
-    .btn-primary:hover { background: var(--blue-dk); transform: translateY(-1px); }
-    .btn-outline {
-      background: var(--white); color: var(--ink-mid);
-      border: 1.5px solid var(--divider);
-    }
-    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-primary { background:var(--blue); color:var(--white); }
+    .btn-primary:hover { background:var(--blue-dk); }
+    .btn-ghost { background:rgba(255,255,255,0.12); color:var(--white); border:1px solid rgba(255,255,255,0.2); }
+    .btn-ghost:hover { background:rgba(255,255,255,0.2); }
 
     /* ── Cards ── */
     .card {
-      background: var(--white);
-      border: 1.5px solid var(--divider);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow: hidden; margin-bottom: 20px;
-      animation: fadeUp 0.35s ease both;
+      background:var(--white);
+      border:1px solid var(--divider);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      margin-bottom:14px;
     }
-    .card:nth-child(2) { animation-delay: 0.05s; }
-    .card:nth-child(3) { animation-delay: 0.10s; }
-    .card:nth-child(4) { animation-delay: 0.15s; }
-
     .card-head {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 20px;
-      border-bottom: 1.5px solid var(--divider);
-      background: linear-gradient(to right, var(--bg-alt) 0%, var(--white) 100%);
+      display:flex; align-items:center; gap:10px;
+      padding:11px 16px;
+      border-bottom:1px solid var(--divider);
+      background:var(--bg-alt);
     }
     .card-icon {
-      width: 30px; height: 30px; border-radius: 8px;
-      background: var(--blue-lt);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
+      width:28px; height:28px; border-radius:7px;
+      background:var(--blue-lt);
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; flex-shrink:0;
     }
-    .card-title {
-      font-size: 11px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.09em;
-      color: var(--ink);
-    }
-    .card-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .card-body { padding: 18px 20px; }
+    .card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink); }
+    .card-sub { font-size:10px; color:var(--muted); margin-top:1px; }
+    .card-body { padding:14px 16px; }
 
     /* ── Field grid ── */
     .field-grid {
-      display: grid;
-      grid-template-columns: repeat(var(--cols, 2), 1fr);
-      gap: 14px 20px;
+      display:grid;
+      grid-template-columns:repeat(var(--cols,2),1fr);
+      gap:10px 14px;
     }
-    .cols-3 { --cols: 3; }
-    .cols-4 { --cols: 4; }
-    .cols-5 { --cols: 5; }
-    .span-2 { grid-column: span 2; }
-    .span-full { grid-column: 1 / -1; }
+    .cols-1 { --cols:1; }
+    .cols-2 { --cols:2; }
+    .cols-3 { --cols:3; }
+    .cols-4 { --cols:4; }
+    .span-2 { grid-column:span 2; }
+    .span-3 { grid-column:span 3; }
+    .span-full { grid-column:1/-1; }
 
-    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field { display:flex; flex-direction:column; gap:3px; }
     .field-label {
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.09em;
-      color: var(--muted);
+      font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.09em;
+      color:var(--muted);
     }
     .field-value {
-      font-size: 13px; font-weight: 500; color: var(--ink);
-      padding: 8px 12px; background: var(--bg);
-      border-radius: var(--radius);
-      min-height: 36px; display: flex; align-items: center;
-      border: 1.5px solid transparent;
-      transition: border-color 0.15s ease;
+      font-size:12px; font-weight:500; color:var(--ink);
+      padding:7px 10px; background:var(--bg);
+      border-radius:var(--radius);
+      min-height:34px; display:flex; align-items:center;
+      border:1px solid transparent;
     }
-    .field-value:hover { border-color: var(--divider); }
-    .field-value.empty { color: var(--muted); font-style: italic; }
-    .field-value a { color: var(--blue); text-decoration: none; font-weight: 600; }
-    .field-value a:hover { text-decoration: underline; }
+    .field-value:hover { border-color:var(--divider); }
+    .field-value.empty { color:var(--muted); font-style:italic; }
+    .field-value a { color:var(--blue); text-decoration:none; font-weight:600; }
+    .field-value a:hover { text-decoration:underline; }
+    .field-value.multiline { align-items:flex-start; min-height:60px; }
 
-    /* ── Risk Profile card (prominent) ── */
-    .risk-card {
-      background: var(--white);
-      border: 1.5px solid var(--divider);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      margin-bottom: 20px;
+    /* ── Status pills ── */
+    .pill {
+      display:inline-flex; align-items:center;
+      padding:2px 9px; border-radius:20px;
+      font-size:10px; font-weight:700; white-space:nowrap;
     }
+    .pill-blue   { background:var(--blue-lt);   color:var(--blue-dk); }
+    .pill-green  { background:var(--green-lt);  color:var(--green); }
+    .pill-amber  { background:var(--amber-lt);  color:var(--amber); }
+    .pill-red    { background:var(--red-lt);    color:var(--red); }
+    .pill-purple { background:var(--purple-lt); color:var(--purple); }
+    .pill-grey   { background:var(--bg-alt);    color:var(--muted); }
 
-    .risk-head {
-      padding: 14px 20px;
-      border-bottom: 1.5px solid var(--divider);
-      background: linear-gradient(to right, var(--bg-alt), var(--white));
-      display: flex; align-items: center; gap: 12px;
-    }
+    /* ── Address columns ── */
+    .addr-cols { display:grid; grid-template-columns:1fr 1fr; }
+    .addr-col { padding:14px 16px; }
+    .addr-col:first-child { border-right:1px solid var(--divider); }
+    .addr-col-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:var(--muted); margin-bottom:8px; }
+    .addr-line { display:flex; flex-direction:column; gap:2px; }
+    .addr-line span { font-size:12px; color:var(--ink); }
+    .addr-line .empty { color:var(--muted); font-style:italic; }
 
-    .risk-body { padding: 20px; }
-
-    .risk-profile-display {
-      display: flex; align-items: center; gap: 20px;
+    /* ── Cover/financial summary strip ── */
+    .cover-strip {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+      gap:0;
     }
-
-    /* Big profile gauge */
-    .risk-gauge {
-      width: 90px; height: 90px; border-radius: 50%;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      flex-shrink: 0; font-weight: 700;
-      border: 4px solid var(--divider);
+    .cover-item {
+      padding:12px 14px;
+      border-right:1px solid var(--divider);
+      text-align:center;
     }
-    .risk-gauge .gauge-score { font-size: 22px; line-height: 1; }
-    .risk-gauge .gauge-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-top: 3px; }
-
-    .risk-gauge.conservative   { border-color: var(--green); background: var(--green-lt); color: var(--green); }
-    .risk-gauge.mod-conservative { border-color: #2980b9; background: #e8f4fb; color: #2980b9; }
-    .risk-gauge.balanced       { border-color: var(--blue); background: var(--blue-lt); color: var(--blue-dk); }
-    .risk-gauge.mod-aggressive { border-color: var(--amber); background: var(--amber-lt); color: var(--amber); }
-    .risk-gauge.aggressive     { border-color: var(--red); background: var(--red-lt); color: var(--red); }
-    .risk-gauge.none           { border-color: var(--divider); background: var(--bg); color: var(--muted); }
-
-    .risk-info { flex: 1; }
-    .risk-profile-name {
-      font-size: 18px; font-weight: 700; color: var(--ink);
-      margin-bottom: 4px;
-    }
-    .risk-profile-name.none { color: var(--muted); font-size: 14px; font-style: italic; }
-    .risk-assessed {
-      font-size: 11px; color: var(--muted); margin-bottom: 12px;
-    }
-
-    /* Risk bar */
-    .risk-bar-wrap {
-      background: var(--bg-alt); border-radius: 20px;
-      height: 8px; overflow: hidden; margin-bottom: 8px;
-      max-width: 320px;
-    }
-    .risk-bar-fill {
-      height: 100%; border-radius: 20px;
-      transition: width 0.6s ease;
-    }
-    .risk-bar-labels {
-      display: flex; justify-content: space-between;
-      font-size: 9px; color: var(--muted); font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.06em;
-      max-width: 320px;
-    }
-
-    /* FMA fund type */
-    .risk-fma {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 12px; border-radius: 20px;
-      font-size: 11px; font-weight: 700;
-      margin-top: 8px;
-    }
-    .risk-fma.balanced { background: var(--blue-lt); color: var(--blue-dk); }
-    .risk-fma.conservative { background: var(--green-lt); color: var(--green); }
-    .risk-fma.aggressive { background: var(--red-lt); color: var(--red); }
-    .risk-fma.growth { background: var(--amber-lt); color: var(--amber); }
-    .risk-fma.none { background: var(--bg-alt); color: var(--muted); }
-
-    /* Not assessed state */
-    .risk-not-assessed {
-      text-align: center; padding: 20px;
-      color: var(--muted); font-size: 12px;
-    }
-    .risk-not-assessed button {
-      margin-top: 12px;
-    }
-
-    /* ── Advice Records list ── */
-    .advice-list { list-style: none; }
-    .advice-item {
-      display: flex; align-items: center; gap: 14px;
-      padding: 13px 20px;
-      border-bottom: 1px solid var(--divider);
-      transition: background 0.15s ease;
-      cursor: pointer;
-    }
-    .advice-item:last-child { border-bottom: none; }
-    .advice-item:hover { background: var(--bg); }
-
-    .advice-step {
-      width: 32px; height: 32px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px; font-weight: 700;
-      flex-shrink: 0;
-    }
-    .step-1 { background: #fde8d8; color: #c0560a; }
-    .step-2 { background: var(--amber-lt); color: var(--amber); }
-    .step-3 { background: var(--green-lt); color: var(--green); }
-    .step-4 { background: var(--blue-lt); color: var(--blue-dk); }
-    .step-5 { background: var(--purple-lt); color: var(--purple); }
-    .step-6 { background: #d4f0f0; color: #0d7f7f; }
-    .step-np { background: var(--red-lt); color: var(--red); }
-
-    .advice-info { flex: 1; }
-    .advice-name { font-size: 13px; font-weight: 700; color: var(--ink); }
-    .advice-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .advice-status {
-      font-size: 10px; font-weight: 700;
-      padding: 3px 10px; border-radius: 20px;
-      white-space: nowrap;
-    }
-
-    .advice-empty {
-      text-align: center; padding: 28px 20px;
-      color: var(--muted); font-size: 12px;
-    }
-
-    /* ── Address section ── */
-    .address-cols {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
-    }
-    .address-col { padding: 18px 20px; }
-    .address-col:first-child { border-right: 1.5px solid var(--divider); }
-    .address-col-label {
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.09em;
-      color: var(--muted); margin-bottom: 10px;
-    }
-    .address-line { display: flex; flex-direction: column; gap: 3px; }
-    .address-line span { font-size: 13px; color: var(--ink); line-height: 1.5; }
-    .address-line span.empty { color: var(--muted); font-style: italic; }
-
-    /* ── Description ── */
-    .description-text {
-      font-size: 13px; color: var(--ink-mid); line-height: 1.7;
-      padding: 16px 18px; background: var(--bg);
-      border-radius: var(--radius);
-      border: 1.5px dashed var(--divider);
-      min-height: 60px;
-    }
-    .description-text.empty { color: var(--muted); font-style: italic; }
+    .cover-item:last-child { border-right:none; }
+    .cover-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:4px; }
+    .cover-value { font-size:15px; font-weight:700; color:var(--navy); }
+    .cover-value.nil { color:var(--muted); font-size:12px; }
 
     /* ── Sidebar ── */
-    .sidebar { position: sticky; top: 20px; }
+    .sidebar { position:sticky; top:16px; }
+    .sidebar .card { margin-bottom:12px; }
 
-    /* Stats card */
-    .stats-card {
-      background: var(--white);
-      border: 1.5px solid var(--divider);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow: hidden; margin-bottom: 16px;
+    .sidebar-section-label {
+      font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.1em;
+      color:var(--muted); padding:10px 14px 4px;
     }
-    .stats-head {
-      padding: 12px 16px;
-      border-bottom: 1.5px solid var(--divider);
-      background: var(--bg-alt);
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.09em;
-      color: var(--muted);
+    .sidebar-row {
+      display:flex; align-items:flex-start;
+      justify-content:space-between; gap:8px;
+      padding:8px 14px;
+      border-bottom:1px solid var(--divider);
+      font-size:11px;
     }
-    .stats-body { padding: 0; }
-    .stat-row {
-      display: flex; align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--divider);
-    }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-label { font-size: 12px; color: var(--ink-mid); }
-    .stat-value { font-size: 13px; font-weight: 700; color: var(--ink); }
-    .stat-icon { font-size: 14px; margin-right: 6px; }
+    .sidebar-row:last-child { border-bottom:none; }
+    .sidebar-row-label { color:var(--muted); flex-shrink:0; white-space:nowrap; }
+    .sidebar-row-value { color:var(--ink); font-weight:600; text-align:right; }
 
-    /* Adviser card */
-    .adviser-card {
-      background: var(--white);
-      border: 1.5px solid var(--divider);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow: hidden; margin-bottom: 16px;
-    }
-    .adviser-head {
-      background: linear-gradient(135deg, var(--blue), var(--blue-dk));
-      padding: 16px;
-    }
-    .adviser-label { font-size: 10px; color: rgba(255,255,255,0.7); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 4px; }
-    .adviser-name { font-size: 15px; font-weight: 700; color: var(--white); }
-    .adviser-body { padding: 14px 16px; }
-    .adviser-field { margin-bottom: 10px; }
-    .adviser-field:last-child { margin-bottom: 0; }
-    .adviser-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 2px; }
-    .adviser-field-value { font-size: 12px; color: var(--ink); font-weight: 500; }
-
-    /* Divider */
-    .sect-divider { height: 1px; background: var(--divider); margin: 16px 0; }
-
-    /* ── Animations ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .review-alert {
+      background:var(--amber-lt);
+      border:1px solid var(--amber);
+      border-radius:var(--radius);
+      padding:10px 14px;
+      margin:10px 14px;
+      font-size:11px;
+      color:var(--amber);
+      font-weight:700;
+      display:flex; align-items:center; gap:6px;
     }
 
-    /* ── Responsive ── */
-    @media (max-width: 820px) {
-      .page-wrap { grid-template-columns: 1fr; padding: 16px; }
-      .sidebar { position: static; }
-      .field-grid.cols-5 { --cols: 3; }
-      .field-grid.cols-4 { --cols: 2; }
+    /* ── Advice records list ── */
+    .advice-list { list-style:none; }
+    .advice-item {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 16px;
+      border-bottom:1px solid var(--divider);
+      cursor:pointer; transition:background 0.15s;
     }
-    @media (max-width: 540px) {
-      .field-grid { --cols: 1; }
-      .address-cols { grid-template-columns: 1fr; }
-      .address-col:first-child { border-right: none; border-bottom: 1.5px solid var(--divider); }
-      .hero-actions { display: none; }
+    .advice-item:last-child { border-bottom:none; }
+    .advice-item:hover { background:var(--bg); }
+    .advice-step {
+      width:28px; height:28px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:9px; font-weight:700; flex-shrink:0;
     }
+    .step-1  { background:#fde8d8; color:#c0560a; }
+    .step-2  { background:var(--amber-lt); color:var(--amber); }
+    .step-3  { background:var(--green-lt); color:var(--green); }
+    .step-4  { background:var(--blue-lt);  color:var(--blue-dk); }
+    .step-5  { background:var(--purple-lt);color:var(--purple); }
+    .step-6  { background:#d4f0f0; color:#0d7f7f; }
+    .step-np { background:var(--red-lt);   color:var(--red); }
+    .advice-info { flex:1; }
+    .advice-name { font-size:12px; font-weight:700; color:var(--ink); }
+    .advice-meta { font-size:10px; color:var(--muted); margin-top:1px; }
+    .advice-status { font-size:9px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+
+    .empty-state { text-align:center; padding:24px 16px; color:var(--muted); font-size:12px; }
+    .empty-icon { font-size:24px; margin-bottom:6px; }
+
+    /* ── Multiselect tags ── */
+    .ms-tags { display:flex; flex-wrap:wrap; gap:4px; }
+    .ms-tag {
+      display:inline-flex; padding:2px 8px; border-radius:20px;
+      font-size:10px; font-weight:700;
+      background:var(--blue-lt); color:var(--blue-dk);
+    }
+
+    /* ── Section divider ── */
+    .section-gap { margin-bottom:14px; }
   </style>
 </head>
 <body>
+
+<div id="vbadge">v1.3.0</div>
 
 <div id="loading">
   <div class="spinner"></div>
   <div class="loading-text">Loading client profile…</div>
 </div>
-<div id="mock-badge">⚙ MOCK MODE — Sample data. Deploy inside Adviser CRM for live data.</div>
 
 <div class="page" id="main-page">
 <div class="page-wrap">
 
-  <!-- ── HERO ─────────────────────────────────────────────── -->
+  <!-- ══ HERO ══════════════════════════════════════════════════════ -->
   <div class="hero">
-    <div class="hero-accent"></div>
-    <div class="hero-body">
-      <div class="hero-left">
-        <div class="avatar" id="hero-avatar">MT</div>
-        <div class="hero-info">
-          <div class="hero-owner" id="hero-owner"></div>
-          <div class="hero-name" id="hero-name">Loading…</div>
-          <div class="hero-role" id="hero-role"></div>
-          <div class="hero-tags" id="hero-tags"></div>
-        </div>
+    <div class="hero-left">
+      <div class="avatar" id="hero-avatar">?</div>
+      <div class="hero-info">
+        <div class="hero-name" id="hero-name">Loading…</div>
+        <div class="hero-role" id="hero-role"></div>
+        <div class="hero-tags" id="hero-tags"></div>
       </div>
-      <div class="hero-actions">
-        <button class="btn btn-primary" onclick="sendEmail()">✉ Send Email</button>
-        <button class="btn btn-outline" onclick="logCall()">📞 Log Call</button>
-      </div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="sendEmail()">✉ Email</button>
+      <button class="btn btn-ghost"   onclick="logCall()">📞 Call</button>
     </div>
   </div>
 
-  <!-- ── MAIN COLUMN ────────────────────────────────────────── -->
+  <!-- ══ MAIN COLUMN ════════════════════════════════════════════════ -->
   <div class="main-col">
 
-    <!-- Risk Profile -->
-    <div class="risk-card">
-      <div class="risk-head">
-        <div class="card-icon">📊</div>
-        <div>
-          <div class="card-title">Risk Profile</div>
-          <div class="card-subtitle">Current investment risk assessment</div>
-        </div>
-      </div>
-      <div class="risk-body" id="risk-body">
-        <!-- Populated by JS -->
-      </div>
-    </div>
-
-    <!-- Contact Information -->
+    <!-- Personal Information -->
     <div class="card">
       <div class="card-head">
         <div class="card-icon">👤</div>
         <div>
-          <div class="card-title">Contact Information</div>
-          <div class="card-subtitle">Personal &amp; communication details</div>
+          <div class="card-title">Personal Information</div>
+          <div class="card-sub">Identity & contact details</div>
         </div>
       </div>
       <div class="card-body">
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Salutation</div>
+            <div class="field-value" id="f-salutation">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">First Name</div>
+            <div class="field-value" id="f-first-name">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Middle Name</div>
+            <div class="field-value" id="f-middle-name">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Last Name</div>
+            <div class="field-value" id="f-last-name">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Preferred Name</div>
+            <div class="field-value" id="f-preferred-name">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Date of Birth</div>
+            <div class="field-value" id="f-dob">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Age</div>
+            <div class="field-value" id="f-age">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Gender</div>
+            <div class="field-value" id="f-gender">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Marital Status</div>
+            <div class="field-value" id="f-marital">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">NZ Residency</div>
+            <div class="field-value" id="f-nz-residency">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Contact Type</div>
+            <div class="field-value" id="f-contact-type">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Status</div>
+            <div class="field-value" id="f-status">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-4">
+          <div class="field">
+            <div class="field-label">Smoker</div>
+            <div class="field-value" id="f-smoker">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Vulnerable Client</div>
+            <div class="field-value" id="f-vulnerable">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Tax Number</div>
+            <div class="field-value" id="f-tax-number">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Country of Birth</div>
+            <div class="field-value" id="f-country-birth">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <!-- Row 1: Account Name + Title -->
-        <div class="field-grid cols-5" style="margin-bottom:14px;">
+    <!-- Contact Details -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📱</div>
+        <div>
+          <div class="card-title">Contact Details</div>
+          <div class="card-sub">Communication & account information</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
             <div class="field-label">Account Name</div>
             <div class="field-value" id="f-account">—</div>
           </div>
           <div class="field span-2">
-            <div class="field-label">Title / Position</div>
+            <div class="field-label">Title / Role</div>
             <div class="field-value" id="f-title">—</div>
           </div>
         </div>
-
-        <!-- Row 2: First Name + Last Name -->
-        <div class="field-grid cols-5" style="margin-bottom:14px;">
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
-            <div class="field-label">First Name</div>
-            <div class="field-value" id="f-first">—</div>
-          </div>
-          <div class="field span-2">
-            <div class="field-label">Last Name</div>
-            <div class="field-value" id="f-last">—</div>
-          </div>
-        </div>
-
-        <!-- Row 3: Email + Phone + Mobile -->
-        <div class="field-grid" style="grid-template-columns:1fr 2fr 2fr; margin-bottom:14px;">
-          <div class="field">
             <div class="field-label">Email</div>
             <div class="field-value" id="f-email">—</div>
+          </div>
+          <div class="field span-2">
+            <div class="field-label">Secondary Email</div>
+            <div class="field-value" id="f-secondary-email">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Mobile</div>
+            <div class="field-value" id="f-mobile">—</div>
           </div>
           <div class="field">
             <div class="field-label">Phone</div>
             <div class="field-value" id="f-phone">—</div>
           </div>
           <div class="field">
-            <div class="field-label">Mobile</div>
-            <div class="field-value" id="f-mobile">—</div>
+            <div class="field-label">Home Phone</div>
+            <div class="field-value" id="f-home-phone">—</div>
           </div>
-        </div>
-
-        <!-- Row 4: Lead Source + Status -->
-        <div class="field-grid cols-5">
-          <div class="field span-2">
+          <div class="field">
             <div class="field-label">Lead Source</div>
             <div class="field-value" id="f-lead-source">—</div>
           </div>
+        </div>
+        <div class="field-grid cols-4">
           <div class="field span-2">
-            <div class="field-label">Status</div>
-            <div class="field-value" id="f-status">—</div>
+            <div class="field-label">LinkedIn</div>
+            <div class="field-value" id="f-linkedin">—</div>
+          </div>
+          <div class="field span-2">
+            <div class="field-label">Employer / Business</div>
+            <div class="field-value" id="f-employer">—</div>
           </div>
         </div>
-
       </div>
     </div>
 
-    <!-- Recent Advice Records -->
+    <!-- Employment & Financial -->
     <div class="card">
       <div class="card-head">
-        <div class="card-icon">📋</div>
+        <div class="card-icon">💼</div>
         <div>
-          <div class="card-title">Recent Advice Records</div>
-          <div class="card-subtitle">Last 3 advice engagements</div>
+          <div class="card-title">Employment & Financial</div>
+          <div class="card-sub">Occupation, income and financial details</div>
         </div>
       </div>
-      <ul class="advice-list" id="advice-list">
-        <li style="padding:20px;text-align:center;color:var(--muted);">Loading…</li>
-      </ul>
+      <div class="card-body">
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
+          <div class="field span-2">
+            <div class="field-label">Occupation</div>
+            <div class="field-value" id="f-occupation">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Occupation Class</div>
+            <div class="field-value" id="f-occupation-class">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Employment Status</div>
+            <div class="field-value" id="f-employment-status">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-4">
+          <div class="field">
+            <div class="field-label">Annual Income</div>
+            <div class="field-value" id="f-annual-income">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Household Expenses</div>
+            <div class="field-value" id="f-household-expenses">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Mortgage Repayment</div>
+            <div class="field-value" id="f-mortgage-repayment">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Housing Status</div>
+            <div class="field-value" id="f-housing-status">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insurance Cover Summary -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">🛡</div>
+        <div>
+          <div class="card-title">Insurance Cover Summary</div>
+          <div class="card-sub">Current cover amounts on file</div>
+        </div>
+      </div>
+      <div class="cover-strip">
+        <div class="cover-item">
+          <div class="cover-label">Life Cover</div>
+          <div class="cover-value" id="cv-life">—</div>
+        </div>
+        <div class="cover-item">
+          <div class="cover-label">Trauma Cover</div>
+          <div class="cover-value" id="cv-trauma">—</div>
+        </div>
+        <div class="cover-item">
+          <div class="cover-label">Income Cover</div>
+          <div class="cover-value" id="cv-income">—</div>
+        </div>
+        <div class="cover-item">
+          <div class="cover-label">Total Disability</div>
+          <div class="cover-value" id="cv-tpd">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Products & Benefits -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📦</div>
+        <div>
+          <div class="card-title">Active Products & Benefits</div>
+          <div class="card-sub">Current products and benefits on file</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-2">
+          <div class="field">
+            <div class="field-label">Active Products</div>
+            <div class="field-value" id="f-active-products" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Active Benefits</div>
+            <div class="field-value" id="f-active-benefits" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ID Verification -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">🪪</div>
+        <div>
+          <div class="card-title">ID Verification</div>
+          <div class="card-sub">AML/CFT identification details</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-4">
+          <div class="field">
+            <div class="field-label">ID Type</div>
+            <div class="field-value" id="f-id-type">—</div>
+          </div>
+          <div class="field span-2">
+            <div class="field-label">ID Number</div>
+            <div class="field-value" id="f-id-number">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">ID Expiry Date</div>
+            <div class="field-value" id="f-id-expiry">—</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Address Information -->
@@ -591,19 +615,18 @@
         <div class="card-icon">📍</div>
         <div>
           <div class="card-title">Address Information</div>
-          <div class="card-subtitle">Mailing and postal addresses</div>
         </div>
       </div>
-      <div class="address-cols">
-        <div class="address-col">
-          <div class="address-col-label">Mailing Address</div>
-          <div class="address-line" id="addr-mailing">
+      <div class="addr-cols">
+        <div class="addr-col">
+          <div class="addr-col-label">Mailing Address</div>
+          <div class="addr-line" id="addr-mailing">
             <span class="empty">Not recorded</span>
           </div>
         </div>
-        <div class="address-col">
-          <div class="address-col-label">Postal Address</div>
-          <div class="address-line" id="addr-postal">
+        <div class="addr-col">
+          <div class="addr-col-label">Other Address</div>
+          <div class="addr-line" id="addr-other">
             <span class="empty">Not recorded</span>
           </div>
         </div>
@@ -616,64 +639,109 @@
         <div class="card-icon">📝</div>
         <div>
           <div class="card-title">Description</div>
-          <div class="card-subtitle">Background notes</div>
         </div>
       </div>
       <div class="card-body">
-        <div class="description-text" id="f-description"></div>
+        <div class="field-value multiline" id="f-description" style="min-height:80px;width:100%;"></div>
       </div>
+    </div>
+
+    <!-- Recent Advice Records -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📋</div>
+        <div>
+          <div class="card-title">Recent Advice Records</div>
+          <div class="card-sub">Last 3 advice engagements</div>
+        </div>
+      </div>
+      <ul class="advice-list" id="advice-list">
+        <li class="empty-state">
+          <div class="empty-icon">📋</div>Loading…
+        </li>
+      </ul>
     </div>
 
   </div><!-- /main-col -->
 
-  <!-- ── SIDEBAR ────────────────────────────────────────────── -->
+  <!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
   <div class="sidebar">
 
-    <!-- Adviser Card -->
-    <div class="adviser-card">
-      <div class="adviser-head">
-        <div class="adviser-label">Assigned Adviser</div>
-        <div class="adviser-name" id="sb-adviser">—</div>
+    <!-- Owner / Adviser -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--navy);color:var(--white);">👤</div>
+        <div>
+          <div class="card-title" style="color:var(--navy);">Contact Owner</div>
+        </div>
       </div>
-      <div class="adviser-body">
-        <div class="adviser-field">
-          <div class="adviser-field-label">FSP Number</div>
-          <div class="adviser-field-value" id="sb-fsp">—</div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Owner</span>
+          <span class="sidebar-row-value" id="sb-owner">—</span>
         </div>
-        <div class="adviser-field">
-          <div class="adviser-field-label">Dealer Group</div>
-          <div class="adviser-field-value" id="sb-dealer">—</div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Lead Source</span>
+          <span class="sidebar-row-value" id="sb-lead-source">—</span>
         </div>
-        <div class="adviser-field">
-          <div class="adviser-field-label">Subscription</div>
-          <div class="adviser-field-value" id="sb-subscription">—</div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Status</span>
+          <span class="sidebar-row-value" id="sb-status">—</span>
         </div>
-        <div class="adviser-field">
-          <div class="adviser-field-label">Payment Frequency</div>
-          <div class="adviser-field-value" id="sb-payment">—</div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Last Activity</span>
+          <span class="sidebar-row-value" id="sb-last-activity">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">🗓</div>
+        <div>
+          <div class="card-title">Review Schedule</div>
+        </div>
+      </div>
+      <div id="review-alert-wrap"></div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Review Date</span>
+          <span class="sidebar-row-value" id="sb-review-date">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Account Review</span>
+          <span class="sidebar-row-value" id="sb-account-review">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Review Month</span>
+          <span class="sidebar-row-value" id="sb-review-month">—</span>
         </div>
       </div>
     </div>
 
     <!-- Quick Stats -->
-    <div class="stats-card">
-      <div class="stats-head">Client Summary</div>
-      <div class="stats-body">
-        <div class="stat-row">
-          <span class="stat-label"><span class="stat-icon">📂</span>Advice Records</span>
-          <span class="stat-value" id="sb-advice-count">—</span>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📊</div>
+        <div><div class="card-title">Quick Stats</div></div>
+      </div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Advice Records</span>
+          <span class="sidebar-row-value" id="sb-advice-count">—</span>
         </div>
-        <div class="stat-row">
-          <span class="stat-label"><span class="stat-icon">📅</span>Last Activity</span>
-          <span class="stat-value" id="sb-last-activity">—</span>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Next Birthday</span>
+          <span class="sidebar-row-value" id="sb-birthday">—</span>
         </div>
-        <div class="stat-row">
-          <span class="stat-label"><span class="stat-icon">📊</span>Risk Profile</span>
-          <span class="stat-value" id="sb-risk-profile">—</span>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Days to Birthday</span>
+          <span class="sidebar-row-value" id="sb-days-nb">—</span>
         </div>
-        <div class="stat-row">
-          <span class="stat-label"><span class="stat-icon">🗓</span>Profile Assessed</span>
-          <span class="stat-value" id="sb-risk-date">—</span>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Expiry Date</span>
+          <span class="sidebar-row-value" id="sb-expiry">—</span>
         </div>
       </div>
     </div>
@@ -685,15 +753,20 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page
-//  Displays client profile, risk profile, recent advice records
+//  Adviser CRM — Contact Layout Page v1.3.0
+//  Fields sourced from Adviser CRM Vertical Studio Contacts module
+//  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
 
 let ENTITY_ID = null;
 let CONTACT   = {};
 
 // ── Utilities ─────────────────────────────────────────────────────
-const fmt     = v => v || '—';
+const fmt = v => (v !== null && v !== undefined && v !== '') ? String(v) : '—';
+const fmtCurr = v => {
+  if (!v && v !== 0) return '—';
+  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits:0, maximumFractionDigits:0 });
+};
 const fmtDate = s => {
   if (!s) return '—';
   const d = new Date(s.includes('T') ? s : s + 'T00:00:00');
@@ -701,10 +774,19 @@ const fmtDate = s => {
 };
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : '?';
 
-function el(id) { return document.getElementById(id); }
+function el(id)  { return document.getElementById(id); }
 function setEl(id, val, isHtml) {
   const e = el(id);
-  if (e) isHtml ? (e.innerHTML = val) : (e.textContent = val);
+  if (!e) return;
+  if (isHtml) e.innerHTML = val;
+  else e.textContent = val;
+}
+function setFv(id, val) {
+  const e = el(id);
+  if (!e) return;
+  const v = (val !== null && val !== undefined && val !== '') ? val : null;
+  if (v) { e.textContent = v; e.classList.remove('empty'); }
+  else   { e.textContent = '—'; e.classList.add('empty'); }
 }
 
 function reveal() {
@@ -712,132 +794,18 @@ function reveal() {
   el('main-page').classList.add('visible');
 }
 
-// ── Risk Profile ───────────────────────────────────────────────────
-const RISK_CONFIG = {
-  'Conservative':         { cls:'conservative',    bar:20,  fma:'Defensive / Conservative',  fmaCls:'conservative' },
-  'Moderately Conservative': { cls:'mod-conservative', bar:40, fma:'Conservative',             fmaCls:'conservative' },
-  'Balanced':             { cls:'balanced',         bar:60,  fma:'Balanced',                  fmaCls:'balanced' },
-  'Moderately Aggressive':{ cls:'mod-aggressive',   bar:80,  fma:'Growth',                    fmaCls:'growth' },
-  'Aggressive':           { cls:'aggressive',       bar:100, fma:'Aggressive Growth',          fmaCls:'aggressive' },
-};
-
-function renderRiskProfile(profile, score, date) {
-  const rb = el('risk-body');
-  if (!rb) return;
-
-  if (!profile) {
-    rb.innerHTML = `
-      <div class="risk-not-assessed">
-        <div style="font-size:28px;margin-bottom:8px;">📊</div>
-        <div style="font-weight:700;color:var(--ink);margin-bottom:4px;">No Risk Profile on Record</div>
-        <div style="font-size:11px;">A risk profile assessment has not yet been completed for this client.</div>
-        <button class="btn btn-primary" style="margin-top:14px;font-size:11px;" onclick="startRiskProfile()">
-          Start Risk Profile Assessment →
-        </button>
-      </div>`;
-    setEl('sb-risk-profile', 'Not assessed');
-    setEl('sb-risk-date', '—');
-    return;
-  }
-
-  const cfg = RISK_CONFIG[profile] || { cls:'none', bar:0, fma:'—', fmaCls:'none' };
-
-  rb.innerHTML = `
-    <div class="risk-profile-display">
-      <div class="risk-gauge ${cfg.cls}">
-        <div class="gauge-score">${score || '—'}<span style="font-size:12px;">%</span></div>
-        <div class="gauge-label">Score</div>
-      </div>
-      <div class="risk-info">
-        <div class="risk-profile-name">${profile}</div>
-        <div class="risk-assessed">Last assessed: ${fmtDate(date)}</div>
-        <div class="risk-bar-wrap">
-          <div class="risk-bar-fill" style="width:${cfg.bar}%;background:${getRiskColor(cfg.cls)};"></div>
-        </div>
-        <div class="risk-bar-labels">
-          <span>Conservative</span>
-          <span>Balanced</span>
-          <span>Aggressive</span>
-        </div>
-        <div class="risk-fma ${cfg.fmaCls}">
-          📊 FMA Fund Type: ${cfg.fma}
-        </div>
-      </div>
-    </div>`;
-
-  setEl('sb-risk-profile', profile);
-  setEl('sb-risk-date', fmtDate(date));
+// ── Multiselect tags ───────────────────────────────────────────────
+function renderTags(id, values, pillClass) {
+  const e = el(id);
+  if (!e) return;
+  const arr = Array.isArray(values) ? values : (values ? [values] : []);
+  if (!arr.length) { e.innerHTML = '<span style="color:var(--muted);font-size:11px;">—</span>'; return; }
+  e.innerHTML = '<div class="ms-tags">' +
+    arr.map(v => `<span class="ms-tag ${pillClass||''}">${v}</span>`).join('') +
+    '</div>';
 }
 
-function getRiskColor(cls) {
-  const map = {
-    'conservative':    'var(--green)',
-    'mod-conservative':'#2980b9',
-    'balanced':        'var(--blue)',
-    'mod-aggressive':  'var(--amber)',
-    'aggressive':      'var(--red)',
-  };
-  return map[cls] || 'var(--muted)';
-}
-
-// ── Advice Records ────────────────────────────────────────────────
-function renderAdviceRecords(records) {
-  const list = el('advice-list');
-  if (!list) return;
-
-  setEl('sb-advice-count', records.length + ' record' + (records.length !== 1 ? 's' : ''));
-
-  if (records.length === 0) {
-    list.innerHTML = `
-      <li class="advice-empty">
-        <div style="font-size:24px;margin-bottom:8px;">📋</div>
-        No advice records on file for this client
-      </li>`;
-    return;
-  }
-
-  const stepMap = {
-    'Step 1. Client Engagement':   { cls:'step-1', label:'Step 1' },
-    'Step 2. Data Collection':     { cls:'step-2', label:'Step 2' },
-    'Step 3. Analysis':            { cls:'step-3', label:'Step 3' },
-    'Step 4. Statement of Advice': { cls:'step-4', label:'Step 4' },
-    'Step 5. Implementation':      { cls:'step-5', label:'Step 5' },
-    'Step 6. Review':              { cls:'step-6', label:'Step 6' },
-    'Not Proceeded With':          { cls:'step-np', label:'NPW' },
-  };
-
-  const statusColors = {
-    'Step 1. Client Engagement':   { bg:'#fde8d8', color:'#c0560a' },
-    'Step 2. Data Collection':     { bg:'var(--amber-lt)', color:'var(--amber)' },
-    'Step 3. Analysis':            { bg:'var(--green-lt)', color:'var(--green)' },
-    'Step 4. Statement of Advice': { bg:'var(--blue-lt)', color:'var(--blue-dk)' },
-    'Step 5. Implementation':      { bg:'var(--purple-lt)', color:'var(--purple)' },
-    'Step 6. Review':              { bg:'#d4f0f0', color:'#0d7f7f' },
-    'Not Proceeded With':          { bg:'var(--red-lt)', color:'var(--red)' },
-  };
-
-  list.innerHTML = records.slice(0,3).map(r => {
-    const step   = stepMap[r.Status] || { cls:'step-1', label:'—' };
-    const colors = statusColors[r.Status] || { bg:'var(--bg-alt)', color:'var(--muted)' };
-    const date   = fmtDate(r.Date_Time_of_Meeting || r.Created_Time);
-    const type   = r.Meeting_Type || '';
-
-    return `
-      <li class="advice-item" onclick="openAdviceRecord('${r.id}')">
-        <div class="advice-step ${step.cls}">${step.label}</div>
-        <div class="advice-info">
-          <div class="advice-name">${fmt(r.Name || r.Name_of_Record)}</div>
-          <div class="advice-meta">${[date, type].filter(Boolean).join(' · ')}</div>
-        </div>
-        <div class="advice-status"
-          style="background:${colors.bg};color:${colors.color};">
-          ${r.Status || '—'}
-        </div>
-      </li>`;
-  }).join('');
-}
-
-// ── Address ───────────────────────────────────────────────────────
+// ── Address renderer ───────────────────────────────────────────────
 function renderAddress(id, street, city, state, zip, country) {
   const e = el(id);
   if (!e) return;
@@ -847,174 +815,312 @@ function renderAddress(id, street, city, state, zip, country) {
     : '<span class="empty">Not recorded</span>';
 }
 
-// ── Populate ──────────────────────────────────────────────────────
+// ── Status pills ───────────────────────────────────────────────────
+function statusPill(val, map) {
+  if (!val) return '<span class="empty">—</span>';
+  const cfg = map ? map[val] : null;
+  const cls = cfg ? cfg : 'pill-grey';
+  return `<span class="pill ${cls}">${val}</span>`;
+}
+
+const STATUS_MAP = {
+  'Client':             'pill-green',
+  'Active':             'pill-green',
+  'Connected':          'pill-blue',
+  'Previous Client':    'pill-grey',
+  'Contact in the Future':'pill-amber',
+  'Prospect':           'pill-amber',
+  'Deceased':           'pill-red',
+};
+
+const SMOKER_MAP = {
+  'Non-Smoker': 'pill-green',
+  'Smoker':     'pill-red',
+  'Ex-Smoker':  'pill-amber',
+};
+
+// ── Review alert ───────────────────────────────────────────────────
+function renderReviewAlert(reviewDate) {
+  const wrap = el('review-alert-wrap');
+  if (!wrap || !reviewDate) return;
+  const today = new Date();
+  const rd = new Date(reviewDate.includes('T') ? reviewDate : reviewDate + 'T00:00:00');
+  const days = Math.ceil((rd - today) / (1000*60*60*24));
+  if (days <= 30 && days >= -30) {
+    wrap.innerHTML = `<div class="review-alert">
+      ⚠ Review ${days < 0 ? 'overdue by ' + Math.abs(days) + ' days' : 'due in ' + days + ' days'}
+    </div>`;
+  }
+}
+
+// ── Populate page ──────────────────────────────────────────────────
 function populateContact(c) {
   CONTACT = c;
-  const name = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
 
-  // Hero
-  setEl('hero-avatar',  initials(name));
-  setEl('hero-name',    name || '—');
-  setEl('hero-role',    [c.Title, c.Account_Name?.name].filter(Boolean).join(' · '));
-  setEl('hero-owner',   c.Owner?.name ? 'Adviser: ' + c.Owner.name : '');
+  // ── Hero ──
+  const fullName = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
+  setEl('hero-avatar', initials(fullName));
+  setEl('hero-name',   fullName || '—');
+  setEl('hero-role',   [c.Title, c.Account_Name?.name].filter(Boolean).join(' · '));
 
-  // Tags
   const tags = [];
-  if (c.Lead_Source) tags.push(`<span class="tag tag-blue">📌 ${c.Lead_Source}</span>`);
-  if (c.Status)      tags.push(`<span class="tag tag-green">✓ ${c.Status}</span>`);
+  if (c.Status)        tags.push(`<span class="tag tag-${STATUS_MAP[c.Status]?.includes('green')?'green':STATUS_MAP[c.Status]?.includes('amber')?'amber':STATUS_MAP[c.Status]?.includes('red')?'red':'blue'}">${c.Status}</span>`);
+  if (c.Contact_Type)  tags.push(`<span class="tag tag-white">${c.Contact_Type}</span>`);
+  if (c.Smoker && c.Smoker !== 'Non-Smoker') tags.push(`<span class="tag tag-amber">🚬 ${c.Smoker}</span>`);
+  if (c.Vulnerable_Client && c.Vulnerable_Client !== 'Not Vulnerable') tags.push(`<span class="tag tag-red">⚠ Vulnerable</span>`);
   setEl('hero-tags', tags.join(''), true);
 
-  // Contact fields
-  const accountEl = el('f-account');
-  if (accountEl) {
-    accountEl.innerHTML = c.Account_Name?.name
-      ? `<a href="#" onclick="openAccount('${c.Account_Name.id}')">${c.Account_Name.name}</a>`
+  // ── Personal Information ──
+  setFv('f-salutation',      c.Salutation);
+  setFv('f-first-name',      c.First_Name);
+  setFv('f-middle-name',     c.Middle_Name);
+  setFv('f-last-name',       c.Last_Name);
+  setFv('f-preferred-name',  c.Preferred_Name);
+  setFv('f-dob',             fmtDate(c.Date_of_Birth));
+  setFv('f-age',             c.Age || c.age2 || c.Contact_Age);
+  setFv('f-gender',          c.Gender);
+  setFv('f-marital',         c.Marital_Status);
+  setFv('f-nz-residency',    c.NZ_Residency);
+  setFv('f-tax-number',      c.Tax_Number);
+  setFv('f-country-birth',   c.Country_of_Birth);
+
+  // Status pill
+  const statusEl = el('f-status');
+  if (statusEl) { statusEl.innerHTML = statusPill(c.Status, STATUS_MAP); statusEl.style.background='transparent'; statusEl.style.padding='0'; statusEl.style.border='none'; }
+
+  // Contact type pill
+  const ctEl = el('f-contact-type');
+  if (ctEl) { ctEl.innerHTML = c.Contact_Type ? `<span class="pill pill-blue">${c.Contact_Type}</span>` : '<span class="empty">—</span>'; ctEl.style.background='transparent'; ctEl.style.padding='0'; ctEl.style.border='none'; }
+
+  // Smoker pill
+  const smokerEl = el('f-smoker');
+  if (smokerEl) { smokerEl.innerHTML = statusPill(c.Smoker, SMOKER_MAP); smokerEl.style.background='transparent'; smokerEl.style.padding='0'; smokerEl.style.border='none'; }
+
+  // Vulnerable pill
+  const vulnEl = el('f-vulnerable');
+  if (vulnEl) {
+    const vulnCls = c.Vulnerable_Client && c.Vulnerable_Client !== 'Not Vulnerable' ? 'pill-red' : 'pill-green';
+    vulnEl.innerHTML = c.Vulnerable_Client ? `<span class="pill ${vulnCls}">${c.Vulnerable_Client}</span>` : '<span class="empty">—</span>';
+    vulnEl.style.background='transparent'; vulnEl.style.padding='0'; vulnEl.style.border='none';
+  }
+
+  // ── Contact Details ──
+  const acctEl = el('f-account');
+  if (acctEl) {
+    acctEl.innerHTML = c.Account_Name?.name
+      ? `<a href="#" onclick="openAccount('${c.Account_Name.id}');return false;">${c.Account_Name.name}</a>`
       : '<span class="empty">—</span>';
   }
-  setEl('f-title',       fmt(c.Title));
-  setEl('f-first',       fmt(c.First_Name));
-  setEl('f-last',        fmt(c.Last_Name));
-
+  setFv('f-title',         c.Title);
   const emailEl = el('f-email');
-  if (emailEl) {
-    emailEl.innerHTML = c.Email
-      ? `<a href="mailto:${c.Email}">${c.Email}</a>`
-      : '<span class="empty">—</span>';
-  }
+  if (emailEl) emailEl.innerHTML = c.Email ? `<a href="mailto:${c.Email}">${c.Email}</a>` : '<span class="empty">—</span>';
+  const secEmailEl = el('f-secondary-email');
+  if (secEmailEl) secEmailEl.innerHTML = c.Secondary_Email ? `<a href="mailto:${c.Secondary_Email}">${c.Secondary_Email}</a>` : '<span class="empty">—</span>';
+  setFv('f-mobile',        c.Mobile);
+  setFv('f-phone',         c.Phone);
+  setFv('f-home-phone',    c.Home_Phone);
+  setFv('f-lead-source',   c.Lead_Source);
+  const liEl = el('f-linkedin');
+  if (liEl) liEl.innerHTML = c.LinkedIn ? `<a href="${c.LinkedIn}" target="_blank" rel="noopener">${c.LinkedIn}</a>` : '<span class="empty">—</span>';
+  setFv('f-employer',      c.Employer_Business_Name);
 
-  setEl('f-phone',       fmt(c.Phone));
-  setEl('f-mobile',      fmt(c.Mobile));
-  setEl('f-lead-source', fmt(c.Lead_Source));
-  setEl('f-status',      fmt(c.Status));
+  // ── Employment & Financial ──
+  setFv('f-occupation',          c.Occupation);
+  setFv('f-occupation-class',    c.Occupation_Class);
+  setFv('f-employment-status',   c.Employment_Status);
+  setFv('f-annual-income',       fmtCurr(c.Annual_Income));
+  setFv('f-household-expenses',  fmtCurr(c.Household_Expenses));
+  setFv('f-mortgage-repayment',  fmtCurr(c.Mortgage_Repayment));
+  setFv('f-housing-status',      c.Housing_Status);
 
-  // Description
+  // ── Insurance Cover ──
+  const cvFmt = v => v ? fmtCurr(v) : '<span class="cover-value nil">Not recorded</span>';
+  setEl('cv-life',   cvFmt(c.Life_Cover),   true);
+  setEl('cv-trauma', cvFmt(c.Trauma_Cover), true);
+  setEl('cv-income', cvFmt(c.Income_Cover), true);
+  setEl('cv-tpd',    cvFmt(c.Total_Disability), true);
+
+  // ── Active Products & Benefits ──
+  renderTags('f-active-products', c.Active_Products, '');
+  renderTags('f-active-benefits', c.Active_Benefits, '');
+
+  // ── ID Verification ──
+  setFv('f-id-type',   c.ID_Type);
+  setFv('f-id-number', c.ID_Number);
+  setFv('f-id-expiry', fmtDate(c.ID_Expiry_Date));
+
+  // ── Address ──
+  renderAddress('addr-mailing',
+    c.Mailing_Street, c.Mailing_City, c.Mailing_State, c.Mailing_Zip, c.Mailing_Country);
+  renderAddress('addr-other',
+    c.Other_Street, c.Other_City, c.Other_State, c.Other_Zip, c.Other_Country);
+
+  // ── Description ──
   const descEl = el('f-description');
   if (descEl) {
     descEl.textContent = c.Description || 'No description on record.';
-    descEl.classList.toggle('empty', !c.Description);
+    if (!c.Description) descEl.classList.add('empty');
   }
 
-  // Address
-  renderAddress('addr-mailing',
-    c.Mailing_Street, c.Mailing_City, c.Mailing_State, c.Mailing_Zip, c.Mailing_Country);
-  renderAddress('addr-postal',
-    c.Other_Street, c.Other_City, c.Other_State, c.Other_Zip, c.Other_Country);
+  // ── Sidebar ──
+  setEl('sb-owner',         fmt(c.Owner?.name));
+  setEl('sb-lead-source',   fmt(c.Lead_Source));
+  setEl('sb-last-activity', fmtDate(c.Last_Activity_Time || c.Modified_Time));
 
-  // Sidebar — adviser info
-  setEl('sb-adviser',      fmt(c.Owner?.name));
-  setEl('sb-fsp',          fmt(c.FSP));
-  setEl('sb-dealer',       fmt(c.Dealer_Group));
-  setEl('sb-payment',      fmt(c.Payment_Frequency));
-  setEl('sb-last-activity', fmtDate(c.Last_Activity_Time));
+  const sbStatusEl = el('sb-status');
+  if (sbStatusEl) sbStatusEl.innerHTML = statusPill(c.Status, STATUS_MAP);
 
-  // Subscription
-  const subStart = c.Subscription_Start ? fmtDate(c.Subscription_Start) : null;
-  const subEnd   = c.Subscription_End   ? fmtDate(c.Subscription_End)   : null;
-  setEl('sb-subscription',
-    subStart && subEnd ? `${subStart} → ${subEnd}` : subStart || '—');
+  // Review
+  setEl('sb-review-date',    fmtDate(c.Review_Date || c.Review));
+  setEl('sb-account-review', fmtDate(c.Account_Review_Date));
+  setEl('sb-review-month',   fmt(c.Review_Month));
+  renderReviewAlert(c.Review_Date || c.Review);
 
-  // Risk Profile
-  renderRiskProfile(c.Risk_Profile, c.Risk_Score, c.Risk_Profile_Date);
+  // Quick stats
+  setEl('sb-birthday',  fmtDate(c.CY_Birthday));
+  setEl('sb-days-nb',   c.Days_to_NextBirthday ? c.Days_to_NextBirthday + ' days' : '—');
+  setEl('sb-expiry',    fmtDate(c.Expiry_Date));
 }
 
-// ── CRM actions ───────────────────────────────────────────────────
-function sendEmail() {
-  if (CONTACT.Email) window.location.href = 'mailto:' + CONTACT.Email;
-}
-function logCall() {
-  if (typeof ZOHO !== 'undefined') {
-    ZOHO.CRM.UI.Record.create({
-      Entity: 'Calls',
-      prefill: { 'Contact_Name': { id: ENTITY_ID } }
-    });
+// ── Advice Records ─────────────────────────────────────────────────
+function renderAdviceRecords(records) {
+  const list = el('advice-list');
+  setEl('sb-advice-count', records.length + ' record' + (records.length!==1?'s':''));
+  if (!records.length) {
+    list.innerHTML = '<li class="empty-state"><div class="empty-icon">📋</div>No advice records on file</li>';
+    return;
   }
-}
-function openAccount(id) {
-  if (typeof ZOHO !== 'undefined') {
-    ZOHO.CRM.UI.Record.open({ Entity: 'Accounts', RecordID: id });
-  }
-}
-function openAdviceRecord(id) {
-  if (typeof ZOHO !== 'undefined') {
-    ZOHO.CRM.UI.Record.open({ Entity: 'Advice_Records', RecordID: id });
-  }
-}
-function startRiskProfile() {
-  alert('Navigate to the Risk Profile widget to complete the assessment.');
+  const stepMap = {
+    'Step 1. Client Engagement':   { cls:'step-1', label:'1' },
+    'Step 2. Data Collection':     { cls:'step-2', label:'2' },
+    'Step 3. Analysis':            { cls:'step-3', label:'3' },
+    'Step 4. Statement of Advice': { cls:'step-4', label:'4' },
+    'Step 5. Implementation':      { cls:'step-5', label:'5' },
+    'Step 6. Review':              { cls:'step-6', label:'6' },
+    'Not Proceeded With':          { cls:'step-np', label:'✕' },
+  };
+  const statusColors = {
+    'Step 1. Client Engagement':   'pill-amber',
+    'Step 2. Data Collection':     'pill-amber',
+    'Step 3. Analysis':            'pill-green',
+    'Step 4. Statement of Advice': 'pill-blue',
+    'Step 5. Implementation':      'pill-purple',
+    'Step 6. Review':              'pill-green',
+    'Not Proceeded With':          'pill-grey',
+  };
+  list.innerHTML = records.slice(0,3).map(r => {
+    const step   = stepMap[r.Status] || { cls:'step-1', label:'?' };
+    const sCls   = statusColors[r.Status] || 'pill-grey';
+    const date   = fmtDate(r.Date_Time_of_Meeting || r.Created_Time);
+    return `<li class="advice-item" onclick="openRecord('Advice_Records','${r.id}')">
+      <div class="advice-step ${step.cls}">${step.label}</div>
+      <div class="advice-info">
+        <div class="advice-name">${r.Name || r.Name_of_Record || '—'}</div>
+        <div class="advice-meta">${[date, r.Meeting_Type].filter(Boolean).join(' · ')}</div>
+      </div>
+      <span class="advice-status pill ${sCls}">${r.Status||'—'}</span>
+    </li>`;
+  }).join('');
 }
 
-// ── SDK Mock ──────────────────────────────────────────────────────
+// ── CRM Actions ────────────────────────────────────────────────────
+function sendEmail()  { if (CONTACT.Email) window.location.href = 'mailto:' + CONTACT.Email; }
+function logCall()    { openAction('Calls'); }
+function openAccount(id) { openRecord('Accounts', id); }
+function openRecord(entity, id) {
+  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity:entity, RecordID:id });
+  else alert('[Mock] Open ' + entity + ' ' + id);
+}
+function openAction(entity) {
+  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.create({ Entity:entity });
+}
+
+// ── Mock data ──────────────────────────────────────────────────────
 (function() {
-  function initMockIfNeeded() {
+  function initMock() {
     if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) return;
-
-    var MOCK_CONTACT = {
-      id: 'c-001',
-      First_Name: 'Margaret', Last_Name: 'Thornton',
-      Title: 'Chief Financial Officer',
-      Email: 'margaret.thornton@bluepeak.co.nz',
-      Phone: '+64 9 555 0182', Mobile: '+64 21 555 0182',
-      Account_Name: { id: 'acc-001', name: 'BluePeak Capital Group' },
-      Owner: { id: 'usr-001', name: 'Sean Davis' },
-      Lead_Source: 'Referral', Status: 'Active',
-      Mailing_Street: 'Level 12, 1 Queen Street',
-      Mailing_City: 'Auckland CBD',
-      Mailing_State: 'Auckland', Mailing_Zip: '1010',
-      Mailing_Country: 'New Zealand',
-      Other_Street: 'PO Box 7281',
-      Other_City: 'Wellesley Street',
-      Other_State: 'Auckland', Other_Zip: '1141',
-      Other_Country: 'New Zealand',
-      Description: 'Margaret has been a client since mid-2023, referred by James Thornton. She manages financial oversight for BluePeak Capital Group and is primarily interested in KiwiSaver restructuring and managed portfolio reviews. Prefers morning calls.',
-      Last_Activity_Time: '2025-05-22T14:15:00+12:00',
-      FSP: 'FSP-44821',
-      Dealer_Group: 'BluePeak Advisers',
-      Subscription_Start: '2023-06-01',
-      Subscription_End: '2026-05-31',
-      Payment_Frequency: 'Monthly',
-      Risk_Profile: 'Balanced',
-      Risk_Score: '57',
-      Risk_Profile_Date: '2025-05-22',
+    var M = {
+      id:'c-001',
+      First_Name:'Poppy', Last_Name:'Guy', Middle_Name:null,
+      Preferred_Name:'Poppy', Salutation:null,
+      Title:'Financial Adviser',
+      Email:'advisercrm@gmail.com', Secondary_Email:null,
+      Mobile:'+64275777764', Phone:null, Home_Phone:null,
+      Account_Name:{ id:'acc-001', name:'Poppy Corporation' },
+      Owner:{ name:'Sean Davis' },
+      Status:'Previous Client', Contact_Type:'Client',
+      Lead_Source:'Contact Us',
+      Date_of_Birth:'1978-03-15', Age:'48', Gender:'Female',
+      Marital_Status:'Married', NZ_Residency:'NZ Citizen',
+      Smoker:'Non-Smoker', Vulnerable_Client:'Not Vulnerable',
+      Tax_Number:'123-456-789', Country_of_Birth:'New Zealand',
+      Occupation:'Financial Adviser', Occupation_Class:'Class 1',
+      Employment_Status:'Self Employed', Employer_Business_Name:'Poppy Corporation',
+      Annual_Income:120000, Household_Expenses:48000, Mortgage_Repayment:2400,
+      Housing_Status:'Mortgage',
+      Life_Cover:500000, Trauma_Cover:250000, Income_Cover:8000, Total_Disability:250000,
+      Active_Products:['Personal Insurance','KiwiSaver'],
+      Active_Benefits:['Life Cover','Trauma Cover','Income Protection'],
+      ID_Type:'NZ Passport', ID_Number:'LM123456', ID_Expiry_Date:'2029-03-15',
+      LinkedIn:null,
+      Mailing_Street:'11 Campbell Place', Mailing_City:'Pukehangi',
+      Mailing_State:'Rotorua', Mailing_Zip:'3050', Mailing_Country:'New Zealand',
+      Other_Street:'P.O. Box 1989', Other_City:'Rotorua Central',
+      Other_State:'Rotorua', Other_Zip:'3010', Other_Country:'New Zealand',
+      Description:'Poppy has been a client since 2023. Primary adviser for insurance and KiwiSaver reviews.',
+      Review:'2026-09-01', Review_Date:null, Review_Month:'September',
+      Account_Review_Date:'2026-10-01',
+      CY_Birthday:'2026-03-15', Days_to_NextBirthday:207,
+      Expiry_Date:'2026-04-18',
+      Last_Activity_Time:'2026-08-20T11:44:09+12:00',
     };
-
-    var MOCK_ADVICE = [
-      { id:'ar-1', Name:'AR-00042 — Annual Review 2025',        Status:'Step 2. Data Collection',     Date_Time_of_Meeting:'2025-05-22T10:00:00', Meeting_Type:'In Person' },
-      { id:'ar-2', Name:'AR-00038 — KiwiSaver Review 2024',     Status:'Step 6. Review',               Date_Time_of_Meeting:'2024-11-14T14:00:00', Meeting_Type:'Zoom' },
-      { id:'ar-3', Name:'AR-00031 — Initial Advice 2023',       Status:'Step 5. Implementation',       Date_Time_of_Meeting:'2023-09-05T10:00:00', Meeting_Type:'In Person' },
+    var ADVICE = [
+      { id:'ar1', Name:'AR-00042 — Annual Review 2025', Status:'Step 6. Review', Date_Time_of_Meeting:'2025-05-22', Meeting_Type:'In Person' },
+      { id:'ar2', Name:'AR-00038 — KiwiSaver Review 2024', Status:'Step 5. Implementation', Date_Time_of_Meeting:'2024-11-14', Meeting_Type:'Zoom' },
     ];
-
     window.ZOHO = {
-      embeddedApp: {
-        _h: {},
-        on(e, fn) { this._h[e] = fn; },
-        init() {
-          var self = this;
-          setTimeout(function() {
-            var fn = self._h['PageLoad'];
-            if (fn) fn({ EntityId:'c-001', Entity:'Contacts' });
-          }, 600);
-        }
-      },
-      CRM: {
-        API: {
-          getRecord() { return Promise.resolve({ data:[MOCK_CONTACT] }); },
-          getRelatedRecords() { return Promise.resolve({ data:MOCK_ADVICE }); },
-        },
-        UI: {
-          Record: {
-            open(o)   { alert('[Mock] Open ' + o.Entity + ' ' + o.RecordID); },
-            create(o) { alert('[Mock] Create ' + o.Entity); }
-          }
-        }
-      }
+      embeddedApp:{ _h:{}, on(e,fn){this._h[e]=fn;}, init(){ var s=this; setTimeout(function(){ var f=s._h['PageLoad']; if(f) f({EntityId:'c-001',Entity:'Contacts'}); },600); } },
+      CRM:{ API:{
+        getRecord(){ return Promise.resolve({data:[M]}); },
+        getRelatedRecords(){ return Promise.resolve({data:ADVICE}); },
+      }, UI:{ Record:{ open(o){alert('[Mock] Open '+o.Entity+' '+o.RecordID);}, create(o){alert('[Mock] New '+o.Entity);} } } }
     };
-    el('mock-badge').style.display = 'block';
   }
-  setTimeout(initMockIfNeeded, 300);
+  setTimeout(initMock, 300);
 })();
 
-// ── Bootstrap ─────────────────────────────────────────────────────
+// ── Bootstrap ──────────────────────────────────────────────────────
 function startApp() {
+  // Check for URL parameters (Deluge iframe method)
+  const params = {};
+  window.location.search.replace('?','').split('&').forEach(function(p){
+    const kv = p.split('=');
+    if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1]||'').replace(/\+/g,' '));
+  });
+
+  if (params.contactId) {
+    // URL param mode — build contact from params
+    populateContact({
+      id:            params.contactId,
+      First_Name:    params.firstName    || '',
+      Last_Name:     params.lastName     || '',
+      Email:         params.email        || '',
+      Phone:         params.phone        || '',
+      Mobile:        params.mobile       || '',
+      Title:         params.title        || '',
+      Status:        params.status       || '',
+      Lead_Source:   params.leadSource   || '',
+      Account_Name:  params.accountName ? { id:params.accountId||'', name:params.accountName } : null,
+      Owner:         { name: params.ownerName||'' },
+      Description:   params.description || '',
+      Last_Activity_Time: params.lastActivity || '',
+    });
+    renderAdviceRecords([]);
+    reveal();
+    return;
+  }
+
+  // SDK mode
   ZOHO.embeddedApp.on('PageLoad', function(data) {
     ENTITY_ID = data.EntityId;
     Promise.all([
@@ -1025,30 +1131,27 @@ function startApp() {
       }),
     ])
     .then(function(results) {
-      const contact = results[0].data?.[0] || {};
-      const advice  = results[1].data  || [];
-      populateContact(contact);
-      renderAdviceRecords(advice);
+      populateContact(results[0].data?.[0] || {});
+      renderAdviceRecords(results[1].data || []);
     })
-    .catch(function(err) { console.error(err); })
-    .finally(function() { reveal(); });
+    .catch(function(err){ console.error(err); })
+    .finally(function(){ reveal(); });
   });
   ZOHO.embeddedApp.init();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() { setTimeout(startApp, 350); });
+if (document.readyState==='loading') {
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(startApp,350); });
 } else {
   setTimeout(startApp, 350);
 }
 
-// Hard fallback — force reveal after 3 seconds
-setTimeout(function() {
-  var l = el('loading');
-  var p = el('main-page');
-  if (l && !l.classList.contains('hidden')) {
+// Hard fallback
+setTimeout(function(){
+  var l=el('loading');
+  if(l&&!l.classList.contains('hidden')){
     l.classList.add('hidden');
-    if (p) p.classList.add('visible');
+    el('main-page').classList.add('visible');
   }
 }, 3000);
 </script>
