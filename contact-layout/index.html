@@ -311,7 +311,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.3.1</div>
+<div id="vbadge">v1.3.2</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -754,7 +754,7 @@
 <div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#94a3b8;font-size:10px;">v1.3.1 — share this with your developer</span>
+    <span style="color:#94a3b8;font-size:10px;">v1.3.2 — share this with your developer</span>
     <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #475569;color:#94a3b8;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
   <div id="debug-log" style="line-height:1.8;color:#e2e8f0;"></div>
@@ -767,7 +767,7 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.3.1
+//  Adviser CRM — Contact Layout Page v1.3.2
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1165,29 +1165,54 @@ function startApp() {
       return;
     }
 
-    dbg('Fetching record + advice records...');
-    Promise.all([
-      ZOHO.CRM.API.getRecord({ Entity:'Contacts', RecordID:ENTITY_ID }),
-      ZOHO.CRM.API.getRelatedRecords({
-        Entity:'Contacts', RecordID:ENTITY_ID,
-        RelatedList:'Advice_Records', page:1, per_page:3
-      }),
-    ])
-    .then(function(results) {
-      dbg('API calls returned');
-      var contact = results[0].data?.[0] || {};
-      var advice  = results[1].data  || [];
+    dbg('Fetching contact record...');
+
+    // Step 1 — fetch the Contact record first
+    ZOHO.CRM.API.getRecord({ Entity:'Contacts', RecordID:ENTITY_ID })
+    .then(function(result) {
+      var contact = result.data?.[0] || {};
       dbg('Contact: ' + (contact.First_Name||'?') + ' ' + (contact.Last_Name||'?'));
-      dbg('Advice records: ' + advice.length);
       populateContact(contact);
-      renderAdviceRecords(advice);
+
+      // Step 2 — fetch related Advice Records separately
+      // Try the most likely API names for Adviser CRM Vertical Studio
+      var relatedListNames = [
+        'Advice_Records1',
+        'Advice_Records',
+        'nzadvisercrm__Advice_Records',
+        'Advice_Record',
+      ];
+
+      function tryNextRelatedList(index) {
+        if (index >= relatedListNames.length) {
+          dbg('Could not find Advice Records related list — tried all names');
+          dbg('Advice Records names tried: ' + relatedListNames.join(', '));
+          renderAdviceRecords([]);
+          reveal();
+          return;
+        }
+        var name = relatedListNames[index];
+        dbg('Trying related list: ' + name);
+        ZOHO.CRM.API.getRelatedRecords({
+          Entity:'Contacts', RecordID:ENTITY_ID,
+          RelatedList:name, page:1, per_page:3
+        })
+        .then(function(resp) {
+          dbg('✅ Related list worked: ' + name + ' — ' + (resp.data||[]).length + ' records');
+          renderAdviceRecords(resp.data || []);
+          reveal();
+        })
+        .catch(function(err) {
+          dbg('✗ Failed: ' + name + ' — trying next...');
+          tryNextRelatedList(index + 1);
+        });
+      }
+
+      tryNextRelatedList(0);
     })
     .catch(function(err){
-      dbg('ERROR: ' + JSON.stringify(err));
+      dbg('ERROR fetching contact: ' + JSON.stringify(err));
       console.error(err);
-    })
-    .finally(function(){
-      dbg('Revealing page...');
       reveal();
     });
   });
