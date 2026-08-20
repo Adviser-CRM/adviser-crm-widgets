@@ -267,32 +267,7 @@
       display:flex; align-items:center; gap:6px;
     }
 
-    /* ── Advice records list ── */
-    .advice-list { list-style:none; }
-    .advice-item {
-      display:flex; align-items:center; gap:10px;
-      padding:10px 16px;
-      border-bottom:1px solid var(--divider);
-      cursor:pointer; transition:background 0.15s;
-    }
-    .advice-item:last-child { border-bottom:none; }
-    .advice-item:hover { background:var(--bg); }
-    .advice-step {
-      width:28px; height:28px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      font-size:9px; font-weight:700; flex-shrink:0;
-    }
-    .step-1  { background:#fde8d8; color:#c0560a; }
-    .step-2  { background:var(--amber-lt); color:var(--amber); }
-    .step-3  { background:var(--green-lt); color:var(--green); }
-    .step-4  { background:var(--blue-lt);  color:var(--blue-dk); }
-    .step-5  { background:var(--purple-lt);color:var(--purple); }
-    .step-6  { background:#d4f0f0; color:#0d7f7f; }
-    .step-np { background:var(--red-lt);   color:var(--red); }
-    .advice-info { flex:1; }
-    .advice-name { font-size:12px; font-weight:700; color:var(--ink); }
-    .advice-meta { font-size:10px; color:var(--muted); margin-top:1px; }
-    .advice-status { font-size:9px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+
 
     .empty-state { text-align:center; padding:24px 16px; color:var(--muted); font-size:12px; }
     .empty-icon { font-size:24px; margin-bottom:6px; }
@@ -647,21 +622,7 @@
       </div>
     </div>
 
-    <!-- Recent Advice Records -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📋</div>
-        <div>
-          <div class="card-title">Recent Advice Records</div>
-          <div class="card-sub">Last 3 advice engagements</div>
-        </div>
-      </div>
-      <ul class="advice-list" id="advice-list">
-        <li class="empty-state">
-          <div class="empty-icon">📋</div>Loading…
-        </li>
-      </ul>
-    </div>
+
 
   </div><!-- /main-col -->
 
@@ -728,10 +689,7 @@
         <div><div class="card-title">Quick Stats</div></div>
       </div>
       <div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Advice Records</span>
-          <span class="sidebar-row-value" id="sb-advice-count">—</span>
-        </div>
+
         <div class="sidebar-row">
           <span class="sidebar-row-label">Next Birthday</span>
           <span class="sidebar-row-value" id="sb-birthday">—</span>
@@ -999,46 +957,7 @@ function populateContact(c) {
   setEl('sb-expiry',    fmtDate(c.Expiry_Date));
 }
 
-// ── Advice Records ─────────────────────────────────────────────────
-function renderAdviceRecords(records) {
-  const list = el('advice-list');
-  setEl('sb-advice-count', records.length + ' record' + (records.length!==1?'s':''));
-  if (!records.length) {
-    list.innerHTML = '<li class="empty-state"><div class="empty-icon">📋</div>No advice records on file</li>';
-    return;
-  }
-  const stepMap = {
-    'Step 1. Client Engagement':   { cls:'step-1', label:'1' },
-    'Step 2. Data Collection':     { cls:'step-2', label:'2' },
-    'Step 3. Analysis':            { cls:'step-3', label:'3' },
-    'Step 4. Statement of Advice': { cls:'step-4', label:'4' },
-    'Step 5. Implementation':      { cls:'step-5', label:'5' },
-    'Step 6. Review':              { cls:'step-6', label:'6' },
-    'Not Proceeded With':          { cls:'step-np', label:'✕' },
-  };
-  const statusColors = {
-    'Step 1. Client Engagement':   'pill-amber',
-    'Step 2. Data Collection':     'pill-amber',
-    'Step 3. Analysis':            'pill-green',
-    'Step 4. Statement of Advice': 'pill-blue',
-    'Step 5. Implementation':      'pill-purple',
-    'Step 6. Review':              'pill-green',
-    'Not Proceeded With':          'pill-grey',
-  };
-  list.innerHTML = records.slice(0,3).map(r => {
-    const step   = stepMap[r.Status] || { cls:'step-1', label:'?' };
-    const sCls   = statusColors[r.Status] || 'pill-grey';
-    const date   = fmtDate(r.Date_Time_of_Meeting || r.Created_Time);
-    return `<li class="advice-item" onclick="openRecord('Advice_Records','${r.id}')">
-      <div class="advice-step ${step.cls}">${step.label}</div>
-      <div class="advice-info">
-        <div class="advice-name">${r.Name || r.Name_of_Record || '—'}</div>
-        <div class="advice-meta">${[date, r.Meeting_Type].filter(Boolean).join(' · ')}</div>
-      </div>
-      <span class="advice-status pill ${sCls}">${r.Status||'—'}</span>
-    </li>`;
-  }).join('');
-}
+
 
 // ── CRM Actions ────────────────────────────────────────────────────
 function sendEmail()  { if (CONTACT.Email) window.location.href = 'mailto:' + CONTACT.Email; }
@@ -1091,10 +1010,7 @@ function openAction(entity) {
       Expiry_Date:'2026-04-18',
       Last_Activity_Time:'2026-08-20T11:44:09+12:00',
     };
-    var ADVICE = [
-      { id:'ar1', Name:'AR-00042 — Annual Review 2025', Status:'Step 6. Review', Date_Time_of_Meeting:'2025-05-22', Meeting_Type:'In Person' },
-      { id:'ar2', Name:'AR-00038 — KiwiSaver Review 2024', Status:'Step 5. Implementation', Date_Time_of_Meeting:'2024-11-14', Meeting_Type:'Zoom' },
-    ];
+
     window.ZOHO = {
       embeddedApp:{ _h:{}, on(e,fn){this._h[e]=fn;}, init(){ var s=this; setTimeout(function(){ var f=s._h['PageLoad']; if(f) f({EntityId:'c-001',Entity:'Contacts'}); },600); } },
       CRM:{ API:{
@@ -1160,59 +1076,24 @@ function startApp() {
       dbg('ERROR: No EntityId in PageLoad data');
       // Show mock data as fallback
       populateContact(getMockContact());
-      renderAdviceRecords([]);
       reveal();
       return;
     }
 
     dbg('Fetching contact record...');
 
-    // Step 1 — fetch the Contact record first
     ZOHO.CRM.API.getRecord({ Entity:'Contacts', RecordID:ENTITY_ID })
     .then(function(result) {
       var contact = result.data?.[0] || {};
-      dbg('Contact: ' + (contact.First_Name||'?') + ' ' + (contact.Last_Name||'?'));
+      dbg('Contact loaded: ' + (contact.First_Name||'?') + ' ' + (contact.Last_Name||'?'));
       populateContact(contact);
-
-      // Step 2 — fetch related Advice Records separately
-      // Try the most likely API names for Adviser CRM Vertical Studio
-      var relatedListNames = [
-        'Advice_Records1',
-        'Advice_Records',
-        'nzadvisercrm__Advice_Records',
-        'Advice_Record',
-      ];
-
-      function tryNextRelatedList(index) {
-        if (index >= relatedListNames.length) {
-          dbg('Could not find Advice Records related list — tried all names');
-          dbg('Advice Records names tried: ' + relatedListNames.join(', '));
-          renderAdviceRecords([]);
-          reveal();
-          return;
-        }
-        var name = relatedListNames[index];
-        dbg('Trying related list: ' + name);
-        ZOHO.CRM.API.getRelatedRecords({
-          Entity:'Contacts', RecordID:ENTITY_ID,
-          RelatedList:name, page:1, per_page:3
-        })
-        .then(function(resp) {
-          dbg('✅ Related list worked: ' + name + ' — ' + (resp.data||[]).length + ' records');
-          renderAdviceRecords(resp.data || []);
-          reveal();
-        })
-        .catch(function(err) {
-          dbg('✗ Failed: ' + name + ' — trying next...');
-          tryNextRelatedList(index + 1);
-        });
-      }
-
-      tryNextRelatedList(0);
     })
     .catch(function(err){
       dbg('ERROR fetching contact: ' + JSON.stringify(err));
       console.error(err);
+    })
+    .finally(function(){
+      dbg('Revealing page...');
       reveal();
     });
   });
