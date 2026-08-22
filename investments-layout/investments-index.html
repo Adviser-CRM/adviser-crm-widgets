@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Investment Record — Adviser CRM</title>
+  <script>
+    // Load Zoho SDK if available (inside Zoho CRM)
+    // Falls back to mock mode in browser preview
+    (function() {
+      var s = document.createElement('script');
+      s.src = './ZohoEmbededAppSDK.min.js';
+      s.onerror = function() { console.log('SDK not found — running in mock mode'); };
+      document.head.appendChild(s);
+    })();
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --blue:      #00ABE6;
+      --blue-dk:   #0089c0;
+      --blue-lt:   #d0eefa;
+      --blue-xlt:  #ebf7fd;
+      --navy:      #0d4b82;
+      --navy-lt:   #1a5f9e;
+      --ink:       #1e293b;
+      --ink-mid:   #475569;
+      --muted:     #94a3b8;
+      --divider:   #e2e8f0;
+      --bg:        #f8fafc;
+      --bg-alt:    #f1f5f9;
+      --white:     #ffffff;
+      --green:     #059669;
+      --green-lt:  #d1fae5;
+      --amber:     #d97706;
+      --amber-lt:  #fef3c7;
+      --red:       #dc2626;
+      --red-lt:    #fee2e2;
+      --purple:    #7c3aed;
+      --purple-lt: #ede9fe;
+      --teal:      #0d9488;
+      --teal-lt:   #ccfbf1;
+      --sans:      Verdana, Geneva, sans-serif;
+      --radius:    8px;
+      --radius-lg: 12px;
+      --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html, body { height:100%; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #vbadge {
+      position:fixed; top:6px; right:10px;
+      font-size:10px; color:var(--muted); opacity:0.45;
+      pointer-events:none; z-index:999;
+    }
+
+    #loading {
+      position:fixed; inset:0; background:var(--bg);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:12px; z-index:998;
+      transition:opacity 0.3s ease;
+    }
+    #loading.hidden { opacity:0; pointer-events:none; }
+    .spinner {
+      width:36px; height:36px;
+      border:3px solid var(--divider);
+      border-top-color:var(--blue);
+      border-radius:50%;
+      animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-text { font-size:12px; color:var(--muted); }
+
+    .page { display:none; }
+    .page.visible { display:block; }
+
+    /* ── Layout ── */
+    .page-wrap {
+      display:grid;
+      grid-template-columns: 1fr 280px;
+      gap:16px;
+      padding:16px 20px 60px;
+      align-items:start;
+    }
+    @media (min-width:1400px) { .page-wrap { padding:20px 28px 60px; gap:20px; grid-template-columns:1fr 300px; } }
+    @media (min-width:1920px) { .page-wrap { padding:24px 36px 60px; gap:24px; } }
+    @media (min-width:2560px) { .page-wrap { padding:28px 48px 80px; gap:28px; } body { font-size:13px; } }
+    @media (max-width:900px)  { .page-wrap { grid-template-columns:1fr; } .sidebar { position:static; } }
+
+    /* ── Hero ── */
+    .hero {
+      grid-column:1/-1;
+      background:linear-gradient(135deg,var(--teal) 0%,#0d9488cc 60%,var(--navy) 100%);
+      border-radius:var(--radius-lg);
+      padding:20px 24px;
+      display:flex; align-items:center;
+      justify-content:space-between; gap:20px;
+      box-shadow:var(--shadow-md);
+      margin-bottom:4px;
+    }
+    .hero-left { display:flex; align-items:center; gap:16px; }
+    .hero-icon {
+      width:56px; height:56px; border-radius:var(--radius-lg);
+      background:rgba(255,255,255,0.15);
+      border:2px solid rgba(255,255,255,0.3);
+      display:flex; align-items:center; justify-content:center;
+      font-size:24px; flex-shrink:0;
+    }
+    .hero-info { flex:1; }
+    .hero-name { font-size:20px; font-weight:700; color:var(--white); line-height:1.2; margin-bottom:3px; }
+    .hero-role { font-size:12px; color:rgba(255,255,255,0.65); margin-bottom:8px; }
+    .hero-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .tag {
+      display:inline-flex; align-items:center; gap:3px;
+      padding:3px 10px; border-radius:20px;
+      font-size:10px; font-weight:700;
+    }
+    .tag-white  { background:rgba(255,255,255,0.15); color:var(--white); border:1px solid rgba(255,255,255,0.25); }
+    .tag-green  { background:rgba(5,150,105,0.3);    color:#6ee7b7; border:1px solid rgba(5,150,105,0.4); }
+    .tag-amber  { background:rgba(217,119,6,0.3);    color:#fcd34d; border:1px solid rgba(217,119,6,0.4); }
+    .tag-red    { background:rgba(220,38,38,0.3);    color:#fca5a5; border:1px solid rgba(220,38,38,0.4); }
+    .tag-blue   { background:rgba(0,171,230,0.3);    color:#7dd3fc; border:1px solid rgba(0,171,230,0.4); }
+
+    .hero-actions { display:flex; gap:8px; flex-shrink:0; }
+    .btn {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:7px 14px; border-radius:var(--radius);
+      font-family:var(--sans); font-size:11px; font-weight:700;
+      cursor:pointer; border:none; transition:all 0.15s;
+      white-space:nowrap;
+    }
+    .btn-primary { background:var(--blue); color:var(--white); }
+    .btn-primary:hover { background:var(--blue-dk); }
+    .btn-ghost { background:rgba(255,255,255,0.12); color:var(--white); border:1px solid rgba(255,255,255,0.2); }
+    .btn-ghost:hover { background:rgba(255,255,255,0.2); }
+
+    /* ── Financial summary strip ── */
+    .fin-strip {
+      grid-column:1/-1;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      background:var(--white);
+      border:1px solid var(--divider);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      margin-bottom:4px;
+    }
+    .fin-item {
+      padding:14px 18px;
+      border-right:1px solid var(--divider);
+      position:relative;
+    }
+    .fin-item:last-child { border-right:none; }
+    .fin-item::before {
+      content:'';
+      position:absolute;
+      top:0; left:0; right:0;
+      height:3px;
+    }
+    .fin-item.teal::before   { background:var(--teal); }
+    .fin-item.blue::before   { background:var(--blue); }
+    .fin-item.green::before  { background:var(--green); }
+    .fin-item.amber::before  { background:var(--amber); }
+    .fin-item.navy::before   { background:var(--navy); }
+    .fin-label {
+      font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.09em;
+      color:var(--muted); margin-bottom:6px;
+    }
+    .fin-value {
+      font-size:20px; font-weight:700;
+      color:var(--ink); line-height:1;
+    }
+    .fin-value.teal  { color:var(--teal); }
+    .fin-value.blue  { color:var(--blue-dk); }
+    .fin-value.green { color:var(--green); }
+    .fin-value.amber { color:var(--amber); }
+    .fin-value.navy  { color:var(--navy); }
+    .fin-sub { font-size:10px; color:var(--muted); margin-top:3px; }
+
+    /* ── Cards ── */
+    .card {
+      background:var(--white);
+      border:1px solid var(--divider);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      margin-bottom:14px;
+    }
+    .card-head {
+      display:flex; align-items:center; gap:10px;
+      padding:11px 16px;
+      border-bottom:1px solid var(--divider);
+      background:var(--bg-alt);
+    }
+    .card-icon {
+      width:28px; height:28px; border-radius:7px;
+      background:var(--blue-lt);
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; flex-shrink:0;
+    }
+    .card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink); }
+    .card-sub { font-size:10px; color:var(--muted); margin-top:1px; }
+    .card-body { padding:14px 16px; }
+
+    /* ── Field grid ── */
+    .field-grid {
+      display:grid;
+      grid-template-columns:repeat(var(--cols,2),1fr);
+      gap:10px 14px;
+    }
+    .cols-1 { --cols:1; }
+    .cols-2 { --cols:2; }
+    .cols-3 { --cols:3; }
+    .cols-4 { --cols:4; }
+    .span-2 { grid-column:span 2; }
+    .span-full { grid-column:1/-1; }
+
+    .field { display:flex; flex-direction:column; gap:3px; }
+    .field-label {
+      font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.09em;
+      color:var(--muted);
+    }
+    .field-value {
+      font-size:12px; font-weight:500; color:var(--ink);
+      padding:7px 10px; background:var(--bg);
+      border-radius:var(--radius);
+      min-height:34px; display:flex; align-items:center;
+      border:1px solid transparent;
+    }
+    .field-value:hover { border-color:var(--divider); }
+    .field-value.empty { color:var(--muted); font-style:italic; }
+    .field-value a { color:var(--blue); text-decoration:none; font-weight:600; }
+    .field-value a:hover { text-decoration:underline; }
+    .field-value.multiline { align-items:flex-start; min-height:80px; }
+
+    /* ── Pills ── */
+    .pill {
+      display:inline-flex; align-items:center;
+      padding:2px 9px; border-radius:20px;
+      font-size:10px; font-weight:700; white-space:nowrap;
+    }
+    .pill-blue   { background:var(--blue-lt);   color:var(--blue-dk); }
+    .pill-green  { background:var(--green-lt);  color:var(--green); }
+    .pill-amber  { background:var(--amber-lt);  color:var(--amber); }
+    .pill-red    { background:var(--red-lt);    color:var(--red); }
+    .pill-teal   { background:var(--teal-lt);   color:var(--teal); }
+    .pill-purple { background:var(--purple-lt); color:var(--purple); }
+    .pill-grey   { background:var(--bg-alt);    color:var(--muted); }
+
+    /* ── Portfolio holdings table ── */
+    .holdings-table { width:100%; border-collapse:collapse; }
+    .holdings-table th {
+      padding:8px 14px;
+      font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.08em;
+      color:var(--muted); text-align:left;
+      border-bottom:1px solid var(--divider);
+      background:var(--bg-alt);
+    }
+    .holdings-table td {
+      padding:10px 14px;
+      font-size:12px; color:var(--ink-mid);
+      border-bottom:1px solid var(--divider);
+      vertical-align:middle;
+    }
+    .holdings-table tr:last-child td { border-bottom:none; }
+    .holdings-table tr:hover td { background:var(--blue-xlt); }
+    .holdings-table .td-name { font-weight:700; color:var(--ink); }
+    .holdings-table .td-value { font-weight:700; color:var(--navy); }
+    .holdings-table .td-gain { color:var(--green); font-weight:700; }
+    .holdings-table .td-loss { color:var(--red); font-weight:700; }
+
+    .empty-state {
+      text-align:center; padding:32px 20px;
+      color:var(--muted); font-size:12px;
+    }
+    .empty-icon { font-size:28px; margin-bottom:8px; }
+
+    /* ── Sidebar ── */
+    .sidebar { position:sticky; top:16px; }
+    .sidebar .card { margin-bottom:12px; }
+
+    .sidebar-row {
+      display:flex; align-items:flex-start;
+      justify-content:space-between; gap:8px;
+      padding:9px 14px;
+      border-bottom:1px solid var(--divider);
+      font-size:11px;
+    }
+    .sidebar-row:last-child { border-bottom:none; }
+    .sidebar-row-label { color:var(--muted); flex-shrink:0; white-space:nowrap; }
+    .sidebar-row-value { color:var(--ink); font-weight:600; text-align:right; }
+
+    /* ── Charts ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 1100px) { .charts-grid { grid-template-columns: 1fr; } }
+
+    .chart-card {
+      background: var(--white);
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .chart-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--divider);
+      background: var(--bg-alt);
+    }
+    .chart-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: var(--teal-lt);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .chart-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink); }
+    .chart-sub   { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .chart-body  { padding: 16px; position: relative; }
+
+    .chart-canvas-wrap {
+      position: relative;
+      height: 240px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Donut centre text */
+    .donut-centre {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+    }
+    .donut-total { font-size: 18px; font-weight: 700; color: var(--teal); }
+    .donut-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* Legend */
+    .chart-legend {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider);
+    }
+    .legend-item {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: 8px; font-size: 11px;
+    }
+    .legend-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+    .legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-name { color: var(--ink-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .legend-pct  { font-weight: 700; color: var(--ink); flex-shrink: 0; }
+    .legend-val  { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+
+    /* Bar chart */
+    .bar-chart-wrap { height: 240px; }
+
+    /* Portfolio table */
+    .portfolio-list { margin-top: 0; }
+    .portfolio-row {
+      display: flex; align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--divider);
+      gap: 12px;
+      transition: background 0.15s;
+      cursor: pointer;
+    }
+    .portfolio-row:last-child { border-bottom: none; }
+    .portfolio-row:hover { background: var(--blue-xlt); }
+    .portfolio-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .portfolio-info { flex: 1; min-width: 0; }
+    .portfolio-fund { font-size: 12px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .portfolio-meta { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .portfolio-values { text-align: right; flex-shrink: 0; }
+    .portfolio-valuation { font-size: 13px; font-weight: 700; color: var(--teal); }
+    .portfolio-capital   { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .portfolio-gain      { font-size: 10px; font-weight: 700; }
+    .portfolio-gain.pos  { color: var(--green); }
+    .portfolio-gain.neg  { color: var(--red); }
+
+    .charts-empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--muted); font-size: 12px;
+    }
+    .charts-empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+    /* ── Debug panel ── */
+    /* ── Debug panel ── */
+    #debug-panel {
+      position:fixed; bottom:0; left:0; right:0;
+      background:#1e293b; color:#7dd3fc;
+      font-family:monospace; font-size:11px;
+      padding:10px 16px; z-index:9999;
+      border-top:2px solid var(--blue);
+    }
+    #debug-panel .dp-head {
+      display:flex; justify-content:space-between;
+      align-items:center; margin-bottom:4px;
+    }
+    #debug-panel strong { color:var(--blue); }
+    #debug-panel .dp-close {
+      background:none; border:1px solid #475569;
+      color:#94a3b8; padding:2px 8px; border-radius:4px;
+      cursor:pointer; font-size:10px;
+    }
+    #debug-log { line-height:1.8; color:#e2e8f0; }
+    #debug-url { color:#94a3b8; font-size:10px; margin-top:4px; }
+  </style>
+</head>
+<body>
+
+<div id="vbadge">v1.1.0</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading investment record…</div>
+</div>
+
+<div class="page" id="main-page">
+<div class="page-wrap">
+
+  <!-- ══ HERO ══════════════════════════════════════════════════════ -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-icon">📈</div>
+      <div class="hero-info">
+        <div class="hero-name" id="hero-name">Loading…</div>
+        <div class="hero-role" id="hero-role"></div>
+        <div class="hero-tags" id="hero-tags"></div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn btn-ghost" onclick="openContact()">👤 View Contact</button>
+      <button class="btn btn-primary" onclick="openAccount()">🏢 View Account</button>
+    </div>
+  </div>
+
+  <!-- ══ FINANCIAL SUMMARY STRIP ═══════════════════════════════════ -->
+  <div class="fin-strip">
+    <div class="fin-item teal">
+      <div class="fin-label">Current Balance</div>
+      <div class="fin-value teal" id="fin-balance">—</div>
+      <div class="fin-sub">As at valuation date</div>
+    </div>
+    <div class="fin-item blue">
+      <div class="fin-label">Member Contribution</div>
+      <div class="fin-value blue" id="fin-contribution">—</div>
+      <div class="fin-sub" id="fin-contribution-sub">Per period</div>
+    </div>
+    <div class="fin-item green">
+      <div class="fin-label">Annual Fees</div>
+      <div class="fin-value green" id="fin-annual-fees">—</div>
+      <div class="fin-sub">p.a.</div>
+    </div>
+    <div class="fin-item amber">
+      <div class="fin-label">Govt Shortfall</div>
+      <div class="fin-value amber" id="fin-govt-shortfall">—</div>
+      <div class="fin-sub">Projected shortfall</div>
+    </div>
+    <div class="fin-item navy">
+      <div class="fin-label">PIR Rate</div>
+      <div class="fin-value navy" id="fin-pir">—</div>
+      <div class="fin-sub">Prescribed investor rate</div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN COLUMN ════════════════════════════════════════════════ -->
+  <div class="main-col">
+
+    <!-- Investment Details -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📋</div>
+        <div>
+          <div class="card-title">Investment Details</div>
+          <div class="card-sub">Core investment information</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-3" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Investment Type</div>
+            <div class="field-value" id="f-type">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Status</div>
+            <div class="field-value" id="f-status">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Business Type</div>
+            <div class="field-value" id="f-business-type">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-3" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Provider</div>
+            <div class="field-value" id="f-provider">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Previous Provider</div>
+            <div class="field-value" id="f-prev-provider">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Member Number</div>
+            <div class="field-value" id="f-member-number">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-3">
+          <div class="field">
+            <div class="field-label">Entry Date</div>
+            <div class="field-value" id="f-entry-date">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Client Number</div>
+            <div class="field-value" id="f-client-number">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Email</div>
+            <div class="field-value" id="f-email">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Details -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">💰</div>
+        <div>
+          <div class="card-title">Financial Details</div>
+          <div class="card-sub">Balances, contributions and fees</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-3" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Balance</div>
+            <div class="field-value" id="f-balance">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Member Contribution</div>
+            <div class="field-value" id="f-member-contribution">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">PIR Rate</div>
+            <div class="field-value" id="f-pir">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-3" style="margin-bottom:10px;">
+          <div class="field">
+            <div class="field-label">Up Front</div>
+            <div class="field-value" id="f-up-front">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Service Fees</div>
+            <div class="field-value" id="f-service-fees">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Annual Fees</div>
+            <div class="field-value" id="f-annual-fees">—</div>
+          </div>
+        </div>
+        <div class="field-grid cols-3">
+          <div class="field">
+            <div class="field-label">Govt Shortfall</div>
+            <div class="field-value" id="f-govt-shortfall">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portfolio Holdings -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--teal-lt);">📊</div>
+        <div>
+          <div class="card-title">Portfolio</div>
+          <div class="card-sub">Linked portfolio details</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-3" style="margin-bottom:10px;">
+          <div class="field span-2">
+            <div class="field-label">Portfolio Name</div>
+            <div class="field-value" id="f-portfolio">—</div>
+          </div>
+        </div>
+        <!-- Portfolio sub-fields populated if linked -->
+        <div id="portfolio-details" style="display:none;">
+          <div class="field-grid cols-3" style="margin-bottom:10px;">
+            <div class="field">
+              <div class="field-label">Fund Name</div>
+              <div class="field-value" id="f-fund-name">—</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Fund Manager</div>
+              <div class="field-value" id="f-fund-manager">—</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Fund Type</div>
+              <div class="field-value" id="f-fund-type">—</div>
+            </div>
+          </div>
+          <div class="field-grid cols-3">
+            <div class="field">
+              <div class="field-label">Capital Invested</div>
+              <div class="field-value" id="f-capital-invested">—</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Valuation</div>
+              <div class="field-value" id="f-valuation">—</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Valuation Date</div>
+              <div class="field-value" id="f-valuation-date">—</div>
+            </div>
+          </div>
+        </div>
+        <div id="portfolio-empty" class="empty-state">
+          <div class="empty-icon">📊</div>
+          No portfolio linked to this investment
+        </div>
+      </div>
+    </div>
+
+    <!-- Portfolio Charts -->
+    <div id="charts-section">
+
+      <!-- Loading placeholder -->
+      <div class="chart-card" id="charts-loading" style="margin-bottom:14px;">
+        <div class="chart-head">
+          <div class="chart-icon">📊</div>
+          <div>
+            <div class="chart-title">Portfolio Analysis</div>
+            <div class="chart-sub">Loading portfolio data…</div>
+          </div>
+        </div>
+        <div style="padding:40px;text-align:center;color:var(--muted);">
+          <div class="spinner" style="margin:0 auto 12px;"></div>
+          Fetching portfolio records…
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="chart-card" id="charts-empty" style="display:none;margin-bottom:14px;">
+        <div class="chart-head">
+          <div class="chart-icon">📊</div>
+          <div><div class="chart-title">Portfolio Analysis</div></div>
+        </div>
+        <div class="charts-empty">
+          <div class="charts-empty-icon">📊</div>
+          No portfolio records linked to this investment yet
+        </div>
+      </div>
+
+      <!-- Charts grid (shown when data loads) -->
+      <div class="charts-grid" id="charts-grid" style="display:none;">
+
+        <!-- Donut — Allocation by Fund -->
+        <div class="chart-card">
+          <div class="chart-head">
+            <div class="chart-icon">🍩</div>
+            <div>
+              <div class="chart-title">Allocation by Fund</div>
+              <div class="chart-sub" id="donut-sub">Current portfolio breakdown</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <div class="chart-canvas-wrap">
+              <canvas id="donut-chart"></canvas>
+              <div class="donut-centre">
+                <div class="donut-total" id="donut-total">—</div>
+                <div class="donut-label">Total Value</div>
+              </div>
+            </div>
+            <div class="chart-legend" id="donut-legend"></div>
+          </div>
+        </div>
+
+        <!-- Bar — Capital Invested vs Current Valuation -->
+        <div class="chart-card">
+          <div class="chart-head">
+            <div class="chart-icon">📈</div>
+            <div>
+              <div class="chart-title">Invested vs Valuation</div>
+              <div class="chart-sub">Capital invested compared to current value</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <div class="bar-chart-wrap">
+              <canvas id="bar-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /charts-grid -->
+
+      <!-- Portfolio holdings list -->
+      <div class="card" id="portfolio-list-card" style="display:none;margin-bottom:14px;">
+        <div class="card-head">
+          <div class="card-icon" style="background:var(--teal-lt);">📋</div>
+          <div>
+            <div class="card-title">Portfolio Holdings</div>
+            <div class="card-sub" id="portfolio-list-sub"></div>
+          </div>
+        </div>
+        <div class="portfolio-list" id="portfolio-list"></div>
+      </div>
+
+    </div><!-- /charts-section -->
+
+    <!-- Comments & Notes -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📝</div>
+        <div>
+          <div class="card-title">Comments & Notes</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-value multiline" id="f-comments" style="width:100%;min-height:80px;"></div>
+      </div>
+    </div>
+
+  </div><!-- /main-col -->
+
+  <!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
+  <div class="sidebar">
+
+    <!-- Relationships -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--navy);color:var(--white);">🔗</div>
+        <div><div class="card-title" style="color:var(--navy);">Relationships</div></div>
+      </div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Contact</span>
+          <span class="sidebar-row-value" id="sb-contact">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Account</span>
+          <span class="sidebar-row-value" id="sb-account">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Owner</span>
+          <span class="sidebar-row-value" id="sb-owner">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investment Summary -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📈</div>
+        <div><div class="card-title">Investment Summary</div></div>
+      </div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Type</span>
+          <span class="sidebar-row-value" id="sb-type">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Provider</span>
+          <span class="sidebar-row-value" id="sb-provider">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Status</span>
+          <span class="sidebar-row-value" id="sb-status">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Entry Date</span>
+          <span class="sidebar-row-value" id="sb-entry-date">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Member No.</span>
+          <span class="sidebar-row-value" id="sb-member-number">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Last Activity</span>
+          <span class="sidebar-row-value" id="sb-last-activity">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Financials -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--teal-lt);">💵</div>
+        <div><div class="card-title">Quick Financials</div></div>
+      </div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Balance</span>
+          <span class="sidebar-row-value" id="sb-balance" style="color:var(--teal);">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Contribution</span>
+          <span class="sidebar-row-value" id="sb-contribution">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Annual Fees</span>
+          <span class="sidebar-row-value" id="sb-annual-fees">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">PIR</span>
+          <span class="sidebar-row-value" id="sb-pir">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Up Front</span>
+          <span class="sidebar-row-value" id="sb-up-front">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Service Fees</span>
+          <span class="sidebar-row-value" id="sb-service-fees">—</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+</div><!-- /page-wrap -->
+
+<!-- Debug panel -->
+<div id="debug-panel">
+  <div class="dp-head">
+    <strong>Adviser CRM — Debug Log</strong>
+    <span style="color:#94a3b8;font-size:10px;">Investments v1.1.0</span>
+    <button class="dp-close" onclick="el('debug-panel').style.display='none'">✕ Close</button>
+  </div>
+  <div id="debug-log"></div>
+  <div id="debug-url"></div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+//  Adviser CRM — Investments Page v1.1.0
+//  Fields sourced from ACRM_API_and_Display_Names.xlsx
+// ─────────────────────────────────────────────────────────────────
+
+let ENTITY_ID = null;
+let RECORD    = {};
+
+// ── Debug ─────────────────────────────────────────────────────────
+var DEBUG_MSGS = [];
+function dbg(msg) {
+  DEBUG_MSGS.push(new Date().toISOString().substr(11,8) + ' ' + msg);
+  console.log('[ACRM-INV]', msg);
+  var d = el('debug-log');
+  if (d) d.innerHTML = DEBUG_MSGS.slice(-8).join('<br>');
+}
+
+// ── Utilities ─────────────────────────────────────────────────────
+const el     = id => document.getElementById(id);
+const fmt    = v  => (v !== null && v !== undefined && v !== '') ? String(v) : '—';
+const fmtCurr = v => {
+  if (!v && v !== 0) return '—';
+  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits:0, maximumFractionDigits:0 });
+};
+const fmtDate = s => {
+  if (!s) return '—';
+  const d = new Date(s.includes('T') ? s : s + 'T00:00:00');
+  return isNaN(d) ? s : d.toLocaleDateString('en-NZ', { day:'numeric', month:'short', year:'numeric' });
+};
+const fmtPct = v => {
+  if (!v && v !== 0) return '—';
+  return Number(v) + '%';
+};
+
+function setFv(id, val) {
+  const e = el(id);
+  if (!e) return;
+  const v = (val !== null && val !== undefined && val !== '') ? val : null;
+  if (v) { e.textContent = v; e.classList.remove('empty'); }
+  else   { e.textContent = '—'; e.classList.add('empty'); }
+}
+function setEl(id, val, isHtml) {
+  const e = el(id);
+  if (!e) return;
+  if (isHtml) e.innerHTML = val;
+  else e.textContent = val;
+}
+
+// ── Chart colours ─────────────────────────────────────────────────
+var CHART_COLOURS = [
+  '#00ABE6', '#0d4b82', '#0d9488', '#059669',
+  '#7c3aed', '#d97706', '#dc2626', '#db2777',
+  '#0891b2', '#65a30d', '#9333ea', '#ea580c',
+];
+
+function fmtCurrShort(v) {
+  if (!v) return '$0';
+  if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
+  if (v >= 1000)    return '$' + Math.round(v/1000) + 'K';
+  return '$' + Math.round(v);
+}
+
+// ── Render donut chart ─────────────────────────────────────────────
+function renderDonutChart(portfolios) {
+  var canvas = el('donut-chart');
+  if (!canvas) return;
+
+  var labels  = portfolios.map(function(p){ return p.Fund_Name || p.Name || 'Unknown Fund'; });
+  var values  = portfolios.map(function(p){ return Number(p.Valuation || p.Capital_Invested || 0); });
+  var total   = values.reduce(function(a,b){ return a+b; }, 0);
+  var colours = portfolios.map(function(_,i){ return CHART_COLOURS[i % CHART_COLOURS.length]; });
+
+  // Update centre total
+  setEl('donut-total', fmtCurrShort(total));
+  setEl('donut-sub',   portfolios.length + ' fund' + (portfolios.length!==1?'s':'') + ' · Total value');
+
+  new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels:   labels,
+      datasets: [{
+        data:            values,
+        backgroundColor: colours,
+        borderColor:     '#ffffff',
+        borderWidth:     3,
+        hoverOffset:     8,
+      }],
+    },
+    options: {
+      responsive:  true,
+      maintainAspectRatio: false,
+      cutout:      '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+              return ' ' + fmtCurr(ctx.parsed) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Custom legend
+  var legendEl = el('donut-legend');
+  if (legendEl) {
+    legendEl.innerHTML = portfolios.map(function(p, i) {
+      var val = Number(p.Valuation || p.Capital_Invested || 0);
+      var pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+      return '<div class="legend-item">' +
+        '<div class="legend-left">' +
+          '<div class="legend-dot" style="background:' + colours[i] + ';"></div>' +
+          '<span class="legend-name">' + (p.Fund_Name || p.Name || 'Unknown') + '</span>' +
+        '</div>' +
+        '<span class="legend-val">' + fmtCurrShort(val) + '</span>' +
+        '<span class="legend-pct">' + pct + '%</span>' +
+      '</div>';
+    }).join('');
+  }
+}
+
+// ── Render bar chart ───────────────────────────────────────────────
+function renderBarChart(portfolios) {
+  var canvas = el('bar-chart');
+  if (!canvas) return;
+
+  var labels   = portfolios.map(function(p){ return p.Fund_Name || p.Name || 'Unknown'; });
+  var capital  = portfolios.map(function(p){ return Number(p.Capital_Invested || 0); });
+  var valuation= portfolios.map(function(p){ return Number(p.Valuation || 0); });
+
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label:           'Capital Invested',
+          data:            capital,
+          backgroundColor: 'rgba(13,75,130,0.7)',
+          borderColor:     '#0d4b82',
+          borderWidth:     1.5,
+          borderRadius:    4,
+        },
+        {
+          label:           'Current Valuation',
+          data:            valuation,
+          backgroundColor: 'rgba(13,148,136,0.7)',
+          borderColor:     '#0d9488',
+          borderWidth:     1.5,
+          borderRadius:    4,
+        },
+      ],
+    },
+    options: {
+      responsive:  true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font:      { size: 11 },
+            boxWidth:  12,
+            padding:   16,
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ' ' + ctx.dataset.label + ': ' + fmtCurr(ctx.parsed.y);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font:{ size:10 }, maxRotation:30 }
+        },
+        y: {
+          grid: { color:'rgba(0,0,0,0.05)' },
+          ticks: {
+            font: { size:10 },
+            callback: function(v){ return fmtCurrShort(v); }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Render portfolio list ──────────────────────────────────────────
+function renderPortfolioList(portfolios) {
+  var listEl = el('portfolio-list');
+  if (!listEl) return;
+
+  setEl('portfolio-list-sub', portfolios.length + ' portfolio' + (portfolios.length!==1?'s':'') + ' linked');
+
+  listEl.innerHTML = portfolios.map(function(p, i) {
+    var capital   = Number(p.Capital_Invested || 0);
+    var valuation = Number(p.Valuation || 0);
+    var gain      = valuation - capital;
+    var gainPct   = capital > 0 ? ((gain / capital) * 100).toFixed(1) : null;
+    var gainClass = gain >= 0 ? 'pos' : 'neg';
+    var gainStr   = gainPct !== null
+      ? (gain >= 0 ? '+' : '') + fmtCurrShort(gain) + ' (' + (gain>=0?'+':'') + gainPct + '%)'
+      : '—';
+    var colour = CHART_COLOURS[i % CHART_COLOURS.length];
+
+    return '<div class="portfolio-row" onclick="openPortfolioRow(\'' + (p.id||'') + '\')">' +
+      '<div class="portfolio-dot" style="background:' + colour + ';"></div>' +
+      '<div class="portfolio-info">' +
+        '<div class="portfolio-fund">' + (p.Fund_Name || p.Name || 'Unknown Fund') + '</div>' +
+        '<div class="portfolio-meta">' +
+          [p.Fund_Manager, p.Fund_Type, p.Contribution_Frequency ? p.Regular_Contributions + ' ' + p.Contribution_Frequency : null]
+          .filter(Boolean).join(' · ') +
+        '</div>' +
+      '</div>' +
+      '<div class="portfolio-values">' +
+        '<div class="portfolio-valuation">' + (valuation ? fmtCurr(valuation) : '—') + '</div>' +
+        (capital ? '<div class="portfolio-capital">Invested: ' + fmtCurr(capital) + '</div>' : '') +
+        (gainPct !== null ? '<div class="portfolio-gain ' + gainClass + '">' + gainStr + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Load and render all portfolio charts ───────────────────────────
+function loadPortfolioCharts(investmentId) {
+  dbg('Loading portfolio records...');
+
+  ZOHO.CRM.API.getRelatedRecords({
+    Entity:      'Investments',
+    RecordID:    investmentId,
+    RelatedList: 'Portfolios',
+    page:        1,
+    per_page:    20,
+  })
+  .then(function(resp) {
+    var portfolios = resp.data || [];
+    dbg('Portfolios loaded: ' + portfolios.length);
+
+    el('charts-loading').style.display = 'none';
+
+    if (!portfolios.length) {
+      el('charts-empty').style.display = 'block';
+      return;
+    }
+
+    el('charts-grid').style.display    = 'grid';
+    el('portfolio-list-card').style.display = 'block';
+
+    // Small delay to ensure canvas is visible before Chart.js renders
+    setTimeout(function() {
+      renderDonutChart(portfolios);
+      renderBarChart(portfolios);
+      renderPortfolioList(portfolios);
+      resizeToFit();
+    }, 100);
+  })
+  .catch(function(err) {
+    dbg('Portfolio load error: ' + JSON.stringify(err));
+    el('charts-loading').style.display = 'none';
+    el('charts-empty').style.display   = 'block';
+  });
+}
+
+function openPortfolioRow(id) {
+  if (id && typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity:'Portfolios', RecordID:id });
+}
+
+function reveal() {
+  el('loading').classList.add('hidden');
+  el('main-page').classList.add('visible');
+  var du = el('debug-url');
+  if (du) du.textContent = 'URL: ' + window.location.href;
+  resizeToFit();
+}
+
+function resizeToFit() {
+  try {
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+      ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' });
+    }
+    setTimeout(function() {
+      var h2 = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+        ZOHO.CRM.UI.Resize({ height: String(h2), width: '100%' });
+      }
+    }, 800);
+  } catch(e) { console.log('Resize error:', e); }
+}
+
+// ── Status pill ────────────────────────────────────────────────────
+function statusPill(val) {
+  if (!val) return '<span class="empty">—</span>';
+  const map = {
+    'Active':    'pill-green',
+    'Inactive':  'pill-red',
+    'Pending':   'pill-amber',
+    'Cancelled': 'pill-grey',
+    'Suspended': 'pill-amber',
+  };
+  const cls = map[val] || 'pill-blue';
+  return `<span class="pill ${cls}">${val}</span>`;
+}
+
+// ── Populate page ──────────────────────────────────────────────────
+function populateRecord(r) {
+  RECORD = r;
+  dbg('Populating record: ' + (r.Name || r.id));
+
+  // ── Hero ──
+  const name = r.Name || 'Investment Record';
+  const contact = r.Primary_Contact?.name || r.Primary_Contact || '';
+  const account = r.Account?.name || r.Account || '';
+  setEl('hero-name', name);
+  setEl('hero-role', [r.Investment_Type, r.Provider].filter(Boolean).join(' · '));
+
+  const tags = [];
+  if (r.Investment_Type) tags.push(`<span class="tag tag-white">📈 ${r.Investment_Type}</span>`);
+  if (r.Status === 'Active')   tags.push('<span class="tag tag-green">● Active</span>');
+  else if (r.Status)           tags.push(`<span class="tag tag-amber">● ${r.Status}</span>`);
+  if (r.Business_Type) tags.push(`<span class="tag tag-blue">${r.Business_Type}</span>`);
+  setEl('hero-tags', tags.join(''), true);
+
+  // ── Financial strip ──
+  setEl('fin-balance',      fmtCurr(r.Balance));
+  setEl('fin-contribution', fmtCurr(r.Member_Contribution));
+  setEl('fin-annual-fees',  fmtCurr(r.Annual_Fees));
+  setEl('fin-govt-shortfall', fmtCurr(r.Govt_Shortfall));
+  setEl('fin-pir',          r.PIR ? fmtPct(r.PIR) : '—');
+
+  // ── Investment Details ──
+  const typeEl = el('f-type');
+  if (typeEl) { typeEl.innerHTML = r.Investment_Type ? `<span class="pill pill-teal">${r.Investment_Type}</span>` : '<span class="empty">—</span>'; typeEl.style.background='transparent'; typeEl.style.padding='0'; typeEl.style.border='none'; }
+
+  const statusEl = el('f-status');
+  if (statusEl) { statusEl.innerHTML = statusPill(r.Status); statusEl.style.background='transparent'; statusEl.style.padding='0'; statusEl.style.border='none'; }
+
+  setFv('f-business-type',  r.Business_Type);
+  setFv('f-provider',       r.Provider);
+  setFv('f-prev-provider',  r.Previous_Provider);
+  setFv('f-member-number',  r.Member_Number);
+  setFv('f-entry-date',     fmtDate(r.Entry_Date));
+  setFv('f-client-number',  r.Client_Number);
+
+  const emailEl = el('f-email');
+  if (emailEl) emailEl.innerHTML = r.Email ? `<a href="mailto:${r.Email}">${r.Email}</a>` : '<span class="empty">—</span>';
+
+  // ── Financial Details ──
+  setFv('f-balance',            fmtCurr(r.Balance));
+  setFv('f-member-contribution', fmtCurr(r.Member_Contribution));
+  setFv('f-pir',                r.PIR ? fmtPct(r.PIR) : '—');
+  setFv('f-up-front',           r.Up_Front ? r.Up_Front + '%' : '—');
+  setFv('f-service-fees',       fmtCurr(r.Service_Fees));
+  setFv('f-annual-fees',        fmtCurr(r.Annual_Fees));
+  setFv('f-govt-shortfall',     fmtCurr(r.Govt_Shortfall));
+
+  // ── Portfolio ──
+  const portfolio = r.Portfolio?.name || r.Portfolio || '';
+  const portfolioEl = el('f-portfolio');
+  if (portfolioEl) {
+    portfolioEl.innerHTML = portfolio
+      ? `<a href="#" onclick="openPortfolio('${r.Portfolio?.id||''}');return false;">${portfolio}</a>`
+      : '<span class="empty">—</span>';
+  }
+
+  if (portfolio) {
+    el('portfolio-details').style.display = 'block';
+    el('portfolio-empty').style.display   = 'none';
+  }
+
+  // ── Comments ──
+  const commentsEl = el('f-comments');
+  if (commentsEl) {
+    commentsEl.textContent = r.Comments_and_Notes || 'No comments on file.';
+    if (!r.Comments_and_Notes) commentsEl.classList.add('empty');
+  }
+
+  // ── Sidebar ──
+  const contactEl = el('sb-contact');
+  if (contactEl) {
+    contactEl.innerHTML = contact
+      ? `<a href="#" style="color:var(--blue);text-decoration:none;font-weight:600;" onclick="openContact();return false;">${contact}</a>`
+      : '—';
+  }
+  const accountEl = el('sb-account');
+  if (accountEl) {
+    accountEl.innerHTML = account
+      ? `<a href="#" style="color:var(--blue);text-decoration:none;font-weight:600;" onclick="openAccount();return false;">${account}</a>`
+      : '—';
+  }
+  setEl('sb-owner',         fmt(r.Owner?.name || r.Owner));
+  setEl('sb-type',          fmt(r.Investment_Type));
+  setEl('sb-provider',      fmt(r.Provider));
+  setEl('sb-entry-date',    fmtDate(r.Entry_Date));
+  setEl('sb-member-number', fmt(r.Member_Number));
+  setEl('sb-last-activity', fmtDate(r.Last_Activity_Time || r.Modified_Time));
+  setEl('sb-balance',       fmtCurr(r.Balance));
+  setEl('sb-contribution',  fmtCurr(r.Member_Contribution));
+  setEl('sb-annual-fees',   fmtCurr(r.Annual_Fees));
+  setEl('sb-pir',           r.PIR ? fmtPct(r.PIR) : '—');
+  setEl('sb-up-front',      r.Up_Front ? r.Up_Front + '%' : '—');
+  setEl('sb-service-fees',  fmtCurr(r.Service_Fees));
+
+  const sbStatusEl = el('sb-status');
+  if (sbStatusEl) sbStatusEl.innerHTML = statusPill(r.Status);
+}
+
+// ── CRM Actions ────────────────────────────────────────────────────
+function openContact() {
+  const id = RECORD.Primary_Contact?.id;
+  if (id && typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity:'Contacts', RecordID:id });
+}
+function openAccount() {
+  const id = RECORD.Account?.id;
+  if (id && typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity:'Accounts', RecordID:id });
+}
+function openPortfolio(id) {
+  if (id && typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity:'Portfolios', RecordID:id });
+}
+
+// ── Mock data ──────────────────────────────────────────────────────
+(function() {
+  function initMock() {
+    // Only use mock if real SDK hasn't loaded
+    if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp && ZOHO.embeddedApp._isSdk) return;
+    var M = {
+      id: 'inv-001',
+      Name: 'INV-00142 — KiwiSaver Growth Fund',
+      Investment_Type: 'KiwiSaver',
+      Status: 'Active',
+      Business_Type: 'Personal',
+      Provider: 'Fisher Funds',
+      Previous_Provider: 'AMP',
+      Member_Number: 'FF-123456',
+      Client_Number: 'CLI-789',
+      Entry_Date: '2018-04-01',
+      Email: 'john.smith@email.com',
+      Balance: 148750,
+      Member_Contribution: 320,
+      PIR: 17.5,
+      Up_Front: 0,
+      Service_Fees: 250,
+      Annual_Fees: 875,
+      Govt_Shortfall: 12400,
+      Portfolio: { id:'port-001', name:'John Smith — Growth Portfolio' },
+      Primary_Contact: { id:'con-001', name:'John Smith' },
+      Account: { id:'acc-001', name:'Smith Family' },
+      Owner: { name:'Sean Davis' },
+      Comments_and_Notes: 'KiwiSaver reviewed April 2025. Switched from Balanced to Growth given 15+ year horizon. Next review April 2026.',
+      Last_Activity_Time: '2026-08-20T09:00:00',
+    };
+    window.ZOHO = {
+      embeddedApp: { _h:{}, on(e,fn){this._h[e]=fn;}, init(){ var s=this; setTimeout(function(){ var f=s._h['PageLoad']; if(f) f({EntityId:'inv-001',Entity:'Investments'}); },600); } },
+      CRM: {
+        API: {
+          getRecord(){ return Promise.resolve({data:[M]}); },
+          getRelatedRecords(){ return Promise.resolve({data:[
+            { id:'port-001', Name:'KiwiSaver Growth Fund', Fund_Name:'Fisher Funds Growth Fund', Fund_Manager:'Fisher Funds', Fund_Type:'Growth', Capital_Invested:95000, Valuation:148750, Regular_Contributions:320, Contribution_Frequency:'Monthly', Commencement_Date:'2018-04-01', Valuation_Date:'2026-08-01' },
+            { id:'port-002', Name:'NZ Shares Portfolio', Fund_Name:'Milford Active Growth Fund', Fund_Manager:'Milford Asset Management', Fund_Type:'Aggressive', Capital_Invested:45000, Valuation:62400, Regular_Contributions:500, Contribution_Frequency:'Monthly', Commencement_Date:'2020-06-15', Valuation_Date:'2026-08-01' },
+            { id:'port-003', Name:'International Shares', Fund_Name:'Kernel S&P 500', Fund_Manager:'Kernel Wealth', Fund_Type:'Index', Capital_Invested:30000, Valuation:38200, Regular_Contributions:200, Contribution_Frequency:'Monthly', Commencement_Date:'2021-03-01', Valuation_Date:'2026-08-01' },
+          ]}); }
+        },
+        UI:  { Record:{ open(o){alert('[Mock] Open '+o.Entity+' '+o.RecordID);} }, Resize(){} }
+      }
+    };
+  }
+  // Fire immediately in browser, or after SDK has had time to load
+  if (typeof ZOHO === 'undefined') {
+    // SDK not loaded yet — wait briefly then init mock
+    setTimeout(initMock, 800);
+  } else {
+    setTimeout(initMock, 300);
+  }
+
+  // Also set a hard fallback in case SDK loads but never fires PageLoad
+  setTimeout(function() {
+    var l = el('loading');
+    if (l && !l.classList.contains('hidden')) {
+      console.log('Hard mock fallback firing...');
+      initMock();
+    }
+  }, 1500);
+})();
+
+// ── Bootstrap ──────────────────────────────────────────────────────
+function startApp() {
+  dbg('startApp() — ZOHO: ' + (typeof ZOHO !== 'undefined'));
+
+  ZOHO.embeddedApp.on('PageLoad', function(data) {
+    dbg('PageLoad — EntityId: ' + data.EntityId);
+    ENTITY_ID = data.EntityId;
+
+    ZOHO.CRM.API.getRecord({ Entity:'Investments', RecordID:ENTITY_ID })
+    .then(function(result) {
+      var record = result.data?.[0] || {};
+      dbg('Record loaded: ' + (record.Name || record.id));
+      populateRecord(record);
+      // Load portfolio charts
+      loadPortfolioCharts(ENTITY_ID);
+    })
+    .catch(function(err) {
+      dbg('ERROR: ' + JSON.stringify(err));
+      console.error(err);
+      el('charts-loading').style.display = 'none';
+      el('charts-empty').style.display   = 'block';
+    })
+    .finally(function() {
+      dbg('Revealing...');
+      reveal();
+    });
+  });
+
+  try {
+    ZOHO.embeddedApp.init();
+    dbg('init() called');
+  } catch(e) {
+    dbg('init() error: ' + e.message);
+  }
+}
+
+// Always show debug panel
+setTimeout(function() {
+  var dp = el('debug-panel');
+  if (dp) dp.style.display = 'block';
+  var du = el('debug-url');
+  if (du) du.textContent = 'URL: ' + window.location.href;
+}, 500);
+
+// ── Smart bootstrap ───────────────────────────────────────────────
+// Waits for ZOHO SDK to be available before calling startApp
+// Falls back to mock if SDK never loads (browser preview)
+function waitForZohoAndStart() {
+  if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) {
+    dbg('SDK ready — starting app');
+    startApp();
+  } else {
+    dbg('Waiting for SDK...');
+    var attempts = 0;
+    var interval = setInterval(function() {
+      attempts++;
+      if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) {
+        clearInterval(interval);
+        dbg('SDK loaded after ' + attempts + ' attempts');
+        startApp();
+      } else if (attempts >= 20) {
+        // 2 seconds passed — SDK never loaded, use mock
+        clearInterval(interval);
+        dbg('SDK timeout — initialising mock mode');
+        initMockFallback();
+      }
+    }, 100);
+  }
+}
+
+function initMockFallback() {
+  var M = {
+    id: 'inv-001',
+    Name: 'INV-00142 — KiwiSaver Growth Fund',
+    Investment_Type: 'KiwiSaver',
+    Status: 'Active',
+    Business_Type: 'Personal',
+    Provider: 'Fisher Funds',
+    Previous_Provider: 'AMP',
+    Member_Number: 'FF-123456',
+    Client_Number: 'CLI-789',
+    Entry_Date: '2018-04-01',
+    Email: 'john.smith@email.com',
+    Balance: 148750,
+    Member_Contribution: 320,
+    PIR: 17.5,
+    Up_Front: 0,
+    Service_Fees: 250,
+    Annual_Fees: 875,
+    Govt_Shortfall: 12400,
+    Portfolio: { id:'port-001', name:'John Smith — Growth Portfolio' },
+    Primary_Contact: { id:'con-001', name:'John Smith' },
+    Account: { id:'acc-001', name:'Smith Family' },
+    Owner: { name:'Sean Davis' },
+    Comments_and_Notes: 'KiwiSaver reviewed April 2025. Switched from Balanced to Growth given 15+ year horizon. Next review April 2026.',
+    Last_Activity_Time: '2026-08-20T09:00:00',
+  };
+  var PORTFOLIOS = [
+    { id:'port-001', Name:'KiwiSaver Growth Fund', Fund_Name:'Fisher Funds Growth Fund', Fund_Manager:'Fisher Funds', Fund_Type:'Growth', Capital_Invested:95000, Valuation:148750, Regular_Contributions:320, Contribution_Frequency:'Monthly', Commencement_Date:'2018-04-01', Valuation_Date:'2026-08-01' },
+    { id:'port-002', Name:'NZ Shares Portfolio', Fund_Name:'Milford Active Growth Fund', Fund_Manager:'Milford Asset Management', Fund_Type:'Aggressive', Capital_Invested:45000, Valuation:62400, Regular_Contributions:500, Contribution_Frequency:'Monthly', Commencement_Date:'2020-06-15', Valuation_Date:'2026-08-01' },
+    { id:'port-003', Name:'International Shares', Fund_Name:'Kernel S&P 500', Fund_Manager:'Kernel Wealth', Fund_Type:'Index', Capital_Invested:30000, Valuation:38200, Regular_Contributions:200, Contribution_Frequency:'Monthly', Commencement_Date:'2021-03-01', Valuation_Date:'2026-08-01' },
+  ];
+  dbg('Mock data loaded');
+  populateRecord(M);
+  ENTITY_ID = 'inv-001';
+  // Render charts with mock portfolio data
+  el('charts-loading').style.display = 'none';
+  el('charts-grid').style.display    = 'grid';
+  el('portfolio-list-card').style.display = 'block';
+  setTimeout(function() {
+    renderDonutChart(PORTFOLIOS);
+    renderBarChart(PORTFOLIOS);
+    renderPortfolioList(PORTFOLIOS);
+    reveal();
+  }, 100);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function(){ waitForZohoAndStart(); });
+} else {
+  waitForZohoAndStart();
+}
+</script>
+</body>
+</html>
