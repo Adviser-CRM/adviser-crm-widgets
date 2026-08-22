@@ -4,8 +4,49 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Client Profile — Adviser CRM</title>
+  <!-- Cache busting — forces Zoho to always fetch latest version -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <!-- Zoho Embedded App SDK — hosted locally in same folder as index.html -->
-  <script src="./ZohoEmbededAppSDK.min.js"></script>
+  <script>
+    // ── Version check — smart cache invalidation ──────────────────
+    // Fetches version.json from GitHub and compares with current
+    // page version. If different, reloads with cache-bust param.
+    // This means users get cached speed but always get latest version.
+    (function() {
+      var CURRENT_VERSION = '1.4.2';
+      var VERSION_URL     = './version.json';
+
+      // Only check if not already a forced reload (avoid loops)
+      var params = new URLSearchParams(window.location.search);
+      var isForced = params.has('nocache');
+
+      if (!isForced) {
+        fetch(VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.version && data.version !== CURRENT_VERSION) {
+              console.log('[ACRM] New version available: ' + data.version + ' (current: ' + CURRENT_VERSION + ') — reloading...');
+              // Reload with cache-bust — nocache param prevents reload loop
+              window.location.href = window.location.pathname + '?nocache=' + Date.now();
+            } else {
+              console.log('[ACRM] Version up to date: ' + CURRENT_VERSION);
+            }
+          })
+          .catch(function() {
+            // version.json not found or fetch failed — continue normally
+            console.log('[ACRM] Version check skipped');
+          });
+      }
+
+      // Load SDK dynamically with cache-bust
+      var s = document.createElement('script');
+      s.src = './ZohoEmbededAppSDK.min.js' + (isForced ? '?t=' + Date.now() : '');
+      s.onerror = function() { console.log('[ACRM] SDK not found — mock mode'); };
+      document.head.appendChild(s);
+    })();
+  </script>
   <style>
     /* ── Design Tokens ── */
     :root {
