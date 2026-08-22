@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Investment Record — Adviser CRM</title>
+  <title>Investments — Adviser CRM</title>
   <script>
     // Load Zoho SDK if available (inside Zoho CRM)
     // Falls back to mock mode in browser preview
@@ -405,31 +405,12 @@
     .charts-empty-icon { font-size: 32px; margin-bottom: 8px; }
 
     /* ── Debug panel ── */
-    /* ── Debug panel ── */
-    #debug-panel {
-      position:fixed; bottom:0; left:0; right:0;
-      background:#1e293b; color:#7dd3fc;
-      font-family:monospace; font-size:11px;
-      padding:10px 16px; z-index:9999;
-      border-top:2px solid var(--blue);
-    }
-    #debug-panel .dp-head {
-      display:flex; justify-content:space-between;
-      align-items:center; margin-bottom:4px;
-    }
-    #debug-panel strong { color:var(--blue); }
-    #debug-panel .dp-close {
-      background:none; border:1px solid #475569;
-      color:#94a3b8; padding:2px 8px; border-radius:4px;
-      cursor:pointer; font-size:10px;
-    }
-    #debug-log { line-height:1.8; color:#e2e8f0; }
-    #debug-url { color:#94a3b8; font-size:10px; margin-top:4px; }
+
   </style>
 </head>
 <body>
 
-<div id="vbadge">v1.1.0</div>
+<div id="vbadge">v1.0.0</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -841,36 +822,20 @@
 
 </div><!-- /page-wrap -->
 
-<!-- Debug panel -->
-<div id="debug-panel">
-  <div class="dp-head">
-    <strong>Adviser CRM — Debug Log</strong>
-    <span style="color:#94a3b8;font-size:10px;">Investments v1.1.0</span>
-    <button class="dp-close" onclick="el('debug-panel').style.display='none'">✕ Close</button>
-  </div>
-  <div id="debug-log"></div>
-  <div id="debug-url"></div>
-</div>
 
 </div><!-- /page -->
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Investments Page v1.1.0
+//  Adviser CRM — Investments Page v1.0.0
 //  Fields sourced from ACRM_API_and_Display_Names.xlsx
 // ─────────────────────────────────────────────────────────────────
 
 let ENTITY_ID = null;
 let RECORD    = {};
 
-// ── Debug ─────────────────────────────────────────────────────────
-var DEBUG_MSGS = [];
-function dbg(msg) {
-  DEBUG_MSGS.push(new Date().toISOString().substr(11,8) + ' ' + msg);
-  console.log('[ACRM-INV]', msg);
-  var d = el('debug-log');
-  if (d) d.innerHTML = DEBUG_MSGS.slice(-8).join('<br>');
-}
+// ── Debug (console only in production) ────────────────────────────
+function dbg(msg) { console.log('[ACRM-INV]', msg); }
 
 // ── Utilities ─────────────────────────────────────────────────────
 const el     = id => document.getElementById(id);
@@ -1131,8 +1096,6 @@ function openPortfolioRow(id) {
 function reveal() {
   el('loading').classList.add('hidden');
   el('main-page').classList.add('visible');
-  var du = el('debug-url');
-  if (du) du.textContent = 'URL: ' + window.location.href;
   resizeToFit();
 }
 
@@ -1284,69 +1247,7 @@ function openPortfolio(id) {
   if (id && typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity:'Portfolios', RecordID:id });
 }
 
-// ── Mock data ──────────────────────────────────────────────────────
-(function() {
-  function initMock() {
-    // Only use mock if real SDK hasn't loaded
-    if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp && ZOHO.embeddedApp._isSdk) return;
-    var M = {
-      id: 'inv-001',
-      Name: 'INV-00142 — KiwiSaver Growth Fund',
-      Investment_Type: 'KiwiSaver',
-      Status: 'Active',
-      Business_Type: 'Personal',
-      Provider: 'Fisher Funds',
-      Previous_Provider: 'AMP',
-      Member_Number: 'FF-123456',
-      Client_Number: 'CLI-789',
-      Entry_Date: '2018-04-01',
-      Email: 'john.smith@email.com',
-      Balance: 148750,
-      Member_Contribution: 320,
-      PIR: 17.5,
-      Up_Front: 0,
-      Service_Fees: 250,
-      Annual_Fees: 875,
-      Govt_Shortfall: 12400,
-      Portfolio: { id:'port-001', name:'John Smith — Growth Portfolio' },
-      Primary_Contact: { id:'con-001', name:'John Smith' },
-      Account: { id:'acc-001', name:'Smith Family' },
-      Owner: { name:'Sean Davis' },
-      Comments_and_Notes: 'KiwiSaver reviewed April 2025. Switched from Balanced to Growth given 15+ year horizon. Next review April 2026.',
-      Last_Activity_Time: '2026-08-20T09:00:00',
-    };
-    window.ZOHO = {
-      embeddedApp: { _h:{}, on(e,fn){this._h[e]=fn;}, init(){ var s=this; setTimeout(function(){ var f=s._h['PageLoad']; if(f) f({EntityId:'inv-001',Entity:'Investments'}); },600); } },
-      CRM: {
-        API: {
-          getRecord(){ return Promise.resolve({data:[M]}); },
-          getRelatedRecords(){ return Promise.resolve({data:[
-            { id:'port-001', Name:'KiwiSaver Growth Fund', Fund_Name:'Fisher Funds Growth Fund', Fund_Manager:'Fisher Funds', Fund_Type:'Growth', Capital_Invested:95000, Valuation:148750, Regular_Contributions:320, Contribution_Frequency:'Monthly', Commencement_Date:'2018-04-01', Valuation_Date:'2026-08-01' },
-            { id:'port-002', Name:'NZ Shares Portfolio', Fund_Name:'Milford Active Growth Fund', Fund_Manager:'Milford Asset Management', Fund_Type:'Aggressive', Capital_Invested:45000, Valuation:62400, Regular_Contributions:500, Contribution_Frequency:'Monthly', Commencement_Date:'2020-06-15', Valuation_Date:'2026-08-01' },
-            { id:'port-003', Name:'International Shares', Fund_Name:'Kernel S&P 500', Fund_Manager:'Kernel Wealth', Fund_Type:'Index', Capital_Invested:30000, Valuation:38200, Regular_Contributions:200, Contribution_Frequency:'Monthly', Commencement_Date:'2021-03-01', Valuation_Date:'2026-08-01' },
-          ]}); }
-        },
-        UI:  { Record:{ open(o){alert('[Mock] Open '+o.Entity+' '+o.RecordID);} }, Resize(){} }
-      }
-    };
-  }
-  // Fire immediately in browser, or after SDK has had time to load
-  if (typeof ZOHO === 'undefined') {
-    // SDK not loaded yet — wait briefly then init mock
-    setTimeout(initMock, 800);
-  } else {
-    setTimeout(initMock, 300);
-  }
 
-  // Also set a hard fallback in case SDK loads but never fires PageLoad
-  setTimeout(function() {
-    var l = el('loading');
-    if (l && !l.classList.contains('hidden')) {
-      console.log('Hard mock fallback firing...');
-      initMock();
-    }
-  }, 1500);
-})();
 
 // ── Bootstrap ──────────────────────────────────────────────────────
 function startApp() {
@@ -1384,13 +1285,7 @@ function startApp() {
   }
 }
 
-// Always show debug panel
-setTimeout(function() {
-  var dp = el('debug-panel');
-  if (dp) dp.style.display = 'block';
-  var du = el('debug-url');
-  if (du) du.textContent = 'URL: ' + window.location.href;
-}, 500);
+
 
 // ── Smart bootstrap ───────────────────────────────────────────────
 // Waits for ZOHO SDK to be available before calling startApp
