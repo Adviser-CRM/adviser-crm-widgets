@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Client Profile — Adviser CRM</title>
-  <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+  <!-- Zoho Embedded App SDK — hosted locally in same folder as index.html -->
+  <script src="./ZohoEmbededAppSDK.min.js"></script>
   <style>
     /* ── Design Tokens ── */
     :root {
@@ -28,6 +29,8 @@
       --red-lt:    #fee2e2;
       --purple:    #7c3aed;
       --purple-lt: #ede9fe;
+      --teal:      #0d9488;
+      --teal-lt:   #ccfbf1;
       --sans:      Verdana, Geneva, sans-serif;
       --radius:    8px;
       --radius-lg: 12px;
@@ -218,6 +221,32 @@
     .addr-line span { font-size:12px; color:var(--ink); }
     .addr-line .empty { color:var(--muted); font-style:italic; }
 
+    /* ── Investment summary strip ── */
+    .inv-strip {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:0;
+    }
+    .inv-item {
+      padding:12px 14px;
+      border-right:1px solid var(--divider);
+      text-align:center;
+    }
+    .inv-item:last-child { border-right:none; }
+    .inv-label {
+      font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.08em;
+      color:var(--muted); margin-bottom:4px;
+    }
+    .inv-value {
+      font-size:15px; font-weight:700; color:var(--teal);
+    }
+    .inv-value.nil { color:var(--muted); font-size:12px; font-style:italic; font-weight:400; }
+    .inv-type {
+      font-size:9px; color:var(--muted); margin-top:2px;
+    }
+    .inv-loading { color:var(--muted); font-size:11px; padding:16px; text-align:center; }
+
     /* ── Cover/financial summary strip ── */
     .cover-strip {
       display:grid;
@@ -266,32 +295,7 @@
       display:flex; align-items:center; gap:6px;
     }
 
-    /* ── Advice records list ── */
-    .advice-list { list-style:none; }
-    .advice-item {
-      display:flex; align-items:center; gap:10px;
-      padding:10px 16px;
-      border-bottom:1px solid var(--divider);
-      cursor:pointer; transition:background 0.15s;
-    }
-    .advice-item:last-child { border-bottom:none; }
-    .advice-item:hover { background:var(--bg); }
-    .advice-step {
-      width:28px; height:28px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      font-size:9px; font-weight:700; flex-shrink:0;
-    }
-    .step-1  { background:#fde8d8; color:#c0560a; }
-    .step-2  { background:var(--amber-lt); color:var(--amber); }
-    .step-3  { background:var(--green-lt); color:var(--green); }
-    .step-4  { background:var(--blue-lt);  color:var(--blue-dk); }
-    .step-5  { background:var(--purple-lt);color:var(--purple); }
-    .step-6  { background:#d4f0f0; color:#0d7f7f; }
-    .step-np { background:var(--red-lt);   color:var(--red); }
-    .advice-info { flex:1; }
-    .advice-name { font-size:12px; font-weight:700; color:var(--ink); }
-    .advice-meta { font-size:10px; color:var(--muted); margin-top:1px; }
-    .advice-status { font-size:9px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+
 
     .empty-state { text-align:center; padding:24px 16px; color:var(--muted); font-size:12px; }
     .empty-icon { font-size:24px; margin-bottom:6px; }
@@ -310,7 +314,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.3.0</div>
+<div id="vbadge">v1.4.1</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -559,6 +563,23 @@
       </div>
     </div>
 
+    <!-- Investment Summary — hidden until investments confirmed -->
+    <div class="card" id="inv-summary-card" style="display:none;">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--teal-lt,#ccfbf1);">📈</div>
+        <div>
+          <div class="card-title">Investment Summary</div>
+          <div class="card-sub" id="inv-summary-sub">Loading investment balances…</div>
+        </div>
+      </div>
+      <div id="inv-strip-wrap">
+        <div class="inv-loading">
+          <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></span>
+          Fetching investment balances…
+        </div>
+      </div>
+    </div>
+
     <!-- Active Products & Benefits -->
     <div class="card">
       <div class="card-head">
@@ -646,21 +667,7 @@
       </div>
     </div>
 
-    <!-- Recent Advice Records -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📋</div>
-        <div>
-          <div class="card-title">Recent Advice Records</div>
-          <div class="card-sub">Last 3 advice engagements</div>
-        </div>
-      </div>
-      <ul class="advice-list" id="advice-list">
-        <li class="empty-state">
-          <div class="empty-icon">📋</div>Loading…
-        </li>
-      </ul>
-    </div>
+
 
   </div><!-- /main-col -->
 
@@ -727,10 +734,7 @@
         <div><div class="card-title">Quick Stats</div></div>
       </div>
       <div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Advice Records</span>
-          <span class="sidebar-row-value" id="sb-advice-count">—</span>
-        </div>
+
         <div class="sidebar-row">
           <span class="sidebar-row-label">Next Birthday</span>
           <span class="sidebar-row-value" id="sb-birthday">—</span>
@@ -750,10 +754,10 @@
 
 </div><!-- /page-wrap -->
 <!-- Debug panel — only shows if PageLoad never fires -->
-<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
+<div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#94a3b8;font-size:10px;">v1.3.0 — share this with your developer</span>
+    <span style="color:#94a3b8;font-size:10px;">v1.4.1 — share this with your developer</span>
     <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #475569;color:#94a3b8;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
   <div id="debug-log" style="line-height:1.8;color:#e2e8f0;"></div>
@@ -766,7 +770,7 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.3.0
+//  Adviser CRM — Contact Layout Page v1.4.1
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -808,6 +812,37 @@ function reveal() {
   // Always update debug URL
   var du = el('debug-url');
   if (du) du.textContent = window.location.href;
+  // Tell Zoho to resize the iframe to fit the full page content
+  resizeToFit();
+}
+
+function resizeToFit() {
+  try {
+    // Get the full scrollable height of the page content
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight
+    );
+    if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+      ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' });
+    }
+    // Also re-run after a short delay to catch any dynamic content
+    setTimeout(function() {
+      var h2 = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
+      if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+        ZOHO.CRM.UI.Resize({ height: String(h2), width: '100%' });
+      }
+    }, 800);
+  } catch(e) {
+    console.log('Resize error:', e);
+  }
 }
 
 // ── Multiselect tags ───────────────────────────────────────────────
@@ -998,45 +1033,100 @@ function populateContact(c) {
   setEl('sb-expiry',    fmtDate(c.Expiry_Date));
 }
 
-// ── Advice Records ─────────────────────────────────────────────────
-function renderAdviceRecords(records) {
-  const list = el('advice-list');
-  setEl('sb-advice-count', records.length + ' record' + (records.length!==1?'s':''));
-  if (!records.length) {
-    list.innerHTML = '<li class="empty-state"><div class="empty-icon">📋</div>No advice records on file</li>';
+
+
+// ── Investment Summary ────────────────────────────────────────────
+function loadInvestmentSummary(contactId) {
+  if (!contactId || typeof ZOHO === 'undefined') {
+    renderInvestmentSummary([]);
     return;
   }
-  const stepMap = {
-    'Step 1. Client Engagement':   { cls:'step-1', label:'1' },
-    'Step 2. Data Collection':     { cls:'step-2', label:'2' },
-    'Step 3. Analysis':            { cls:'step-3', label:'3' },
-    'Step 4. Statement of Advice': { cls:'step-4', label:'4' },
-    'Step 5. Implementation':      { cls:'step-5', label:'5' },
-    'Step 6. Review':              { cls:'step-6', label:'6' },
-    'Not Proceeded With':          { cls:'step-np', label:'✕' },
-  };
-  const statusColors = {
-    'Step 1. Client Engagement':   'pill-amber',
-    'Step 2. Data Collection':     'pill-amber',
-    'Step 3. Analysis':            'pill-green',
-    'Step 4. Statement of Advice': 'pill-blue',
-    'Step 5. Implementation':      'pill-purple',
-    'Step 6. Review':              'pill-green',
-    'Not Proceeded With':          'pill-grey',
-  };
-  list.innerHTML = records.slice(0,3).map(r => {
-    const step   = stepMap[r.Status] || { cls:'step-1', label:'?' };
-    const sCls   = statusColors[r.Status] || 'pill-grey';
-    const date   = fmtDate(r.Date_Time_of_Meeting || r.Created_Time);
-    return `<li class="advice-item" onclick="openRecord('Advice_Records','${r.id}')">
-      <div class="advice-step ${step.cls}">${step.label}</div>
-      <div class="advice-info">
-        <div class="advice-name">${r.Name || r.Name_of_Record || '—'}</div>
-        <div class="advice-meta">${[date, r.Meeting_Type].filter(Boolean).join(' · ')}</div>
-      </div>
-      <span class="advice-status pill ${sCls}">${r.Status||'—'}</span>
-    </li>`;
-  }).join('');
+
+  // Try fetching investments linked to this contact
+  // Uses COQL to query Investments where Primary_Contact = contactId
+  ZOHO.CRM.API.coql({
+    select_query: "SELECT Name, Investment_Type, Balance, Provider, Status FROM Investments WHERE Primary_Contact = '" + contactId + "' AND Status = 'Active' LIMIT 10"
+  })
+  .then(function(resp) {
+    renderInvestmentSummary(resp.data || []);
+  })
+  .catch(function(err) {
+    console.log('[ACRM] Investment COQL failed, trying getRelatedRecords...');
+    // Fallback — try getRelatedRecords
+    ZOHO.CRM.API.getRelatedRecords({
+      Entity: 'Contacts',
+      RecordID: contactId,
+      RelatedList: 'Investments',
+      page: 1,
+      per_page: 10,
+    })
+    .then(function(resp2) {
+      renderInvestmentSummary(resp2.data || []);
+    })
+    .catch(function() {
+      renderInvestmentSummary([]);
+    });
+  });
+}
+
+function renderInvestmentSummary(investments) {
+  var wrap = document.getElementById('inv-strip-wrap');
+  var sub  = document.getElementById('inv-summary-sub');
+  if (!wrap) return;
+
+  // Filter active investments with a balance
+  var active = investments.filter(function(i) {
+    return i.Status !== 'Cancelled' && i.Status !== 'Inactive';
+  });
+
+  // Hide the card entirely if no investments
+  var card = document.getElementById('inv-summary-card');
+  if (!active.length) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  // Show the card now we have data
+  if (card) card.style.display = 'block';
+
+  // Calculate total balance
+  var total = active.reduce(function(sum, i) {
+    return sum + (Number(i.Balance) || 0);
+  }, 0);
+
+  if (sub) sub.textContent = active.length + ' active investment' + (active.length !== 1 ? 's' : '') + ' · Total: ' + fmtCurr(total);
+
+  // Build strip — one item per investment type grouped
+  // Group by Investment_Type
+  var groups = {};
+  active.forEach(function(inv) {
+    var type = inv.Investment_Type || inv.Provider || 'Other';
+    if (!groups[type]) groups[type] = { type: type, balance: 0, count: 0 };
+    groups[type].balance += Number(inv.Balance) || 0;
+    groups[type].count++;
+  });
+
+  var groupArr = Object.values(groups);
+
+  // Add total as first item
+  var items = [];
+  items.push('<div class="inv-item" style="border-top:3px solid var(--teal,#0d9488);">' +
+    '<div class="inv-label">Total Investments</div>' +
+    '<div class="inv-value">' + fmtCurr(total) + '</div>' +
+    '<div class="inv-type">' + active.length + ' investment' + (active.length !== 1 ? 's' : '') + '</div>' +
+  '</div>');
+
+  // Add each type
+  groupArr.forEach(function(g, i) {
+    var colours = ['#00ABE6','#0d9488','#059669','#7c3aed','#d97706'];
+    var col = colours[i % colours.length];
+    items.push('<div class="inv-item" style="border-top:3px solid ' + col + ';">' +
+      '<div class="inv-label">' + g.type + '</div>' +
+      '<div class="inv-value" style="color:' + col + ';">' + (g.balance ? fmtCurr(g.balance) : '—') + '</div>' +
+      '<div class="inv-type">' + g.count + ' record' + (g.count !== 1 ? 's' : '') + '</div>' +
+    '</div>');
+  });
+
+  wrap.innerHTML = '<div class="inv-strip">' + items.join('') + '</div>';
 }
 
 // ── CRM Actions ────────────────────────────────────────────────────
@@ -1090,15 +1180,17 @@ function openAction(entity) {
       Expiry_Date:'2026-04-18',
       Last_Activity_Time:'2026-08-20T11:44:09+12:00',
     };
-    var ADVICE = [
-      { id:'ar1', Name:'AR-00042 — Annual Review 2025', Status:'Step 6. Review', Date_Time_of_Meeting:'2025-05-22', Meeting_Type:'In Person' },
-      { id:'ar2', Name:'AR-00038 — KiwiSaver Review 2024', Status:'Step 5. Implementation', Date_Time_of_Meeting:'2024-11-14', Meeting_Type:'Zoom' },
-    ];
+
     window.ZOHO = {
       embeddedApp:{ _h:{}, on(e,fn){this._h[e]=fn;}, init(){ var s=this; setTimeout(function(){ var f=s._h['PageLoad']; if(f) f({EntityId:'c-001',Entity:'Contacts'}); },600); } },
       CRM:{ API:{
         getRecord(){ return Promise.resolve({data:[M]}); },
-        getRelatedRecords(){ return Promise.resolve({data:ADVICE}); },
+        coql(){ return Promise.resolve({data:[
+          { id:'inv-001', Name:'INV-001', Investment_Type:'KiwiSaver', Balance:148750, Provider:'Fisher Funds', Status:'Active' },
+          { id:'inv-002', Name:'INV-002', Investment_Type:'Managed Fund', Balance:62400, Provider:'Milford', Status:'Active' },
+          { id:'inv-003', Name:'INV-003', Investment_Type:'Shares', Balance:38200, Provider:'Kernel', Status:'Active' },
+        ]}); },
+        getRelatedRecords(){ return Promise.resolve({data:[]}); },
       }, UI:{ Record:{ open(o){alert('[Mock] Open '+o.Entity+' '+o.RecordID);}, create(o){alert('[Mock] New '+o.Entity);} } } }
     };
   }
@@ -1149,7 +1241,7 @@ function startApp() {
     return;
   }
 
-  // SDK mode
+  // SDK mode — works for both Canvas View and Related List widget types
   dbg('Registering PageLoad handler...');
   ZOHO.embeddedApp.on('PageLoad', function(data) {
     dbg('PageLoad fired! EntityId: ' + data.EntityId + ' Entity: ' + data.Entity);
@@ -1159,31 +1251,24 @@ function startApp() {
       dbg('ERROR: No EntityId in PageLoad data');
       // Show mock data as fallback
       populateContact(getMockContact());
-      renderAdviceRecords([]);
       reveal();
       return;
     }
 
-    dbg('Fetching record + advice records...');
-    Promise.all([
-      ZOHO.CRM.API.getRecord({ Entity:'Contacts', RecordID:ENTITY_ID }),
-      ZOHO.CRM.API.getRelatedRecords({
-        Entity:'Contacts', RecordID:ENTITY_ID,
-        RelatedList:'Advice_Records', page:1, per_page:3
-      }),
-    ])
-    .then(function(results) {
-      dbg('API calls returned');
-      var contact = results[0].data?.[0] || {};
-      var advice  = results[1].data  || [];
-      dbg('Contact: ' + (contact.First_Name||'?') + ' ' + (contact.Last_Name||'?'));
-      dbg('Advice records: ' + advice.length);
+    dbg('Fetching contact record...');
+
+    ZOHO.CRM.API.getRecord({ Entity:'Contacts', RecordID:ENTITY_ID })
+    .then(function(result) {
+      var contact = result.data?.[0] || {};
+      dbg('Contact loaded: ' + (contact.First_Name||'?') + ' ' + (contact.Last_Name||'?'));
       populateContact(contact);
-      renderAdviceRecords(advice);
+      // Load investment summary in background
+      loadInvestmentSummary(ENTITY_ID);
     })
     .catch(function(err){
-      dbg('ERROR: ' + JSON.stringify(err));
+      dbg('ERROR fetching contact: ' + JSON.stringify(err));
       console.error(err);
+      renderInvestmentSummary([]);
     })
     .finally(function(){
       dbg('Revealing page...');
@@ -1192,8 +1277,12 @@ function startApp() {
   });
 
   dbg('Calling ZOHO.embeddedApp.init()...');
-  ZOHO.embeddedApp.init();
-  dbg('init() called');
+  try {
+    ZOHO.embeddedApp.init();
+    dbg('init() called successfully');
+  } catch(e) {
+    dbg('init() ERROR: ' + e.message);
+  }
 }
 
 function getMockContact() {
@@ -1212,22 +1301,26 @@ if (document.readyState==='loading') {
   setTimeout(startApp, 350);
 }
 
-// Hard fallback — show debug info after 5 seconds if still loading
+// Always show debug panel in bottom corner for troubleshooting
+// Remove this once data is loading correctly
+setTimeout(function(){
+  var dbgPanel = el('debug-panel');
+  if (dbgPanel) dbgPanel.style.display = 'block';
+  var du = el('debug-url');
+  if (du) du.textContent = window.location.href;
+}, 1000);
+
+// Hard fallback — force reveal after 8 seconds if PageLoad never fires
 setTimeout(function(){
   var l=el('loading');
   if(l&&!l.classList.contains('hidden')){
-    dbg('FALLBACK: 5s timeout — PageLoad never fired');
-    dbg('Possible causes:');
-    dbg('1. Widget type mismatch');
-    dbg('2. SDK not loaded');
-    dbg('3. Canvas View not configured');
+    dbg('FALLBACK: 8s timeout — PageLoad never fired');
+    dbg('SDK defined: ' + (typeof ZOHO !== 'undefined'));
+    dbg('URL: ' + window.location.href);
     l.classList.add('hidden');
     el('main-page').classList.add('visible');
-    // Show debug panel
-    var dbgPanel = el('debug-panel');
-    if (dbgPanel) dbgPanel.style.display = 'block';
   }
-}, 5000);
+}, 8000);
 </script>
 </body>
 </html>
