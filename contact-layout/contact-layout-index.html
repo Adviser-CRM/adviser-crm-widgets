@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.8.7';
+      var CURRENT_VERSION = '1.8.8';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -340,11 +340,55 @@
     .rl-empty-icon { font-size:28px;margin-bottom:8px; }
     .rl-loading { display:flex;align-items:center;gap:10px;padding:20px 14px;color:var(--muted);font-size:12px; }
     .empty-state { text-align:center;padding:24px 16px;color:var(--muted);font-size:12px; }
+
+    /* ── Full edit mode ── */
+    .edit-mode-active .field-value.editable {
+      background: #ffffff !important;
+      border: 1.5px solid var(--blue) !important;
+      padding: 0 !important;
+      cursor: text;
+    }
+    .edit-mode-active .field-value.editable input,
+    .edit-mode-active .field-value.editable select,
+    .edit-mode-active .field-value.editable textarea {
+      width: 100%;
+      padding: 7px 10px;
+      border: none;
+      background: transparent;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      outline: none;
+      box-sizing: border-box;
+      min-height: 32px;
+    }
+    .edit-mode-active .field-value.editable select {
+      height: 34px;
+      cursor: pointer;
+      -webkit-appearance: auto;
+      padding: 6px 10px;
+    }
+    .edit-mode-active .field-value.editable textarea {
+      min-height: 80px;
+      resize: vertical;
+      line-height: 1.5;
+      padding: 8px 10px;
+    }
+    /* Currency fields in edit mode — remove $ prefix issues */
+    .edit-mode-active .field-value.editable input[type="number"] {
+      padding: 7px 10px;
+    }
+    /* Changed field highlight */
+    .edit-mode-active .field-value.changed {
+      border-color: var(--amber) !important;
+      background: #fffbeb !important;
+    }
   </style>
 </head>
 <body>
 
-<div id="vbadge">v1.8.7</div>
+<div id="vbadge">v1.8.8</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -791,7 +835,7 @@
 <script>
 
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.8.7
+//  Adviser CRM — Contact Layout Page v1.8.8
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1392,23 +1436,37 @@ function enterEditMode() {
     } else if (def.type === 'textarea') {
       input = document.createElement('textarea');
       input.value = currentVal;
-      input.rows = 4;
+      input.rows = 3;
     } else {
       input = document.createElement('input');
-      input.type = def.type || 'text';
-      // Format date fields correctly for input[type=date]
-      if (def.type === 'date' && currentVal) {
-        input.value = currentVal.substring(0, 10);
+      // Currency fields — use number type without $ formatting
+      if (def.type === 'number' || def.format === 'currency') {
+        input.type = 'number';
+        // Strip $ and commas from currency display values
+        input.value = currentVal ? String(currentVal).replace(/[$,]/g, '') : '';
+      } else if (def.type === 'date') {
+        input.type = 'date';
+        input.value = currentVal ? currentVal.substring(0, 10) : '';
       } else {
-        input.value = currentVal;
+        input.type = def.type || 'text';
+        input.value = currentVal || '';
       }
     }
 
+    // Style the input to fill the field properly
+    input.style.width = '100%';
+    input.style.boxSizing = 'border-box';
     input.dataset.fid = fid;
     input.addEventListener('input',  function() { onFieldChange(fid, this.value); });
     input.addEventListener('change', function() { onFieldChange(fid, this.value); });
 
-    // Replace field content with input
+    // Replace field content with input — remove pencil button wrap if present
+    var parentWrap = fieldEl.parentElement;
+    if (parentWrap && parentWrap.classList.contains('field-wrap')) {
+      // Hide pencil button during full edit mode
+      var pencilBtn = parentWrap.querySelector('.pencil-btn');
+      if (pencilBtn) pencilBtn.style.display = 'none';
+    }
     fieldEl.innerHTML = '';
     fieldEl.appendChild(input);
     fieldEl.classList.remove('empty');
@@ -1460,6 +1518,11 @@ function cancelEdit() {
   // Remove edit mode class
   var page = el('main-page');
   if (page) page.classList.remove('edit-mode-active');
+
+  // Restore all pencil buttons
+  document.querySelectorAll('.pencil-btn').forEach(function(btn) {
+    btn.style.display = '';
+  });
 
   // Hide toolbar
   var toolbar = el('edit-toolbar');
