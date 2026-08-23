@@ -15,7 +15,7 @@
     // page version. If different, reloads with cache-bust param.
     // This means users get cached speed but always get latest version.
     (function() {
-      var CURRENT_VERSION = '1.5.2';
+      var CURRENT_VERSION = '1.6.2';
       var VERSION_URL     = './version.json';
 
       // Only check if not already a forced reload (avoid loops)
@@ -273,6 +273,160 @@
     .addr-line span { font-size:12px; color:var(--ink); }
     .addr-line .empty { color:var(--muted); font-style:italic; }
 
+    /* ── Edit mode ── */
+    .edit-mode-active .field-value.editable {
+      background: #ffffff;
+      border: 1.5px solid var(--blue);
+      cursor: text;
+      padding: 6px 10px;
+    }
+    .field-value.editable {
+      cursor: pointer;
+      position: relative;
+      transition: border 0.15s, background 0.15s;
+    }
+    .field-value.editable:hover {
+      border: 1.5px solid var(--blue-lt);
+      background: #ffffff;
+    }
+    .field-value.editable:hover::after {
+      content: '✎';
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--blue);
+      opacity: 0.6;
+    }
+    /* Input styles inside field-value */
+    .field-value input,
+    .field-value select,
+    .field-value textarea {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      outline: none;
+      padding: 0;
+      resize: none;
+    }
+    .field-value textarea {
+      min-height: 60px;
+      line-height: 1.5;
+    }
+    .field-value select {
+      cursor: pointer;
+      -webkit-appearance: auto;
+    }
+
+    /* Edit mode toolbar */
+    .edit-toolbar {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--navy);
+      border-radius: 12px;
+      padding: 10px 16px;
+      box-shadow: 0 8px 32px rgba(7,56,93,0.3);
+      z-index: 500;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+    .edit-toolbar.visible { display: flex; }
+    .edit-toolbar-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      margin-right: 4px;
+    }
+    .edit-toolbar .changes-count {
+      font-size: 11px;
+      color: var(--blue);
+      font-weight: 700;
+    }
+    .btn-save {
+      background: var(--green);
+      color: white;
+      border: 2px solid #047857;
+      padding: 7px 18px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-save:hover { background: #047857; }
+    .btn-cancel-edit {
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-cancel-edit:hover { background: rgba(255,255,255,0.1); color: white; }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--navy);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error   { border-left: 4px solid var(--red); }
+    .toast.saving  { border-left: 4px solid var(--blue); }
+
+    /* Edit button in hero */
+    .btn-edit {
+      background: rgba(255,255,255,0.12);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.4);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-edit:hover { background: rgba(255,255,255,0.22); }
+    .btn-edit.active {
+      background: var(--amber);
+      border-color: var(--amber);
+      color: white;
+    }
+
+    /* Field changed indicator */
+    .field-value.changed {
+      border-color: var(--amber) !important;
+      background: #fffbeb !important;
+    }
+
     /* ── Investment summary strip ── */
     .inv-strip {
       display:grid;
@@ -366,7 +520,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.5.2</div>
+<div id="vbadge">v1.6.2</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -389,6 +543,8 @@
     <div class="hero-actions">
       <button class="btn btn-primary" style="border:2px solid #ffffff;" onclick="sendEmail()">✉ Email</button>
       <button class="btn btn-call" style="border:2px solid #ffffff;"   onclick="logCall()">📞 Call</button>
+    
+      <button class="btn-edit" id="edit-toggle-btn" onclick="toggleEditMode()">✎ Edit</button>
     </div>
   </div>
 
@@ -456,11 +612,12 @@
       </div>
       <div>
 
-        <div class="sidebar-row">
+        <!-- Hidden but referenced by JS for calculations -->
+        <div class="sidebar-row" style="display:none;" id="row-birthday">
           <span class="sidebar-row-label">Next Birthday</span>
           <span class="sidebar-row-value" id="sb-birthday">—</span>
         </div>
-        <div class="sidebar-row">
+        <div class="sidebar-row" style="display:none;" id="row-days-nb">
           <span class="sidebar-row-label">Days to Birthday</span>
           <span class="sidebar-row-value" id="sb-days-nb">—</span>
         </div>
@@ -489,29 +646,29 @@
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Salutation</div>
-            <div class="field-value" id="f-salutation">—</div>
+            <div class="field-value editable" id="f-salutation">—</div>
           </div>
           <div class="field">
             <div class="field-label">First Name</div>
-            <div class="field-value" id="f-first-name">—</div>
+            <div class="field-value editable" id="f-first-name">—</div>
           </div>
           <div class="field">
             <div class="field-label">Middle Name</div>
-            <div class="field-value" id="f-middle-name">—</div>
+            <div class="field-value editable" id="f-middle-name">—</div>
           </div>
           <div class="field">
             <div class="field-label">Last Name</div>
-            <div class="field-value" id="f-last-name">—</div>
+            <div class="field-value editable" id="f-last-name">—</div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Preferred Name</div>
-            <div class="field-value" id="f-preferred-name">—</div>
+            <div class="field-value editable" id="f-preferred-name">—</div>
           </div>
           <div class="field">
             <div class="field-label">Date of Birth</div>
-            <div class="field-value" id="f-dob">—</div>
+            <div class="field-value editable" id="f-dob">—</div>
           </div>
           <div class="field">
             <div class="field-label">Age</div>
@@ -519,17 +676,17 @@
           </div>
           <div class="field">
             <div class="field-label">Gender</div>
-            <div class="field-value" id="f-gender">—</div>
+            <div class="field-value editable" id="f-gender">—</div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Marital Status</div>
-            <div class="field-value" id="f-marital">—</div>
+            <div class="field-value editable" id="f-marital">—</div>
           </div>
           <div class="field">
             <div class="field-label">NZ Residency</div>
-            <div class="field-value" id="f-nz-residency">—</div>
+            <div class="field-value editable" id="f-nz-residency">—</div>
           </div>
           <div class="field">
             <div class="field-label">Contact Type</div>
@@ -551,11 +708,11 @@
           </div>
           <div class="field">
             <div class="field-label">Tax Number</div>
-            <div class="field-value" id="f-tax-number">—</div>
+            <div class="field-value editable" id="f-tax-number">—</div>
           </div>
           <div class="field">
             <div class="field-label">Country of Birth</div>
-            <div class="field-value" id="f-country-birth">—</div>
+            <div class="field-value editable" id="f-country-birth">—</div>
           </div>
         </div>
       </div>
@@ -578,45 +735,45 @@
           </div>
           <div class="field span-2">
             <div class="field-label">Title / Role</div>
-            <div class="field-value" id="f-title">—</div>
+            <div class="field-value editable" id="f-title">—</div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
             <div class="field-label">Email</div>
-            <div class="field-value" id="f-email">—</div>
+            <div class="field-value editable" id="f-email">—</div>
           </div>
           <div class="field span-2">
             <div class="field-label">Secondary Email</div>
-            <div class="field-value" id="f-secondary-email">—</div>
+            <div class="field-value editable" id="f-secondary-email">—</div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Mobile</div>
-            <div class="field-value" id="f-mobile">—</div>
+            <div class="field-value editable" id="f-mobile">—</div>
           </div>
           <div class="field">
             <div class="field-label">Phone</div>
-            <div class="field-value" id="f-phone">—</div>
+            <div class="field-value editable" id="f-phone">—</div>
           </div>
           <div class="field">
             <div class="field-label">Home Phone</div>
-            <div class="field-value" id="f-home-phone">—</div>
+            <div class="field-value editable" id="f-home-phone">—</div>
           </div>
           <div class="field">
             <div class="field-label">Lead Source</div>
-            <div class="field-value" id="f-lead-source">—</div>
+            <div class="field-value editable" id="f-lead-source">—</div>
           </div>
         </div>
         <div class="field-grid cols-4">
           <div class="field span-2">
             <div class="field-label">LinkedIn</div>
-            <div class="field-value" id="f-linkedin">—</div>
+            <div class="field-value editable" id="f-linkedin">—</div>
           </div>
           <div class="field span-2">
             <div class="field-label">Employer / Business</div>
-            <div class="field-value" id="f-employer">—</div>
+            <div class="field-value editable" id="f-employer">—</div>
           </div>
         </div>
       </div>
@@ -635,33 +792,33 @@
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
             <div class="field-label">Occupation</div>
-            <div class="field-value" id="f-occupation">—</div>
+            <div class="field-value editable" id="f-occupation">—</div>
           </div>
           <div class="field">
             <div class="field-label">Occupation Class</div>
-            <div class="field-value" id="f-occupation-class">—</div>
+            <div class="field-value editable" id="f-occupation-class">—</div>
           </div>
           <div class="field">
             <div class="field-label">Employment Status</div>
-            <div class="field-value" id="f-employment-status">—</div>
+            <div class="field-value editable" id="f-employment-status">—</div>
           </div>
         </div>
         <div class="field-grid cols-4">
           <div class="field">
             <div class="field-label">Annual Income</div>
-            <div class="field-value" id="f-annual-income">—</div>
+            <div class="field-value editable" id="f-annual-income">—</div>
           </div>
           <div class="field">
             <div class="field-label">Household Expenses</div>
-            <div class="field-value" id="f-household-expenses">—</div>
+            <div class="field-value editable" id="f-household-expenses">—</div>
           </div>
           <div class="field">
             <div class="field-label">Mortgage Repayment</div>
-            <div class="field-value" id="f-mortgage-repayment">—</div>
+            <div class="field-value editable" id="f-mortgage-repayment">—</div>
           </div>
           <div class="field">
             <div class="field-label">Housing Status</div>
-            <div class="field-value" id="f-housing-status">—</div>
+            <div class="field-value editable" id="f-housing-status">—</div>
           </div>
         </div>
       </div>
@@ -749,15 +906,15 @@
         <div class="field-grid cols-4">
           <div class="field">
             <div class="field-label">ID Type</div>
-            <div class="field-value" id="f-id-type">—</div>
+            <div class="field-value editable" id="f-id-type">—</div>
           </div>
           <div class="field span-2">
             <div class="field-label">ID Number</div>
-            <div class="field-value" id="f-id-number">—</div>
+            <div class="field-value editable" id="f-id-number">—</div>
           </div>
           <div class="field">
             <div class="field-label">ID Expiry Date</div>
-            <div class="field-value" id="f-id-expiry">—</div>
+            <div class="field-value editable" id="f-id-expiry">—</div>
           </div>
         </div>
       </div>
@@ -809,7 +966,7 @@
 <div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#07385D;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#6a9bb5;font-size:10px;">v1.5.2 — share this with your developer</span>
+    <span style="color:#6a9bb5;font-size:10px;">v1.6.2 — share this with your developer</span>
     <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #2d2d44;color:#6a9bb5;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
   <div id="debug-log" style="line-height:1.8;color:#d0e4ef;"></div>
@@ -818,11 +975,22 @@
   </div>
 </div>
 
+<!-- Edit toolbar — fixed bottom bar shown in edit mode -->
+<div class="edit-toolbar" id="edit-toolbar">
+  <span class="edit-toolbar-label">Edit Mode</span>
+  <span class="changes-count" id="changes-count"></span>
+  <button class="btn-cancel-edit" onclick="cancelEdit()">✕ Cancel</button>
+  <button class="btn-save" onclick="saveContact()">💾 Save Changes</button>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
 </div><!-- /page -->
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.5.2
+//  Adviser CRM — Contact Layout Page v1.6.2
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -866,6 +1034,7 @@ function reveal() {
   if (du) du.textContent = window.location.href;
   // Tell Zoho to resize the iframe to fit the full page content
   resizeToFit();
+  setTimeout(setupInlineEdit, 100);
 }
 
 function resizeToFit() {
@@ -1211,6 +1380,373 @@ function renderInvestmentSummary(investments) {
   });
 
   wrap.innerHTML = '<div class="inv-strip">' + items.join('') + '</div>';
+}
+
+// ── Field definitions for editing ─────────────────────────────────
+// Maps field element ID → Zoho API name + input type
+var FIELD_MAP = {
+  'f-salutation':        { api:'Salutation',           type:'select',   options:['','Mr.','Mrs.','Ms.','Miss','Dr.','Prof.'] },
+  'f-first-name':        { api:'First_Name',            type:'text' },
+  'f-middle-name':       { api:'Middle_Name',           type:'text' },
+  'f-last-name':         { api:'Last_Name',             type:'text' },
+  'f-preferred-name':    { api:'Preferred_Name',        type:'text' },
+  'f-dob':               { api:'Date_of_Birth',         type:'date' },
+  'f-gender':            { api:'Gender',                type:'select',   options:['','Male','Female','Other','Prefer not to say'] },
+  'f-marital':           { api:'Marital_Status',        type:'select',   options:['','Single','Married','De Facto','Separated','Divorced','Widowed'] },
+  'f-nz-residency':      { api:'NZ_Residency',          type:'select',   options:['','NZ Citizen','NZ Permanent Resident','NZ Work Visa','Other'] },
+  'f-tax-number':        { api:'Tax_Number',            type:'text' },
+  'f-country-birth':     { api:'Country_of_Birth',      type:'text' },
+  'f-title':             { api:'Title',                 type:'text' },
+  'f-email':             { api:'Email',                 type:'email' },
+  'f-secondary-email':   { api:'Secondary_Email',       type:'email' },
+  'f-mobile':            { api:'Mobile',                type:'tel' },
+  'f-phone':             { api:'Phone',                 type:'tel' },
+  'f-home-phone':        { api:'Home_Phone',            type:'tel' },
+  'f-lead-source':       { api:'Lead_Source',           type:'select',   options:['','Advertisement','Cold Call','Employee Referral','External Referral','Internal','Online Store','Partner','Public Relations','Sales Email Alias','Seminar Partner','Trade Show','Web Download','Web Research','Contact Us','Social Media','Word of Mouth','Other'] },
+  'f-linkedin':          { api:'LinkedIn',              type:'url' },
+  'f-employer':          { api:'Employer_Business_Name',type:'text' },
+  'f-occupation':        { api:'Occupation',            type:'text' },
+  'f-occupation-class':  { api:'Occupation_Class',      type:'select',   options:['','Class 1','Class 2','Class 3','Class 4','Class 5'] },
+  'f-employment-status': { api:'Employment_Status',     type:'select',   options:['','Employed','Self Employed','Retired','Student','Unemployed','Other'] },
+  'f-annual-income':     { api:'Annual_Income',         type:'number' },
+  'f-household-expenses':{ api:'Household_Expenses',    type:'number' },
+  'f-mortgage-repayment':{ api:'Mortgage_Repayment',    type:'number' },
+  'f-housing-status':    { api:'Housing_Status',        type:'select',   options:['','Mortgage','Renting','Boarding','Own Home','Other'] },
+  'f-id-type':           { api:'ID_Type',               type:'select',   options:['','NZ Passport','NZ Drivers Licence','NZ Firearms Licence','Foreign Passport','Other'] },
+  'f-id-number':         { api:'ID_Number',             type:'text' },
+  'f-id-expiry':         { api:'ID_Expiry_Date',        type:'date' },
+  'f-description':       { api:'Description',           type:'textarea' },
+};
+
+// ── Edit state ─────────────────────────────────────────────────────
+var EDIT_MODE    = false;
+var ORIGINAL     = {};  // original values before edit
+var CHANGED      = {};  // changed field IDs and new values
+
+// ── Toast ──────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  var t = el('toast');
+  if (!t) return;
+  t.textContent = (type === 'success' ? '✅ ' : type === 'error' ? '❌ ' : '⏳ ') + msg;
+  t.className = 'toast ' + (type || 'saving');
+  t.classList.add('show');
+  if (type !== 'saving') {
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
+  }
+}
+
+// ── Toggle edit mode ───────────────────────────────────────────────
+function toggleEditMode() {
+  if (EDIT_MODE) {
+    saveContact();  // Orange Save button saves
+  } else {
+    enterEditMode();
+  }
+}
+
+function enterEditMode() {
+  EDIT_MODE = true;
+  ORIGINAL  = {};
+  CHANGED   = {};
+
+  // Add edit-mode-active class to page
+  var page = el('main-page');
+  if (page) page.classList.add('edit-mode-active');
+
+  // Convert each editable field to an input
+  Object.keys(FIELD_MAP).forEach(function(fid) {
+    var fieldEl = el(fid);
+    if (!fieldEl) return;
+
+    var def = FIELD_MAP[fid];
+    var currentVal = CONTACT[def.api] || '';
+
+    // Store original value
+    ORIGINAL[fid] = currentVal;
+
+    // Build input element
+    var input;
+    if (def.type === 'select') {
+      input = document.createElement('select');
+      def.options.forEach(function(opt) {
+        var o = document.createElement('option');
+        o.value = opt; o.textContent = opt || '— Select —';
+        if (opt === currentVal) o.selected = true;
+        input.appendChild(o);
+      });
+    } else if (def.type === 'textarea') {
+      input = document.createElement('textarea');
+      input.value = currentVal;
+      input.rows = 4;
+    } else {
+      input = document.createElement('input');
+      input.type = def.type || 'text';
+      // Format date fields correctly for input[type=date]
+      if (def.type === 'date' && currentVal) {
+        input.value = currentVal.substring(0, 10);
+      } else {
+        input.value = currentVal;
+      }
+    }
+
+    input.dataset.fid = fid;
+    input.addEventListener('input',  function() { onFieldChange(fid, this.value); });
+    input.addEventListener('change', function() { onFieldChange(fid, this.value); });
+
+    // Replace field content with input
+    fieldEl.innerHTML = '';
+    fieldEl.appendChild(input);
+    fieldEl.classList.remove('empty');
+  });
+
+  // Add click-to-edit for fields NOT in edit mode
+  // (inline editing still works for individual fields)
+
+  // Show toolbar
+  var toolbar = el('edit-toolbar');
+  if (toolbar) toolbar.classList.add('visible');
+
+  // Update edit button
+  var btn = el('edit-toggle-btn');
+  if (btn) { btn.textContent = '💾 Save'; btn.classList.add('active'); }
+
+  updateChangesCount();
+  showToast('Edit mode — make your changes then click Save', 'saving');
+}
+
+function cancelEdit() {
+  EDIT_MODE = false;
+  CHANGED   = {};
+
+  // Restore all fields to display values
+  Object.keys(FIELD_MAP).forEach(function(fid) {
+    var fieldEl = el(fid);
+    if (!fieldEl) return;
+    var def = FIELD_MAP[fid];
+    var val = CONTACT[def.api];
+    fieldEl.classList.remove('changed');
+
+    // Re-render the field using the original populate logic
+    if (fid === 'f-dob') {
+      setFv(fid, fmtDate(val));
+    } else if (fid === 'f-annual-income' || fid === 'f-household-expenses' || fid === 'f-mortgage-repayment') {
+      setFv(fid, fmtCurr(val));
+    } else if (fid === 'f-id-expiry') {
+      setFv(fid, fmtDate(val));
+    } else if (fid === 'f-email' || fid === 'f-secondary-email') {
+      fieldEl.innerHTML = val ? '<a href="mailto:' + val + '">' + val + '</a>' : '<span class="empty">—</span>';
+    } else if (fid === 'f-linkedin') {
+      fieldEl.innerHTML = val ? '<a href="' + val + '" target="_blank">' + val + '</a>' : '<span class="empty">—</span>';
+    } else {
+      setFv(fid, fmt(val));
+    }
+  });
+
+  // Remove edit mode class
+  var page = el('main-page');
+  if (page) page.classList.remove('edit-mode-active');
+
+  // Hide toolbar
+  var toolbar = el('edit-toolbar');
+  if (toolbar) toolbar.classList.remove('visible');
+
+  // Reset edit button
+  var btn = el('edit-toggle-btn');
+  if (btn) { btn.textContent = '✎ Edit'; btn.classList.remove('active'); }
+
+  el('toast').classList.remove('show');
+}
+
+function onFieldChange(fid, value) {
+  var def = FIELD_MAP[fid];
+  if (!def) return;
+
+  // Mark as changed if different from original
+  if (value !== String(ORIGINAL[fid] || '')) {
+    CHANGED[fid] = value;
+    var fieldEl = el(fid);
+    if (fieldEl) fieldEl.classList.add('changed');
+  } else {
+    delete CHANGED[fid];
+    var fieldEl = el(fid);
+    if (fieldEl) fieldEl.classList.remove('changed');
+  }
+  updateChangesCount();
+}
+
+function updateChangesCount() {
+  var count  = Object.keys(CHANGED).length;
+  var countEl = el('changes-count');
+  if (countEl) {
+    countEl.textContent = count > 0
+      ? count + ' field' + (count !== 1 ? 's' : '') + ' changed'
+      : 'No changes yet';
+  }
+}
+
+// ── Inline click-to-edit (single field) ───────────────────────────
+function setupInlineEdit() {
+  document.querySelectorAll('.field-value.editable').forEach(function(fieldEl) {
+    fieldEl.addEventListener('click', function() {
+      if (EDIT_MODE) return; // Already in full edit mode
+      var fid = this.id;
+      if (!fid || !FIELD_MAP[fid]) return;
+      // Enter single field edit
+      enterSingleFieldEdit(fid);
+    });
+  });
+}
+
+function enterSingleFieldEdit(fid) {
+  var fieldEl = el(fid);
+  var def     = FIELD_MAP[fid];
+  if (!fieldEl || !def) return;
+
+  var currentVal = CONTACT[def.api] || '';
+  ORIGINAL[fid]  = currentVal;
+
+  var input;
+  if (def.type === 'select') {
+    input = document.createElement('select');
+    def.options.forEach(function(opt) {
+      var o = document.createElement('option');
+      o.value = opt; o.textContent = opt || '— Select —';
+      if (opt === currentVal) o.selected = true;
+      input.appendChild(o);
+    });
+  } else if (def.type === 'textarea') {
+    input = document.createElement('textarea');
+    input.value = currentVal;
+    input.rows = 4;
+  } else {
+    input = document.createElement('input');
+    input.type = def.type || 'text';
+    if (def.type === 'date' && currentVal) input.value = currentVal.substring(0, 10);
+    else input.value = currentVal;
+  }
+
+  // Save on blur
+  input.addEventListener('blur', function() {
+    var newVal = this.value;
+    if (newVal !== String(currentVal)) {
+      saveSingleField(fid, def.api, newVal);
+    } else {
+      cancelSingleField(fid);
+    }
+  });
+
+  // Save on Enter (except textarea)
+  if (def.type !== 'textarea') {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter')  { this.blur(); }
+      if (e.key === 'Escape') { cancelSingleField(fid); }
+    });
+  }
+
+  fieldEl.innerHTML = '';
+  fieldEl.appendChild(input);
+  fieldEl.classList.add('edit-mode-active');
+  input.focus();
+  if (input.select) input.select();
+}
+
+function saveSingleField(fid, apiName, value) {
+  showToast('Saving…', 'saving');
+
+  var data = {};
+  data[apiName] = value || null;
+
+  if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
+    // Mock mode
+    CONTACT[apiName] = value;
+    cancelSingleField(fid);
+    showToast('Saved (mock mode)', 'success');
+    return;
+  }
+
+  ZOHO.CRM.API.updateRecord({
+    Entity:   'Contacts',
+    RecordID: ENTITY_ID,
+    APIData:  data,
+  })
+  .then(function(resp) {
+    CONTACT[apiName] = value;
+    cancelSingleField(fid);
+    showToast('Saved successfully', 'success');
+  })
+  .catch(function(err) {
+    console.error('[ACRM] Save error:', err);
+    cancelSingleField(fid);
+    showToast('Save failed — please try again', 'error');
+  });
+}
+
+function cancelSingleField(fid) {
+  var fieldEl = el(fid);
+  var def     = FIELD_MAP[fid];
+  if (!fieldEl || !def) return;
+
+  var val = CONTACT[def.api];
+  fieldEl.classList.remove('edit-mode-active');
+
+  if (fid === 'f-dob' || fid === 'f-id-expiry') {
+    setFv(fid, fmtDate(val));
+  } else if (['f-annual-income','f-household-expenses','f-mortgage-repayment'].includes(fid)) {
+    setFv(fid, fmtCurr(val));
+  } else if (fid === 'f-email' || fid === 'f-secondary-email') {
+    fieldEl.innerHTML = val ? '<a href="mailto:' + val + '">' + val + '</a>' : '<span class="empty">—</span>';
+  } else if (fid === 'f-linkedin') {
+    fieldEl.innerHTML = val ? '<a href="' + val + '" target="_blank">' + val + '</a>' : '<span class="empty">—</span>';
+  } else {
+    setFv(fid, fmt(val));
+  }
+}
+
+// ── Save all changes (full edit mode) ─────────────────────────────
+function saveContact() {
+  if (!Object.keys(CHANGED).length) {
+    showToast('No changes to save', 'saving');
+    return;
+  }
+
+  showToast('Saving ' + Object.keys(CHANGED).length + ' fields…', 'saving');
+
+  // Build API data object
+  var apiData = {};
+  Object.keys(CHANGED).forEach(function(fid) {
+    var def = FIELD_MAP[fid];
+    if (def) apiData[def.api] = CHANGED[fid] || null;
+  });
+
+  if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
+    // Mock mode — update local CONTACT object
+    Object.keys(CHANGED).forEach(function(fid) {
+      var def = FIELD_MAP[fid];
+      if (def) CONTACT[def.api] = CHANGED[fid];
+    });
+    cancelEdit();
+    showToast('Saved successfully (mock mode)', 'success');
+    return;
+  }
+
+  ZOHO.CRM.API.updateRecord({
+    Entity:   'Contacts',
+    RecordID: ENTITY_ID,
+    APIData:  apiData,
+  })
+  .then(function(resp) {
+    // Update local CONTACT object with saved values
+    Object.keys(CHANGED).forEach(function(fid) {
+      var def = FIELD_MAP[fid];
+      if (def) CONTACT[def.api] = CHANGED[fid];
+    });
+    cancelEdit();
+    showToast('Contact saved successfully', 'success');
+  })
+  .catch(function(err) {
+    console.error('[ACRM] Save error:', err);
+    showToast('Save failed — please try again', 'error');
+  });
 }
 
 // ── CRM Actions ────────────────────────────────────────────────────
