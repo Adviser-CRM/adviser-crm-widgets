@@ -15,7 +15,7 @@
     // page version. If different, reloads with cache-bust param.
     // This means users get cached speed but always get latest version.
     (function() {
-      var CURRENT_VERSION = '1.6.2';
+      var CURRENT_VERSION = '1.6.3';
       var VERSION_URL     = './version.json';
 
       // Only check if not already a forced reload (avoid loops)
@@ -520,7 +520,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.6.2</div>
+<div id="vbadge">v1.6.3</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -966,7 +966,7 @@
 <div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#07385D;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#6a9bb5;font-size:10px;">v1.6.2 — share this with your developer</span>
+    <span style="color:#6a9bb5;font-size:10px;">v1.6.3 — share this with your developer</span>
     <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #2d2d44;color:#6a9bb5;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
   <div id="debug-log" style="line-height:1.8;color:#d0e4ef;"></div>
@@ -990,7 +990,7 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.6.2
+//  Adviser CRM — Contact Layout Page v1.6.3
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1743,9 +1743,33 @@ function saveContact() {
     cancelEdit();
     showToast('Contact saved successfully', 'success');
   })
+  .then(function(resp) {
+    // Check if Zoho returned an error in the data array
+    var d = resp.data && resp.data[0];
+    if (d && d.status === 'error') {
+      console.error('[ACRM] Zoho API error:', JSON.stringify(d));
+      console.error('[ACRM] Error details:', d.message, d.details);
+      showToast('Save failed: ' + (d.message || 'Unknown error'), 'error');
+      return;
+    }
+    // Success
+    Object.keys(CHANGED).forEach(function(fid) {
+      var def = FIELD_MAP[fid];
+      if (def) CONTACT[def.api] = CHANGED[fid];
+    });
+    cancelEdit();
+    showToast('Contact saved successfully', 'success');
+  })
   .catch(function(err) {
-    console.error('[ACRM] Save error:', err);
-    showToast('Save failed — please try again', 'error');
+    console.error('[ACRM] Save error:', JSON.stringify(err));
+    // Check data array for Zoho error details
+    if (err.data && err.data[0]) {
+      var d = err.data[0];
+      console.error('[ACRM] Zoho error details:', JSON.stringify(d));
+      showToast('Save failed: ' + (d.message || d.code || 'Check console for details'), 'error');
+    } else {
+      showToast('Save failed — please try again', 'error');
+    }
   });
 }
 
