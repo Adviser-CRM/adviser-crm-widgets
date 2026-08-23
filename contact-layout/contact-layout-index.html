@@ -15,7 +15,7 @@
     // page version. If different, reloads with cache-bust param.
     // This means users get cached speed but always get latest version.
     (function() {
-      var CURRENT_VERSION = '1.4.2';
+      var CURRENT_VERSION = '1.5.2';
       var VERSION_URL     = './version.json';
 
       // Only check if not already a forced reload (avoid loops)
@@ -50,18 +50,25 @@
   <style>
     /* ── Design Tokens ── */
     :root {
-      --blue:      #00ABE6;
-      --blue-dk:   #0089c0;
-      --blue-lt:   #d0eefa;
-      --blue-xlt:  #ebf7fd;
-      --navy:      #0d4b82;
-      --ink:       #1e293b;
-      --ink-mid:   #475569;
-      --muted:     #94a3b8;
-      --divider:   #e2e8f0;
-      --bg:        #f8fafc;
-      --bg-alt:    #f1f5f9;
+      /* ── Adviser CRM Brand Colours ── */
+      --blue:      #00ABE6;   /* Primary brand blue */
+      --blue-dk:   #0089b8;   /* Darker shade for hover */
+      --blue-lt:   #d0eefa;   /* Light tint */
+      --blue-xlt:  #ebf7fd;   /* Extra light for backgrounds */
+      --navy:      #07385D;   /* Alternate brand colour */
+      --navy-lt:   #0e5a8a;   /* Lighter navy for hover */
+      --navy-xlt:  #e8f0f5;   /* Very light navy tint */
+
+      /* ── UI Colours ── */
+      --ink:       #1a1a2e;   /* Primary text — dark grey (the new black) */
+      --ink-mid:   #2d2d44;   /* Secondary text — medium dark grey */
+      --muted:     #6a9bb5;   /* Muted/label text */
+      --divider:   #d0e4ef;   /* Borders and dividers */
+      --bg:        #f4f9fc;   /* Page background */
+      --bg-alt:    #e8f2f8;   /* Card headers */
       --white:     #ffffff;
+
+      /* ── Status Colours ── */
       --green:     #059669;
       --green-lt:  #d1fae5;
       --amber:     #d97706;
@@ -72,11 +79,13 @@
       --purple-lt: #ede9fe;
       --teal:      #0d9488;
       --teal-lt:   #ccfbf1;
+
+      /* ── Typography & Layout ── */
       --sans:      Verdana, Geneva, sans-serif;
       --radius:    8px;
       --radius-lg: 12px;
-      --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow:    0 1px 3px rgba(7,56,93,0.08), 0 1px 2px rgba(7,56,93,0.04);
+      --shadow-md: 0 4px 16px rgba(7,56,93,0.10);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
@@ -123,21 +132,21 @@
     /* ── Layout ── */
     .page-wrap {
       display: grid;
-      grid-template-columns: 1fr 280px;
+      grid-template-columns: 280px 1fr;
       gap: 16px;
       padding: 16px 20px 60px;
       width: 100%;
       align-items: start;
     }
-    @media (min-width:1400px) { .page-wrap { padding:20px 28px 60px; gap:20px; grid-template-columns:1fr 300px; } }
-    @media (min-width:1920px) { .page-wrap { padding:24px 36px 60px; gap:24px; grid-template-columns:1fr 310px; } }
-    @media (min-width:2560px) { .page-wrap { padding:28px 48px 80px; gap:28px; grid-template-columns:1fr 320px; } body { font-size:13px; } }
+    @media (min-width:1400px) { .page-wrap { padding:20px 28px 60px; gap:20px; grid-template-columns:300px 1fr; } }
+    @media (min-width:1920px) { .page-wrap { padding:24px 36px 60px; gap:24px; grid-template-columns:310px 1fr; } }
+    @media (min-width:2560px) { .page-wrap { padding:28px 48px 80px; gap:28px; grid-template-columns:320px 1fr; } body { font-size:13px; } }
     @media (max-width:900px)  { .page-wrap { grid-template-columns:1fr; } .sidebar { position:static; } }
 
     /* ── Hero ── */
     .hero {
       grid-column: 1 / -1;
-      background: linear-gradient(135deg, var(--navy) 0%, #1a5f9e 100%);
+      background: linear-gradient(135deg, #07385D 0%, #00ABE6 100%);
       border-radius: var(--radius-lg);
       padding: 20px 24px;
       display: flex; align-items: center;
@@ -177,10 +186,12 @@
       cursor:pointer; border:none; transition:all 0.15s;
       white-space:nowrap;
     }
-    .btn-primary { background:var(--blue); color:var(--white); }
-    .btn-primary:hover { background:var(--blue-dk); }
+    .btn-primary { background:var(--blue); color:var(--white); border:2px solid var(--blue-dk); }
+    .btn-primary:hover { background:var(--blue-dk); border-color:var(--blue-dk); }
     .btn-ghost { background:rgba(255,255,255,0.12); color:var(--white); border:1px solid rgba(255,255,255,0.2); }
     .btn-ghost:hover { background:rgba(255,255,255,0.2); }
+    .btn-call  { background:#059669; color:var(--white); border:2px solid #047857; }
+    .btn-call:hover { background:#047857; }
 
     /* ── Cards ── */
     .card {
@@ -355,7 +366,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.4.2</div>
+<div id="vbadge">v1.5.2</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -376,21 +387,102 @@
       </div>
     </div>
     <div class="hero-actions">
-      <button class="btn btn-primary" onclick="sendEmail()">✉ Email</button>
-      <button class="btn btn-ghost"   onclick="logCall()">📞 Call</button>
+      <button class="btn btn-primary" style="border:2px solid #ffffff;" onclick="sendEmail()">✉ Email</button>
+      <button class="btn btn-call" style="border:2px solid #ffffff;"   onclick="logCall()">📞 Call</button>
     </div>
   </div>
+
+  <!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
+  <div class="sidebar">
+
+    <!-- Owner / Adviser -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#07385D;color:var(--white);">👤</div>
+        <div>
+          <div class="card-title" style="color:var(--navy);">Contact Owner</div>
+        </div>
+      </div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Owner</span>
+          <span class="sidebar-row-value" id="sb-owner">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Lead Source</span>
+          <span class="sidebar-row-value" id="sb-lead-source">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Status</span>
+          <span class="sidebar-row-value" id="sb-status">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Last Activity</span>
+          <span class="sidebar-row-value" id="sb-last-activity">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">🗓</div>
+        <div>
+          <div class="card-title">Review Schedule</div>
+        </div>
+      </div>
+      <div id="review-alert-wrap"></div>
+      <div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Review Date</span>
+          <span class="sidebar-row-value" id="sb-review-date">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Account Review</span>
+          <span class="sidebar-row-value" id="sb-account-review">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Review Month</span>
+          <span class="sidebar-row-value" id="sb-review-month">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📊</div>
+        <div><div class="card-title">Quick Stats</div></div>
+      </div>
+      <div>
+
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Next Birthday</span>
+          <span class="sidebar-row-value" id="sb-birthday">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Days to Birthday</span>
+          <span class="sidebar-row-value" id="sb-days-nb">—</span>
+        </div>
+        <div class="sidebar-row">
+          <span class="sidebar-row-label">Expiry Date</span>
+          <span class="sidebar-row-value" id="sb-expiry">—</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
 
   <!-- ══ MAIN COLUMN ════════════════════════════════════════════════ -->
   <div class="main-col">
 
-    <!-- Personal Information -->
+    <!-- Contact Details -->
     <div class="card">
       <div class="card-head">
-        <div class="card-icon">👤</div>
+        <div class="card-icon">📱</div>
         <div>
-          <div class="card-title">Personal Information</div>
-          <div class="card-sub">Identity & contact details</div>
+          <div class="card-title">Contact Details</div>
+          <div class="card-sub">Communication & account information</div>
         </div>
       </div>
       <div class="card-body">
@@ -469,13 +561,13 @@
       </div>
     </div>
 
-    <!-- Contact Details -->
+    <!-- Personal Information -->
     <div class="card">
       <div class="card-head">
-        <div class="card-icon">📱</div>
+        <div class="card-icon">👤</div>
         <div>
-          <div class="card-title">Contact Details</div>
-          <div class="card-sub">Communication & account information</div>
+          <div class="card-title">Personal Information</div>
+          <div class="card-sub">Identity & contact details</div>
         </div>
       </div>
       <div class="card-body">
@@ -712,97 +804,16 @@
 
   </div><!-- /main-col -->
 
-  <!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
-  <div class="sidebar">
-
-    <!-- Owner / Adviser -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon" style="background:var(--navy);color:var(--white);">👤</div>
-        <div>
-          <div class="card-title" style="color:var(--navy);">Contact Owner</div>
-        </div>
-      </div>
-      <div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Owner</span>
-          <span class="sidebar-row-value" id="sb-owner">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Lead Source</span>
-          <span class="sidebar-row-value" id="sb-lead-source">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Status</span>
-          <span class="sidebar-row-value" id="sb-status">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Last Activity</span>
-          <span class="sidebar-row-value" id="sb-last-activity">—</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Review -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">🗓</div>
-        <div>
-          <div class="card-title">Review Schedule</div>
-        </div>
-      </div>
-      <div id="review-alert-wrap"></div>
-      <div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Review Date</span>
-          <span class="sidebar-row-value" id="sb-review-date">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Account Review</span>
-          <span class="sidebar-row-value" id="sb-account-review">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Review Month</span>
-          <span class="sidebar-row-value" id="sb-review-month">—</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📊</div>
-        <div><div class="card-title">Quick Stats</div></div>
-      </div>
-      <div>
-
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Next Birthday</span>
-          <span class="sidebar-row-value" id="sb-birthday">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Days to Birthday</span>
-          <span class="sidebar-row-value" id="sb-days-nb">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Expiry Date</span>
-          <span class="sidebar-row-value" id="sb-expiry">—</span>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /sidebar -->
-
 </div><!-- /page-wrap -->
 <!-- Debug panel — only shows if PageLoad never fires -->
-<div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
+<div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#07385D;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#94a3b8;font-size:10px;">v1.4.2 — share this with your developer</span>
-    <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #475569;color:#94a3b8;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
+    <span style="color:#6a9bb5;font-size:10px;">v1.5.2 — share this with your developer</span>
+    <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #2d2d44;color:#6a9bb5;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
-  <div id="debug-log" style="line-height:1.8;color:#e2e8f0;"></div>
-  <div style="margin-top:8px;color:#94a3b8;font-size:10px;">
+  <div id="debug-log" style="line-height:1.8;color:#d0e4ef;"></div>
+  <div style="margin-top:8px;color:#6a9bb5;font-size:10px;">
     URL: <span id="debug-url"></span>
   </div>
 </div>
@@ -811,7 +822,7 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.4.2
+//  Adviser CRM — Contact Layout Page v1.5.2
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -951,7 +962,20 @@ function populateContact(c) {
 
   // ── Hero ──
   const fullName = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
-  setEl('hero-avatar', initials(fullName));
+
+  // Contact image — use Record_Image if available, else initials
+  const avatarEl = el('hero-avatar');
+  if (avatarEl) {
+    if (c.Record_Image) {
+      avatarEl.innerHTML = '<img src="' + c.Record_Image + '" alt="' + fullName + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />';
+      avatarEl.style.background = 'transparent';
+      avatarEl.style.border = '2px solid rgba(255,255,255,0.5)';
+      avatarEl.style.padding = '0';
+      avatarEl.style.overflow = 'hidden';
+    } else {
+      avatarEl.textContent = initials(fullName);
+    }
+  }
   setEl('hero-name',   fullName || '—');
   setEl('hero-role',   [c.Title, c.Account_Name?.name].filter(Boolean).join(' · '));
 
