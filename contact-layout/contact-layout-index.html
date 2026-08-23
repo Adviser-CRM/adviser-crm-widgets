@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.8.5';
+      var CURRENT_VERSION = '1.8.7';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -138,7 +138,7 @@
     .btn-edit.active { background:var(--amber);border-color:var(--amber);color:white; }
 
     /* ── Main col ── */
-    .main-col { min-width:0;overflow:hidden; }
+    .main-col { min-width:0; }
 
     /* ── Cards ── */
     .card { background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px; }
@@ -319,7 +319,7 @@
     .overflow-tile-badge { font-size:9px;font-weight:700;color:var(--blue-dk);background:var(--blue-lt);padding:1px 6px;border-radius:20px; }
     .overflow-tile.empty .overflow-tile-badge { color:var(--muted);background:var(--bg-alt); }
     .overflow-popover-footer { padding:8px 14px;border-top:1px solid var(--divider);font-size:10px;color:var(--muted);text-align:center;background:var(--bg-alt); }
-    .tab-content-wrap { background:var(--white);border:1px solid var(--divider);border-radius:0 0 var(--radius-lg) var(--radius-lg);min-height:120px;overflow:hidden; }
+    .tab-content-wrap { background:var(--white);border:1px solid var(--divider);border-radius:0 0 var(--radius-lg) var(--radius-lg);min-height:60px; }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
     .rl-table-wrap { overflow-x:auto; }
@@ -344,7 +344,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.8.5</div>
+<div id="vbadge">v1.8.7</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -791,7 +791,7 @@
 <script>
 
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.8.5
+//  Adviser CRM — Contact Layout Page v1.8.7
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1822,7 +1822,7 @@ var TAB_ORDER    = [];  // current order (loaded from Zoho or default)
 var TAB_COUNTS   = {};  // record counts per tab
 var TAB_DATA     = {};  // loaded data per tab
 var ACTIVE_TAB   = null;
-var MAX_VISIBLE  = 5;   // max tabs before overflow
+var MAX_VISIBLE  = 5;   // max tabs before overflow — rest go in overflow popover
 var DRAG_SRC_ID  = null;
 var PREF_FIELD   = 'Tab_Layout_Contacts'; // Zoho user field API name
 
@@ -1900,13 +1900,16 @@ function renderTabBar() {
   var overflowEl = document.getElementById('overflow-grid');
   if (!barEl) return;
 
-  // Calculate how many tabs fit
-  var containerWidth = barEl.parentElement.offsetWidth - 100; // reserve space for More btn
-  var approxTabWidth = 130;
-  var maxVisible = Math.max(2, Math.floor(containerWidth / approxTabWidth));
+  // Calculate how many tabs fit based on container width
+  var containerWidth = barEl.parentElement ? barEl.parentElement.offsetWidth - 120 : 600;
+  var approxTabWidth = 140;
+  var maxVisible = Math.max(2, Math.min(MAX_VISIBLE, Math.floor(containerWidth / approxTabWidth)));
 
   var visibleIds  = TAB_ORDER.slice(0, maxVisible);
   var overflowIds = TAB_ORDER.slice(maxVisible);
+  
+  // Always show at least some in overflow if we have more than maxVisible
+  // This ensures the More button always appears when there are hidden tabs
   var hasActiveInOverflow = overflowIds.indexOf(ACTIVE_TAB) !== -1;
 
   // Render visible tabs
@@ -1971,12 +1974,12 @@ function renderTabBar() {
     barEl.appendChild(el);
   });
 
-  // Render More button
+  // Render More button — always show when there are overflow tabs
   if (overflowIds.length > 0) {
     moreBtn.style.display = 'flex';
     moreBtn.className = 'tab-more-btn' + (hasActiveInOverflow ? ' has-active' : '');
     var overflowCount = document.getElementById('overflow-count');
-    if (overflowCount) overflowCount.textContent = '+' + overflowIds.length;
+    if (overflowCount) overflowCount.textContent = '+ ' + overflowIds.length + ' more';
 
     // Render overflow grid
     if (overflowEl) {
