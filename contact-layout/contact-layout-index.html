@@ -15,7 +15,7 @@
     // page version. If different, reloads with cache-bust param.
     // This means users get cached speed but always get latest version.
     (function() {
-      var CURRENT_VERSION = '1.6.3';
+      var CURRENT_VERSION = '1.6.5';
       var VERSION_URL     = './version.json';
 
       // Only check if not already a forced reload (avoid loops)
@@ -427,6 +427,111 @@
       background: #fffbeb !important;
     }
 
+    /* Mandatory field indicator — red left border like Zoho */
+    .field-value.mandatory {
+      border-left: 3px solid #e53935 !important;
+    }
+    .field-value.mandatory.empty {
+      border-left: 3px solid #e53935 !important;
+    }
+    /* Mandatory field label asterisk */
+    .field.mandatory-field .field-label::after {
+      content: ' *';
+      color: #e53935;
+      font-weight: 700;
+    }
+    /* Mandatory error state */
+    .field-value.mandatory-error {
+      border-left: 3px solid #e53935 !important;
+      border-color: #e53935 !important;
+      background: #fff5f5 !important;
+      animation: shake 0.3s ease;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-4px); }
+      75%       { transform: translateX(4px); }
+    }
+
+    /* Validation popup */
+    .validation-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      z-index: 1001;
+      width: 380px;
+      overflow: hidden;
+    }
+    .validation-popup.show { display: block; }
+    .validation-popup-head {
+      background: #e53935;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .validation-popup-head h3 {
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .validation-popup-body {
+      padding: 16px 18px;
+    }
+    .validation-popup-body p {
+      font-size: 13px;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+    .validation-field-list {
+      list-style: none;
+      margin-bottom: 16px;
+    }
+    .validation-field-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 12px;
+      color: #e53935;
+      font-weight: 600;
+      border-bottom: 1px solid #fee2e2;
+    }
+    .validation-field-list li:last-child { border-bottom: none; }
+    .validation-field-list li::before { content: '●'; font-size: 8px; }
+    .validation-popup-footer {
+      padding: 12px 18px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .btn-validation-ok {
+      background: #e53935;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 7px;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-validation-ok:hover { background: #c62828; }
+    .validation-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    .validation-overlay.show { display: block; }
+
     /* ── Investment summary strip ── */
     .inv-strip {
       display:grid;
@@ -520,7 +625,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.6.3</div>
+<div id="vbadge">v1.6.5</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -649,16 +754,16 @@
             <div class="field-value editable" id="f-salutation">—</div>
           </div>
           <div class="field">
-            <div class="field-label">First Name</div>
-            <div class="field-value editable" id="f-first-name">—</div>
+            <div class="field-label">First Name <span style="color:#e53935;font-weight:700;">*</span></div>
+            <div class="field-value editable mandatory" id="f-first-name">—</div>
           </div>
           <div class="field">
             <div class="field-label">Middle Name</div>
             <div class="field-value editable" id="f-middle-name">—</div>
           </div>
           <div class="field">
-            <div class="field-label">Last Name</div>
-            <div class="field-value editable" id="f-last-name">—</div>
+            <div class="field-label">Last Name <span style="color:#e53935;font-weight:700;">*</span></div>
+            <div class="field-value editable mandatory" id="f-last-name">—</div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
@@ -966,7 +1071,7 @@
 <div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#07385D;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#6a9bb5;font-size:10px;">v1.6.3 — share this with your developer</span>
+    <span style="color:#6a9bb5;font-size:10px;">v1.6.5 — share this with your developer</span>
     <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #2d2d44;color:#6a9bb5;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
   <div id="debug-log" style="line-height:1.8;color:#d0e4ef;"></div>
@@ -986,11 +1091,29 @@
 <!-- Toast notification -->
 <div class="toast" id="toast"></div>
 
+<!-- Validation overlay -->
+<div class="validation-overlay" id="validation-overlay" onclick="closeValidation()"></div>
+
+<!-- Validation popup -->
+<div class="validation-popup" id="validation-popup">
+  <div class="validation-popup-head">
+    <span style="font-size:18px;">⚠</span>
+    <h3>Required Fields Missing</h3>
+  </div>
+  <div class="validation-popup-body">
+    <p>Please fill in the following required fields before saving:</p>
+    <ul class="validation-field-list" id="validation-field-list"></ul>
+  </div>
+  <div class="validation-popup-footer">
+    <button class="btn-validation-ok" onclick="closeValidation()">OK — I'll fix these</button>
+  </div>
+</div>
+
 </div><!-- /page -->
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.6.3
+//  Adviser CRM — Contact Layout Page v1.6.5
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1384,6 +1507,13 @@ function renderInvestmentSummary(investments) {
 
 // ── Field definitions for editing ─────────────────────────────────
 // Maps field element ID → Zoho API name + input type
+// Mandatory fields — must have a value before saving
+var MANDATORY_FIELDS = {
+  'f-last-name':  'Last Name',
+  'f-first-name': 'First Name',
+  'f-email':      'Email',
+};
+
 var FIELD_MAP = {
   'f-salutation':        { api:'Salutation',           type:'select',   options:['','Mr.','Mrs.','Ms.','Miss','Dr.','Prof.'] },
   'f-first-name':        { api:'First_Name',            type:'text' },
@@ -1653,7 +1783,7 @@ function enterSingleFieldEdit(fid) {
 function saveSingleField(fid, apiName, value) {
   showToast('Saving…', 'saving');
 
-  var data = {};
+  var data = { id: ENTITY_ID };
   data[apiName] = value || null;
 
   if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
@@ -1702,8 +1832,62 @@ function cancelSingleField(fid) {
   }
 }
 
+// ── Validation ────────────────────────────────────────────────────
+function validateFields() {
+  var errors = [];
+
+  Object.keys(MANDATORY_FIELDS).forEach(function(fid) {
+    var fieldEl = el(fid);
+    if (!fieldEl) return;
+
+    // Get current value — either from input inside or text content
+    var input = fieldEl.querySelector('input, select, textarea');
+    var val = input ? input.value.trim() : (CONTACT[FIELD_MAP[fid]?.api] || '').toString().trim();
+
+    if (!val || val === '—') {
+      errors.push({ fid: fid, label: MANDATORY_FIELDS[fid] });
+      // Highlight the field
+      fieldEl.classList.add('mandatory-error');
+      setTimeout(function() {
+        fieldEl.classList.remove('mandatory-error');
+      }, 2000);
+    }
+  });
+
+  return errors;
+}
+
+function showValidationPopup(errors) {
+  var list = el('validation-field-list');
+  if (list) {
+    list.innerHTML = errors.map(function(e) {
+      return '<li>' + e.label + '</li>';
+    }).join('');
+  }
+  el('validation-overlay').classList.add('show');
+  el('validation-popup').classList.add('show');
+
+  // Scroll first error field into view
+  if (errors.length > 0) {
+    var firstField = el(errors[0].fid);
+    if (firstField) firstField.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+}
+
+function closeValidation() {
+  el('validation-overlay').classList.remove('show');
+  el('validation-popup').classList.remove('show');
+}
+
 // ── Save all changes (full edit mode) ─────────────────────────────
 function saveContact() {
+  // Validate mandatory fields first
+  var errors = validateFields();
+  if (errors.length > 0) {
+    showValidationPopup(errors);
+    return;
+  }
+
   if (!Object.keys(CHANGED).length) {
     showToast('No changes to save', 'saving');
     return;
@@ -1711,8 +1895,8 @@ function saveContact() {
 
   showToast('Saving ' + Object.keys(CHANGED).length + ' fields…', 'saving');
 
-  // Build API data object
-  var apiData = {};
+  // Build API data object — id is required by Zoho API
+  var apiData = { id: ENTITY_ID };
   Object.keys(CHANGED).forEach(function(fid) {
     var def = FIELD_MAP[fid];
     if (def) apiData[def.api] = CHANGED[fid] || null;
