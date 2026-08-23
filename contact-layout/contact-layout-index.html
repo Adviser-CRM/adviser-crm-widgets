@@ -4,71 +4,43 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Client Profile — Adviser CRM</title>
-  <!-- Cache busting — forces Zoho to always fetch latest version -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <!-- Zoho Embedded App SDK — hosted locally in same folder as index.html -->
   <script>
-    // ── Version check — smart cache invalidation ──────────────────
-    // Fetches version.json from GitHub and compares with current
-    // page version. If different, reloads with cache-bust param.
-    // This means users get cached speed but always get latest version.
     (function() {
-      var CURRENT_VERSION = '1.8.1';
-      var VERSION_URL     = './version.json';
-
-      // Only check if not already a forced reload (avoid loops)
+      var CURRENT_VERSION = '1.8.5';
       var params = new URLSearchParams(window.location.search);
-      var isForced = params.has('nocache');
-
-      if (!isForced) {
-        fetch(VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' })
+      if (!params.has('nocache')) {
+        fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
           .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data.version && data.version !== CURRENT_VERSION) {
-              console.log('[ACRM] New version available: ' + data.version + ' (current: ' + CURRENT_VERSION + ') — reloading...');
-              // Reload with cache-bust — nocache param prevents reload loop
+          .then(function(d) {
+            if (d.version && d.version !== CURRENT_VERSION) {
               window.location.href = window.location.pathname + '?nocache=' + Date.now();
-            } else {
-              console.log('[ACRM] Version up to date: ' + CURRENT_VERSION);
             }
-          })
-          .catch(function() {
-            // version.json not found or fetch failed — continue normally
-            console.log('[ACRM] Version check skipped');
-          });
+          }).catch(function(){});
       }
-
-      // Load SDK dynamically with cache-bust
       var s = document.createElement('script');
-      s.src = './ZohoEmbededAppSDK.min.js' + (isForced ? '?t=' + Date.now() : '');
-      s.onerror = function() { console.log('[ACRM] SDK not found — mock mode'); };
+      s.src = './ZohoEmbededAppSDK.min.js' + (params.has('nocache') ? '?t=' + Date.now() : '');
+      s.onerror = function() { console.log('[ACRM] SDK not found'); };
       document.head.appendChild(s);
     })();
   </script>
   <style>
-    /* ── Design Tokens ── */
     :root {
-      /* ── Adviser CRM Brand Colours ── */
-      --blue:      #00ABE6;   /* Primary brand blue */
-      --blue-dk:   #0089b8;   /* Darker shade for hover */
-      --blue-lt:   #d0eefa;   /* Light tint */
-      --blue-xlt:  #ebf7fd;   /* Extra light for backgrounds */
-      --navy:      #07385D;   /* Alternate brand colour */
-      --navy-lt:   #0e5a8a;   /* Lighter navy for hover */
-      --navy-xlt:  #e8f0f5;   /* Very light navy tint */
-
-      /* ── UI Colours ── */
-      --ink:       #1a1a2e;   /* Primary text — dark grey (the new black) */
-      --ink-mid:   #2d2d44;   /* Secondary text — medium dark grey */
-      --muted:     #6a9bb5;   /* Muted/label text */
-      --divider:   #d0e4ef;   /* Borders and dividers */
-      --bg:        #f4f9fc;   /* Page background */
-      --bg-alt:    #e8f2f8;   /* Card headers */
+      --blue:      #00ABE6;
+      --blue-dk:   #0089b8;
+      --blue-lt:   #d0eefa;
+      --blue-xlt:  #ebf7fd;
+      --navy:      #07385D;
+      --navy-lt:   #0e5a8a;
+      --ink:       #1a1a2e;
+      --ink-mid:   #2d2d44;
+      --muted:     #6a9bb5;
+      --divider:   #d0e4ef;
+      --bg:        #f4f9fc;
+      --bg-alt:    #e8f2f8;
       --white:     #ffffff;
-
-      /* ── Status Colours ── */
       --green:     #059669;
       --green-lt:  #d1fae5;
       --amber:     #d97706;
@@ -79,77 +51,40 @@
       --purple-lt: #ede9fe;
       --teal:      #0d9488;
       --teal-lt:   #ccfbf1;
-
-      /* ── Typography & Layout ── */
       --sans:      Verdana, Geneva, sans-serif;
       --radius:    8px;
       --radius-lg: 12px;
-      --shadow:    0 1px 3px rgba(7,56,93,0.08), 0 1px 2px rgba(7,56,93,0.04);
+      --shadow:    0 1px 3px rgba(7,56,93,0.08);
       --shadow-md: 0 4px 16px rgba(7,56,93,0.10);
     }
-
-    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
-    html, body { height:100%; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { overflow-x: hidden; }
     body {
-      font-family: var(--sans);
-      background: var(--bg);
-      color: var(--ink);
-      font-size: 12px;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-      max-width: 100%;
+      font-family: var(--sans); background: var(--bg);
+      color: var(--ink); font-size: 12px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
     }
-
-    /* ── Version badge ── */
-    #vbadge {
-      position: fixed; top: 6px; right: 10px;
-      font-size: 10px; color: var(--muted); opacity: 0.45;
-      pointer-events: none; z-index: 999;
-    }
-
-    /* ── Loading ── */
-    #loading {
-      position: fixed; inset: 0; background: var(--bg);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 12px; z-index: 998;
-      transition: opacity 0.3s ease;
-    }
-    #loading.hidden { opacity:0; pointer-events:none; }
-    .spinner {
-      width:36px; height:36px;
-      border:3px solid var(--divider);
-      border-top-color: var(--blue);
-      border-radius:50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size:12px; color:var(--muted); }
-
-    /* ── Page ── */
+    #vbadge { position:fixed;top:6px;right:10px;font-size:10px;color:var(--muted);opacity:0.45;pointer-events:none;z-index:999; }
+    #loading { position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:998;transition:opacity 0.3s; }
+    #loading.hidden { opacity:0;pointer-events:none; }
+    .spinner { width:36px;height:36px;border:3px solid var(--divider);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
     .page { display:none; }
     .page.visible { display:block; }
 
     /* ── Layout ── */
     .page-wrap {
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 1fr 280px;
+      grid-template-rows: auto;
       gap: 16px;
       padding: 16px 20px 60px;
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
+      width: 100%; box-sizing: border-box;
       align-items: start;
-      overflow: hidden;
     }
-    @media (min-width:1400px) { .page-wrap { padding:20px 28px 60px; gap:20px; grid-template-columns:300px 1fr; } }
-    @media (min-width:1920px) { .page-wrap { padding:24px 36px 60px; gap:24px; grid-template-columns:310px 1fr; } }
-    @media (min-width:2560px) { .page-wrap { padding:28px 48px 80px; gap:28px; grid-template-columns:320px 1fr; } body { font-size:13px; } }
-    @media (max-width:900px)  { .page-wrap { grid-template-columns:1fr; } .sidebar { position:static; } }
+    @media (max-width:900px) { .page-wrap { grid-template-columns:1fr; } }
 
-    /* ── Hero ── */
+    /* ── Hero — full width ── */
     .hero {
       grid-column: 1 / -1;
       background: linear-gradient(135deg, #07385D 0%, #00ABE6 100%);
@@ -158,922 +93,271 @@
       display: flex; align-items: center;
       justify-content: space-between; gap: 20px;
       box-shadow: var(--shadow-md);
-      margin-bottom: 4px;
     }
-    .hero-left { display:flex; align-items:center; gap:16px; }
+    .hero-left { display:flex;align-items:center;gap:16px; }
     .avatar {
-      width:56px; height:56px; border-radius:50%;
-      background: rgba(255,255,255,0.15);
-      border: 2px solid rgba(255,255,255,0.3);
-      display:flex; align-items:center; justify-content:center;
-      font-size:18px; font-weight:700; color:var(--white);
-      flex-shrink:0;
+      width:56px;height:56px;border-radius:50%;
+      background:rgba(0,171,230,0.25);border:2px solid rgba(0,171,230,0.5);
+      display:flex;align-items:center;justify-content:center;
+      font-size:18px;font-weight:700;color:var(--white);flex-shrink:0;overflow:hidden;
     }
-    .hero-info { flex:1; }
-    .hero-name { font-size:20px; font-weight:700; color:var(--white); line-height:1.2; margin-bottom:3px; }
-    .hero-role { font-size:12px; color:rgba(255,255,255,0.65); margin-bottom:8px; }
-    .hero-tags { display:flex; flex-wrap:wrap; gap:6px; }
-    .tag {
-      display:inline-flex; align-items:center; gap:3px;
-      padding:3px 10px; border-radius:20px;
-      font-size:10px; font-weight:700;
-    }
-    .tag-blue   { background:rgba(0,171,230,0.25); color:#7dd3fc; border:1px solid rgba(0,171,230,0.3); }
-    .tag-green  { background:rgba(5,150,105,0.25);  color:#6ee7b7; border:1px solid rgba(5,150,105,0.3); }
-    .tag-amber  { background:rgba(217,119,6,0.25);  color:#fcd34d; border:1px solid rgba(217,119,6,0.3); }
-    .tag-red    { background:rgba(220,38,38,0.25);   color:#fca5a5; border:1px solid rgba(220,38,38,0.3); }
-    .tag-white  { background:rgba(255,255,255,0.15); color:var(--white); border:1px solid rgba(255,255,255,0.2); }
-
-    .hero-actions { display:flex; gap:8px; flex-shrink:0; }
+    .hero-name { font-size:20px;font-weight:700;color:var(--white);line-height:1.2;margin-bottom:3px; }
+    .hero-role { font-size:12px;color:rgba(255,255,255,0.65);margin-bottom:8px; }
+    .hero-tags { display:flex;flex-wrap:wrap;gap:6px; }
+    .tag { display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700; }
+    .tag-white  { background:rgba(255,255,255,0.15);color:var(--white);border:1px solid rgba(255,255,255,0.25); }
+    .tag-green  { background:rgba(5,150,105,0.3);color:#6ee7b7;border:1px solid rgba(5,150,105,0.4); }
+    .tag-amber  { background:rgba(217,119,6,0.3);color:#fcd34d;border:1px solid rgba(217,119,6,0.4); }
+    .tag-red    { background:rgba(220,38,38,0.3);color:#fca5a5;border:1px solid rgba(220,38,38,0.4); }
+    .tag-blue   { background:rgba(0,171,230,0.3);color:#7dd3fc;border:1px solid rgba(0,171,230,0.4); }
+    .hero-actions { display:flex;gap:8px;flex-shrink:0; }
     .btn {
-      display:inline-flex; align-items:center; gap:5px;
-      padding:7px 14px; border-radius:var(--radius);
-      font-family:var(--sans); font-size:11px; font-weight:700;
-      cursor:pointer; border:none; transition:all 0.15s;
-      white-space:nowrap;
+      display:inline-flex;align-items:center;gap:5px;
+      padding:7px 14px;border-radius:var(--radius);
+      font-family:var(--sans);font-size:11px;font-weight:700;
+      cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;
     }
-    .btn-primary { background:var(--blue); color:var(--white); border:2px solid var(--blue-dk); }
-    .btn-primary:hover { background:var(--blue-dk); border-color:var(--blue-dk); }
-    .btn-ghost { background:rgba(255,255,255,0.12); color:var(--white); border:1px solid rgba(255,255,255,0.2); }
-    .btn-ghost:hover { background:rgba(255,255,255,0.2); }
-    .btn-call  { background:#059669; color:var(--white); border:2px solid #047857; }
+    .btn-primary { background:var(--blue);color:var(--white); }
+    .btn-primary:hover { background:var(--blue-dk); }
+    .btn-call { background:#059669;color:var(--white); }
     .btn-call:hover { background:#047857; }
+    .btn-outline-nav {
+      display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
+      border:1.5px solid var(--blue);border-radius:var(--radius);
+      background:white;color:var(--blue);font-family:var(--sans);
+      font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;
+    }
+    .btn-outline-nav:hover { background:var(--blue);color:white; }
+    .btn-edit {
+      background:rgba(255,255,255,0.12);color:white;
+      border:2px solid rgba(255,255,255,0.4);padding:7px 14px;
+      border-radius:8px;font-family:var(--sans);font-size:11px;font-weight:700;
+      cursor:pointer;transition:all 0.15s;
+    }
+    .btn-edit:hover { background:rgba(255,255,255,0.22); }
+    .btn-edit.active { background:var(--amber);border-color:var(--amber);color:white; }
+
+    /* ── Main col ── */
+    .main-col { min-width:0;overflow:hidden; }
 
     /* ── Cards ── */
-    .card {
-      background:var(--white);
-      border:1px solid var(--divider);
-      border-radius:var(--radius-lg);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      margin-bottom:14px;
-    }
-    .card-head {
-      display:flex; align-items:center; gap:10px;
-      padding:11px 16px;
-      border-bottom:1px solid var(--divider);
-      background:var(--bg-alt);
-    }
-    .card-icon {
-      width:28px; height:28px; border-radius:7px;
-      background:var(--blue-lt);
-      display:flex; align-items:center; justify-content:center;
-      font-size:13px; flex-shrink:0;
-    }
-    .card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink); }
-    .card-sub { font-size:10px; color:var(--muted); margin-top:1px; }
+    .card { background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px; }
+    .card-head { display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--divider);background:var(--bg-alt); }
+    .card-icon { width:28px;height:28px;border-radius:7px;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0; }
+    .card-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink); }
+    .card-sub { font-size:10px;color:var(--muted);margin-top:1px; }
     .card-body { padding:14px 16px; }
 
     /* ── Field grid ── */
-    .field-grid {
-      display:grid;
-      grid-template-columns:repeat(var(--cols,2),1fr);
-      gap:10px 14px;
-    }
-    .cols-1 { --cols:1; }
-    .cols-2 { --cols:2; }
-    .cols-3 { --cols:3; }
-    .cols-4 { --cols:4; }
-    .span-2 { grid-column:span 2; }
-    .span-3 { grid-column:span 3; }
-    .span-full { grid-column:1/-1; }
-
-    .field { display:flex; flex-direction:column; gap:3px; }
-    .field-label {
-      font-size:9px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.09em;
-      color:var(--muted);
-    }
+    .field-grid { display:grid;grid-template-columns:repeat(var(--cols,2),1fr);gap:10px 14px; }
+    .cols-1{--cols:1}.cols-2{--cols:2}.cols-3{--cols:3}.cols-4{--cols:4}
+    .span-2{grid-column:span 2}.span-3{grid-column:span 3}.span-full{grid-column:1/-1}
+    .field { display:flex;flex-direction:column;gap:3px; }
+    .field-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted); }
     .field-value {
-      font-size:12px; font-weight:500; color:var(--ink);
-      padding:7px 10px; background:var(--bg);
-      border-radius:var(--radius);
-      min-height:34px; display:flex; align-items:center;
+      font-size:12px;font-weight:500;color:var(--ink);
+      padding:7px 10px;background:var(--bg);border-radius:var(--radius);
+      min-height:34px;display:flex;align-items:center;
       border:1px solid transparent;
     }
-    .field-value:hover { border-color:var(--divider); }
-    .field-value.empty { color:var(--muted); font-style:italic; }
-    .field-value a { color:var(--blue); text-decoration:none; font-weight:600; }
-    .field-value a:hover { text-decoration:underline; }
-    .field-value.multiline { align-items:flex-start; min-height:60px; }
+    .field-value.empty { color:var(--muted);font-style:italic; }
+    .field-value a { color:var(--blue);text-decoration:none;font-weight:600; }
+    .field-value.multiline { align-items:flex-start;min-height:80px; }
 
-    /* ── Status pills ── */
-    .pill {
-      display:inline-flex; align-items:center;
-      padding:2px 9px; border-radius:20px;
-      font-size:10px; font-weight:700; white-space:nowrap;
-    }
-    .pill-blue   { background:var(--blue-lt);   color:var(--blue-dk); }
-    .pill-green  { background:var(--green-lt);  color:var(--green); }
-    .pill-amber  { background:var(--amber-lt);  color:var(--amber); }
-    .pill-red    { background:var(--red-lt);    color:var(--red); }
-    .pill-purple { background:var(--purple-lt); color:var(--purple); }
-    .pill-grey   { background:var(--bg-alt);    color:var(--muted); }
+    /* ── Pills ── */
+    .pill { display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap; }
+    .pill-blue   { background:var(--blue-lt);color:var(--blue-dk); }
+    .pill-green  { background:var(--green-lt);color:var(--green); }
+    .pill-amber  { background:var(--amber-lt);color:var(--amber); }
+    .pill-red    { background:var(--red-lt);color:var(--red); }
+    .pill-grey   { background:var(--bg-alt);color:var(--muted); }
 
-    /* ── Address columns ── */
-    .addr-cols { display:grid; grid-template-columns:1fr 1fr; }
-    .addr-col { padding:14px 16px; }
-    .addr-col:first-child { border-right:1px solid var(--divider); }
-    .addr-col-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:var(--muted); margin-bottom:8px; }
-    .addr-line { display:flex; flex-direction:column; gap:2px; }
-    .addr-line span { font-size:12px; color:var(--ink); }
-    .addr-line .empty { color:var(--muted); font-style:italic; }
-
-    /* ── Edit mode ── */
-    .edit-mode-active .field-value.editable {
-      background: #ffffff;
-      border: 1.5px solid var(--blue);
-      cursor: text;
-      padding: 6px 10px;
-    }
-    .field-value.editable {
-      cursor: pointer;
-      position: relative;
-      transition: border 0.15s, background 0.15s;
-    }
-    .field-value.editable:hover {
-      border: 1.5px solid var(--blue-lt);
-      background: #ffffff;
-    }
-    .field-value.editable:hover::after {
-      content: '✎';
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 11px;
-      color: var(--blue);
-      opacity: 0.6;
-    }
-    /* Input styles inside field-value */
-    .field-value input,
-    .field-value select,
-    .field-value textarea {
-      width: 100%;
-      border: none;
-      background: transparent;
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--ink);
-      outline: none;
-      padding: 0;
-      resize: none;
-    }
-    .field-value textarea {
-      min-height: 60px;
-      line-height: 1.5;
-    }
-    .field-value select {
-      cursor: pointer;
-      -webkit-appearance: auto;
-    }
-
-    /* Edit mode toolbar */
-    .edit-toolbar {
-      display: none;
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--navy);
-      border-radius: 12px;
-      padding: 10px 16px;
-      box-shadow: 0 8px 32px rgba(7,56,93,0.3);
-      z-index: 500;
-      align-items: center;
-      gap: 10px;
-      white-space: nowrap;
-    }
-    .edit-toolbar.visible { display: flex; }
-    .edit-toolbar-label {
-      font-size: 12px;
-      color: rgba(255,255,255,0.7);
-      margin-right: 4px;
-    }
-    .edit-toolbar .changes-count {
-      font-size: 11px;
-      color: var(--blue);
-      font-weight: 700;
-    }
-    .btn-save {
-      background: var(--green);
-      color: white;
-      border: 2px solid #047857;
-      padding: 7px 18px;
-      border-radius: 8px;
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-save:hover { background: #047857; }
-    .btn-cancel-edit {
-      background: transparent;
-      color: rgba(255,255,255,0.7);
-      border: 1px solid rgba(255,255,255,0.2);
-      padding: 7px 14px;
-      border-radius: 8px;
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-cancel-edit:hover { background: rgba(255,255,255,0.1); color: white; }
-
-    /* Toast notification */
-    .toast {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-80px);
-      background: var(--navy);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      z-index: 1000;
-      transition: transform 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-    .toast.success { border-left: 4px solid var(--green); }
-    .toast.error   { border-left: 4px solid var(--red); }
-    .toast.saving  { border-left: 4px solid var(--blue); }
-
-    /* Edit button in hero */
-    /* Manage nav buttons */
-    .btn-outline-nav {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 12px;
-      border: 1.5px solid var(--blue);
-      border-radius: var(--radius);
-      background: white;
-      color: var(--blue);
-      font-family: var(--sans);
-      font-size: 11px; font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-    .btn-outline-nav:hover {
-      background: var(--blue);
-      color: white;
-    }
-
-    .btn-edit {
-      background: rgba(255,255,255,0.12);
-      color: white;
-      border: 2px solid rgba(255,255,255,0.4);
-      padding: 7px 14px;
-      border-radius: 8px;
-      font-family: var(--sans);
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-edit:hover { background: rgba(255,255,255,0.22); }
-    .btn-edit.active {
-      background: var(--amber);
-      border-color: var(--amber);
-      color: white;
-    }
-
-    /* Field changed indicator */
-    .field-value.changed {
-      border-color: var(--amber) !important;
-      background: #fffbeb !important;
-    }
-
-    /* ── Inline edit controls ── */
-    .field-value.editable {
-      cursor: default !important;  /* No longer click-to-edit directly */
-      position: relative;
-    }
-    .field-value.editable:hover { border-color: transparent !important; }
-
-    /* Pencil icon shown on hover */
-    .field-wrap {
-      position: relative;
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-    }
-    .field-wrap .field-value {
-      flex: 1;
-    }
+    /* ── Inline edit ── */
+    .field-wrap { position:relative;display:flex;align-items:flex-start;gap:6px; }
+    .field-wrap .field-value { flex:1; }
     .pencil-btn {
-      opacity: 0;
-      flex-shrink: 0;
-      width: 28px; height: 28px;
-      border: 1.5px solid #07385D;
-      border-radius: 6px;
-      background: #07385D;
-      color: #ffffff;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: 3px;
-      transition: all 0.15s;
-      box-shadow: 0 2px 8px rgba(7,56,93,0.4);
+      opacity:0;flex-shrink:0;width:28px;height:28px;
+      border:1.5px solid #07385D;border-radius:6px;
+      background:#07385D;color:#ffffff;font-size:14px;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      margin-top:3px;transition:all 0.15s;box-shadow:0 2px 8px rgba(7,56,93,0.4);
     }
-    .pencil-btn:hover {
-      background: var(--blue);
-      border-color: var(--blue);
-      transform: scale(1.1);
-      box-shadow: 0 3px 12px rgba(0,171,230,0.5);
+    .pencil-btn:hover { background:var(--blue);border-color:var(--blue);transform:scale(1.1); }
+    .field-wrap:hover .pencil-btn { opacity:1; }
+    .field-wrap:hover .field-value { border-color:var(--blue-lt)!important;background:white!important; }
+    .field-value.editing { border:1.5px solid var(--blue)!important;background:white!important;padding:0!important; }
+    .inline-edit-wrap { display:flex;align-items:center;gap:4px;width:100%; }
+    .inline-edit-wrap input,.inline-edit-wrap select,.inline-edit-wrap textarea {
+      flex:1;border:none;background:transparent;font-family:var(--sans);
+      font-size:12px;font-weight:500;color:var(--ink);outline:none;padding:7px 8px;
     }
-    .field-wrap:hover .pencil-btn {
-      opacity: 1;
-    }
-    .field-wrap:hover .field-value {
-      border-color: var(--blue-lt) !important;
-      background: white !important;
-    }
+    .inline-edit-wrap textarea { min-height:60px;resize:none;line-height:1.5; }
+    .inline-edit-actions { display:flex;flex-direction:row;gap:4px;padding:0 4px;flex-shrink:0;align-items:center; }
+    .inline-tick,.inline-cross { width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all 0.15s;flex-shrink:0; }
+    .inline-tick { background:var(--green);color:white; }
+    .inline-tick:hover { background:#047857;transform:scale(1.1); }
+    .inline-cross { background:#fee2e2;color:var(--red);border:1px solid #fca5a5; }
+    .inline-cross:hover { background:var(--red);color:white;transform:scale(1.1); }
+    .field-value.mandatory { border-left:3px solid #e53935!important; }
+    .field-value.changed { border-color:var(--amber)!important;background:#fffbeb!important; }
+    .field-value.mandatory-error { border-left:3px solid #e53935!important;border-color:#e53935!important;background:#fff5f5!important;animation:shake 0.3s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)} }
 
-    /* Inline edit input with tick/cross */
-    .field-value.editing {
-      border: 1.5px solid var(--blue) !important;
-      background: white !important;
-      padding: 0 !important;
-      cursor: text;
-    }
-    .inline-edit-wrap {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      width: 100%;
-    }
-    .inline-edit-wrap input,
-    .inline-edit-wrap select,
-    .inline-edit-wrap textarea {
-      flex: 1;
-      border: none;
-      background: transparent;
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--ink);
-      outline: none;
-      padding: 7px 8px;
-      width: 100%;
-    }
-    .inline-edit-wrap textarea {
-      min-height: 60px;
-      resize: none;
-      line-height: 1.5;
-    }
-    .inline-edit-actions {
-      display: flex;
-      flex-direction: row;
-      gap: 4px;
-      padding: 0 4px 0 4px;
-      flex-shrink: 0;
-      align-items: center;
-    }
-    .inline-tick, .inline-cross {
-      width: 26px; height: 26px;
-      border-radius: 50%;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      transition: all 0.15s;
-      flex-shrink: 0;
-    }
-    .inline-tick {
-      background: var(--green);
-      color: white;
-    }
-    .inline-tick:hover { background: #047857; transform: scale(1.1); }
-    .inline-cross {
-      background: #fee2e2;
-      color: var(--red);
-      border: 1px solid #fca5a5;
-    }
-    .inline-cross:hover { background: var(--red); color: white; transform: scale(1.1); }
+    /* ── Edit toolbar ── */
+    .edit-toolbar { display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);border-radius:12px;padding:10px 16px;box-shadow:0 8px 32px rgba(7,56,93,0.3);z-index:500;align-items:center;gap:10px;white-space:nowrap; }
+    .edit-toolbar.visible { display:flex; }
+    .edit-toolbar-label { font-size:12px;color:rgba(255,255,255,0.7); }
+    .changes-count { font-size:11px;color:var(--blue);font-weight:700; }
+    .btn-save { background:var(--green);color:white;border:2px solid #047857;padding:7px 18px;border-radius:8px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer; }
+    .btn-save:hover { background:#047857; }
+    .btn-cancel-edit { background:transparent;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);padding:7px 14px;border-radius:8px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer; }
+    .btn-cancel-edit:hover { background:rgba(255,255,255,0.1);color:white; }
 
-    /* Mandatory field indicator — red left border like Zoho */
-    .field-value.mandatory {
-      border-left: 3px solid #e53935 !important;
-    }
-    .field-value.mandatory.empty {
-      border-left: 3px solid #e53935 !important;
-    }
-    /* Mandatory field label asterisk */
-    .field.mandatory-field .field-label::after {
-      content: ' *';
-      color: #e53935;
-      font-weight: 700;
-    }
-    /* Mandatory error state */
-    .field-value.mandatory-error {
-      border-left: 3px solid #e53935 !important;
-      border-color: #e53935 !important;
-      background: #fff5f5 !important;
-      animation: shake 0.3s ease;
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25%       { transform: translateX(-4px); }
-      75%       { transform: translateX(4px); }
-    }
+    /* ── Toast ── */
+    .toast { position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--navy);color:white;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:1000;transition:transform 0.3s ease;display:flex;align-items:center;gap:8px; }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.success { border-left:4px solid var(--green); }
+    .toast.error   { border-left:4px solid var(--red); }
+    .toast.saving  { border-left:4px solid var(--blue); }
 
-    /* Validation popup */
-    .validation-popup {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-      z-index: 1001;
-      width: 380px;
-      overflow: hidden;
-    }
-    .validation-popup.show { display: block; }
-    .validation-popup-head {
-      background: #e53935;
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .validation-popup-head h3 {
-      color: white;
-      font-size: 14px;
-      font-weight: 700;
-      margin: 0;
-    }
-    .validation-popup-body {
-      padding: 16px 18px;
-    }
-    .validation-popup-body p {
-      font-size: 13px;
-      color: #475569;
-      margin-bottom: 12px;
-    }
-    .validation-field-list {
-      list-style: none;
-      margin-bottom: 16px;
-    }
-    .validation-field-list li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 0;
-      font-size: 12px;
-      color: #e53935;
-      font-weight: 600;
-      border-bottom: 1px solid #fee2e2;
-    }
-    .validation-field-list li:last-child { border-bottom: none; }
-    .validation-field-list li::before { content: '●'; font-size: 8px; }
-    .validation-popup-footer {
-      padding: 12px 18px;
-      border-top: 1px solid #e2e8f0;
-      display: flex;
-      justify-content: flex-end;
-    }
-    .btn-validation-ok {
-      background: #e53935;
-      color: white;
-      border: none;
-      padding: 8px 20px;
-      border-radius: 7px;
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .btn-validation-ok:hover { background: #c62828; }
-    .validation-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.3);
-      z-index: 1000;
-    }
-    .validation-overlay.show { display: block; }
+    /* ── Validation popup ── */
+    .validation-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:1000; }
+    .validation-overlay.show { display:block; }
+    .validation-popup { display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1001;width:380px;overflow:hidden; }
+    .validation-popup.show { display:block; }
+    .validation-popup-head { background:#e53935;padding:14px 18px;display:flex;align-items:center;gap:10px; }
+    .validation-popup-head h3 { color:white;font-size:14px;font-weight:700;margin:0; }
+    .validation-popup-body { padding:16px 18px; }
+    .validation-popup-body p { font-size:13px;color:#475569;margin-bottom:12px; }
+    .validation-field-list { list-style:none;margin-bottom:16px; }
+    .validation-field-list li { display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:#e53935;font-weight:600;border-bottom:1px solid #fee2e2; }
+    .validation-field-list li:last-child { border-bottom:none; }
+    .validation-field-list li::before { content:"●";font-size:8px; }
+    .validation-popup-footer { padding:12px 18px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end; }
+    .btn-validation-ok { background:#e53935;color:white;border:none;padding:8px 20px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer; }
 
-    /* ══ Related Lists Tab System ══════════════════════════════════ */
+    /* ── Cover strip ── */
+    .cover-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0; }
+    .cover-item { padding:12px 14px;border-right:1px solid var(--divider);text-align:center; }
+    .cover-item:last-child { border-right:none; }
+    .cover-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px; }
+    .cover-value { font-size:15px;font-weight:700;color:var(--navy); }
+    .cover-value.nil { color:var(--muted);font-size:12px; }
 
-    /* Tab container */
-    .related-lists-section {
-      margin-bottom: 14px;
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-    .main-col {
-      min-width: 0;
-      overflow: hidden;
-    }
-    .related-lists-header {
-      display: flex; align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .related-lists-title {
-      font-size: 11px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--muted);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .related-lists-actions {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .rl-reset-btn {
-      font-size: 10px; color: var(--muted);
-      background: none; border: none; cursor: pointer;
-      font-family: var(--sans);
-      padding: 3px 8px; border-radius: 4px;
-    }
-    .rl-reset-btn:hover { color: var(--blue); background: var(--blue-xlt); }
-
-    /* Tab bar wrapper */
-    .tab-bar-wrap {
-      background: var(--white);
-      border: 1px solid var(--divider);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      border-bottom: none;
-      display: flex; align-items: stretch;
-      overflow: hidden;
-      position: relative;
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-
-    /* Tab bar scroll container */
-    .tab-bar {
-      display: flex; align-items: stretch;
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-      min-width: 0;
-    }
-
-    /* Individual tab */
-    .rl-tab {
-      display: flex; align-items: center; gap: 6px;
-      padding: 10px 14px;
-      font-size: 11px; font-weight: 600;
-      color: var(--ink-mid);
-      cursor: pointer;
-      border-right: 1px solid var(--divider);
-      border-bottom: 2px solid transparent;
-      white-space: nowrap;
-      transition: all 0.15s;
-      user-select: none;
-      position: relative;
-      flex-shrink: 0;
-    }
-    .rl-tab:hover {
-      background: var(--blue-xlt);
-      color: var(--blue);
-    }
-    .rl-tab.active {
-      background: var(--white);
-      color: var(--blue);
-      border-bottom: 2px solid var(--blue);
-      font-weight: 700;
-    }
-    .rl-tab.empty {
-      color: var(--muted);
-      opacity: 0.6;
-    }
-    .rl-tab.dragging {
-      opacity: 0.4;
-      background: var(--blue-lt);
-    }
-    .rl-tab.drag-over {
-      border-left: 2px solid var(--blue);
-    }
-
-    /* Tab count badge */
-    .tab-badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      min-width: 18px; height: 18px;
-      padding: 0 5px;
-      background: var(--blue-lt);
-      color: var(--blue-dk);
-      border-radius: 20px;
-      font-size: 10px; font-weight: 700;
-    }
-    .rl-tab.active .tab-badge {
-      background: var(--blue);
-      color: var(--white);
-    }
-    .rl-tab.empty .tab-badge {
-      background: var(--bg-alt);
-      color: var(--muted);
-    }
-
-    /* Tab icon */
-    .tab-icon { font-size: 13px; }
-
-    /* More button */
-    .tab-more-btn {
-      display: flex; align-items: center; gap: 4px;
-      padding: 10px 14px;
-      font-size: 11px; font-weight: 700;
-      color: var(--ink-mid);
-      cursor: pointer;
-      background: var(--bg-alt);
-      border-left: 1px solid var(--divider);
-      white-space: nowrap;
-      flex-shrink: 0;
-      border-bottom: 2px solid transparent;
-    }
-    .tab-more-btn:hover { color: var(--blue); background: var(--blue-xlt); }
-    .tab-more-btn.has-active {
-      color: var(--blue);
-      border-bottom: 2px solid var(--blue);
-    }
-
-    /* Overflow popover */
-    .tab-overflow-popover {
-      display: none;
-      position: absolute;
-      top: calc(100% + 4px);
-      right: 0;
-      background: var(--white);
-      border: 1px solid var(--divider);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
-      z-index: 200;
-      width: 320px;
-      overflow: hidden;
-    }
-    .tab-overflow-popover.show { display: block; }
-    .overflow-popover-head {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--divider);
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--muted);
-      background: var(--bg-alt);
-    }
-    .overflow-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0;
-      padding: 8px;
-    }
-    .overflow-tile {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 10px 6px;
-      border-radius: var(--radius);
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.15s;
-      gap: 4px;
-    }
-    .overflow-tile:hover { background: var(--blue-xlt); }
-    .overflow-tile.active { background: var(--blue-lt); }
-    .overflow-tile-icon { font-size: 20px; }
-    .overflow-tile-name {
-      font-size: 10px; font-weight: 600;
-      color: var(--ink-mid); line-height: 1.2;
-    }
-    .overflow-tile-badge {
-      font-size: 9px; font-weight: 700;
-      color: var(--blue-dk);
-      background: var(--blue-lt);
-      padding: 1px 6px; border-radius: 20px;
-    }
-    .overflow-tile.empty .overflow-tile-badge {
-      color: var(--muted); background: var(--bg-alt);
-    }
-    .overflow-popover-footer {
-      padding: 8px 14px;
-      border-top: 1px solid var(--divider);
-      font-size: 10px; color: var(--muted);
-      text-align: center;
-      background: var(--bg-alt);
-    }
-
-    /* Tab content panel */
-    .tab-content-wrap {
-      background: var(--white);
-      border: 1px solid var(--divider);
-      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-      min-height: 120px;
-      overflow: hidden;
-    }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    /* Related list table */
-    .rl-table-wrap { overflow-x: auto; }
-    .rl-table {
-      width: 100%; border-collapse: collapse;
-    }
-    .rl-table th {
-      padding: 8px 14px;
-      font-size: 9px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--muted); text-align: left;
-      border-bottom: 1px solid var(--divider);
-      white-space: nowrap;
-      background: var(--bg-alt);
-    }
-    .rl-table td {
-      padding: 9px 14px;
-      font-size: 12px; color: var(--ink-mid);
-      border-bottom: 1px solid var(--divider);
-      vertical-align: middle;
-    }
-    .rl-table tr:last-child td { border-bottom: none; }
-    .rl-table tr:hover td { background: var(--blue-xlt); cursor: pointer; }
-    .rl-table .td-primary { font-weight: 700; color: var(--ink); }
-    .rl-table .td-link { color: var(--blue); font-weight: 600; cursor: pointer; }
-    .rl-table .td-link:hover { text-decoration: underline; }
-
-    /* Tab panel header */
-    .tab-panel-head {
-      display: flex; align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--divider);
-      background: var(--bg-alt);
-    }
-    .tab-panel-title {
-      font-size: 12px; font-weight: 700;
-      color: var(--ink);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .tab-panel-actions { display: flex; gap: 6px; }
-    .btn-rl-new {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 4px 10px;
-      background: var(--blue); color: var(--white);
-      border: none; border-radius: var(--radius);
-      font-family: var(--sans); font-size: 11px; font-weight: 700;
-      cursor: pointer; transition: all 0.15s;
-    }
-    .btn-rl-new:hover { background: var(--blue-dk); }
-    .btn-rl-viewall {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 4px 10px;
-      background: var(--white); color: var(--blue);
-      border: 1.5px solid var(--blue);
-      border-radius: var(--radius);
-      font-family: var(--sans); font-size: 11px; font-weight: 700;
-      cursor: pointer; transition: all 0.15s;
-    }
-    .btn-rl-viewall:hover { background: var(--blue); color: var(--white); }
-
-    /* Empty state */
-    .rl-empty {
-      text-align: center; padding: 32px 20px;
-      color: var(--muted); font-size: 12px;
-    }
-    .rl-empty-icon { font-size: 28px; margin-bottom: 8px; }
-
-    /* Loading state */
-    .rl-loading {
-      display: flex; align-items: center; gap: 10px;
-      padding: 20px 14px;
-      color: var(--muted); font-size: 12px;
-    }
-
-    /* Drag handle hint */
-    .rl-tab::before {
-      content: '⠿';
-      font-size: 10px;
-      color: var(--divider);
-      margin-right: 2px;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-    .rl-tab:hover::before { opacity: 1; }
+    /* ── Life Policies inline list ── */
+    .lp-table { width:100%;border-collapse:collapse; }
+    .lp-table th { padding:7px 14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:left;border-bottom:1px solid var(--divider);white-space:nowrap; }
+    .lp-table td { padding:9px 14px;font-size:11px;color:var(--ink-mid);border-bottom:1px solid var(--divider);vertical-align:middle; }
+    .lp-table tr:last-child td { border-bottom:none; }
+    .lp-table tr:hover td { background:var(--blue-xlt);cursor:pointer; }
+    .lp-table .td-name { font-weight:700;color:var(--ink); }
+    .lp-pill-active { display:inline-flex;padding:2px 8px;background:var(--green-lt);color:var(--green);border-radius:20px;font-size:9px;font-weight:700; }
 
     /* ── Investment summary strip ── */
-    .inv-strip {
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-      gap:0;
-    }
-    .inv-item {
-      padding:12px 14px;
-      border-right:1px solid var(--divider);
-      text-align:center;
-    }
+    .inv-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0; }
+    .inv-item { padding:12px 14px;border-right:1px solid var(--divider);text-align:center; }
     .inv-item:last-child { border-right:none; }
-    .inv-label {
-      font-size:9px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.08em;
-      color:var(--muted); margin-bottom:4px;
-    }
-    .inv-value {
-      font-size:15px; font-weight:700; color:var(--teal);
-    }
-    .inv-value.nil { color:var(--muted); font-size:12px; font-style:italic; font-weight:400; }
-    .inv-type {
-      font-size:9px; color:var(--muted); margin-top:2px;
-    }
-    .inv-loading { color:var(--muted); font-size:11px; padding:16px; text-align:center; }
-
-    /* ── Cover/financial summary strip ── */
-    .cover-strip {
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-      gap:0;
-    }
-    .cover-item {
-      padding:12px 14px;
-      border-right:1px solid var(--divider);
-      text-align:center;
-    }
-    .cover-item:last-child { border-right:none; }
-    .cover-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:4px; }
-    .cover-value { font-size:15px; font-weight:700; color:var(--navy); }
-    .cover-value.nil { color:var(--muted); font-size:12px; }
-
-    /* ── Sidebar ── */
-    .sidebar { position:sticky; top:16px; }
-    .sidebar .card { margin-bottom:12px; }
-
-    .sidebar-section-label {
-      font-size:9px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.1em;
-      color:var(--muted); padding:10px 14px 4px;
-    }
-    .sidebar-row {
-      display:flex; align-items:flex-start;
-      justify-content:space-between; gap:8px;
-      padding:8px 14px;
-      border-bottom:1px solid var(--divider);
-      font-size:11px;
-    }
-    .sidebar-row:last-child { border-bottom:none; }
-    .sidebar-row-label { color:var(--muted); flex-shrink:0; white-space:nowrap; }
-    .sidebar-row-value { color:var(--ink); font-weight:600; text-align:right; }
-
-    .review-alert {
-      background:var(--amber-lt);
-      border:1px solid var(--amber);
-      border-radius:var(--radius);
-      padding:10px 14px;
-      margin:10px 14px;
-      font-size:11px;
-      color:var(--amber);
-      font-weight:700;
-      display:flex; align-items:center; gap:6px;
-    }
-
-
-
-    .empty-state { text-align:center; padding:24px 16px; color:var(--muted); font-size:12px; }
-    .empty-icon { font-size:24px; margin-bottom:6px; }
+    .inv-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px; }
+    .inv-value { font-size:15px;font-weight:700;color:var(--teal); }
+    .inv-value.nil { color:var(--muted);font-size:12px;font-style:italic;font-weight:400; }
+    .inv-type { font-size:9px;color:var(--muted);margin-top:2px; }
 
     /* ── Multiselect tags ── */
-    .ms-tags { display:flex; flex-wrap:wrap; gap:4px; }
-    .ms-tag {
-      display:inline-flex; padding:2px 8px; border-radius:20px;
-      font-size:10px; font-weight:700;
-      background:var(--blue-lt); color:var(--blue-dk);
-    }
+    .ms-tags { display:flex;flex-wrap:wrap;gap:4px; }
+    .ms-tag { display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--blue-lt);color:var(--blue-dk); }
 
-    /* ── Section divider ── */
-    .section-gap { margin-bottom:14px; }
+    /* ── Address ── */
+    .addr-cols { display:grid;grid-template-columns:1fr 1fr; }
+    .addr-col { padding:14px 16px; }
+    .addr-col:first-child { border-right:1px solid var(--divider); }
+    .addr-col-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);margin-bottom:8px; }
+    .addr-line { display:flex;flex-direction:column;gap:2px; }
+    .addr-line span { font-size:12px;color:var(--ink); }
+    .addr-line .empty { color:var(--muted);font-style:italic; }
+
+    /* ── Sidebar ── */
+    .sidebar { position:sticky;top:16px;min-width:0; }
+    .sidebar .card { margin-bottom:12px; }
+    .sidebar-row { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:9px 14px;border-bottom:1px solid var(--divider);font-size:11px; }
+    .sidebar-row:last-child { border-bottom:none; }
+    .sidebar-row-label { color:var(--muted);flex-shrink:0;white-space:nowrap; }
+    .sidebar-row-value { color:var(--ink);font-weight:600;text-align:right; }
+    .review-alert { background:var(--amber-lt);border:1px solid var(--amber);border-radius:var(--radius);padding:10px 14px;margin:10px 14px;font-size:11px;color:var(--amber);font-weight:700;display:flex;align-items:center;gap:6px; }
+
+    /* ══ Related Lists Tab System ══ */
+    .related-lists-section { margin-bottom:14px;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden; }
+    .related-lists-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
+    .related-lists-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:flex;align-items:center;gap:8px; }
+    .rl-reset-btn { font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--sans);padding:3px 8px;border-radius:4px; }
+    .rl-reset-btn:hover { color:var(--blue);background:var(--blue-xlt); }
+    .tab-bar-wrap { background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0;border-bottom:none;display:flex;align-items:stretch;overflow:hidden;position:relative;width:100%;max-width:100%;box-sizing:border-box; }
+    .tab-bar { display:flex;align-items:stretch;flex:1;overflow:hidden;position:relative;min-width:0; }
+    .rl-tab { display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:11px;font-weight:600;color:var(--ink-mid);cursor:pointer;border-right:1px solid var(--divider);border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;user-select:none;position:relative;flex-shrink:0; }
+    .rl-tab:hover { background:var(--blue-xlt);color:var(--blue); }
+    .rl-tab.active { background:var(--white);color:var(--blue);border-bottom:2px solid var(--blue);font-weight:700; }
+    .rl-tab.empty { color:var(--muted);opacity:0.6; }
+    .rl-tab.dragging { opacity:0.4;background:var(--blue-lt); }
+    .rl-tab.drag-over { border-left:2px solid var(--blue); }
+    .rl-tab::before { content:"⠿";font-size:10px;color:var(--divider);margin-right:2px;opacity:0;transition:opacity 0.15s; }
+    .rl-tab:hover::before { opacity:1; }
+    .tab-badge { display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:var(--blue-lt);color:var(--blue-dk);border-radius:20px;font-size:10px;font-weight:700; }
+    .rl-tab.active .tab-badge { background:var(--blue);color:var(--white); }
+    .rl-tab.empty .tab-badge { background:var(--bg-alt);color:var(--muted); }
+    .tab-icon { font-size:13px; }
+    .tab-more-btn { display:flex;align-items:center;gap:4px;padding:10px 14px;font-size:11px;font-weight:700;color:var(--ink-mid);cursor:pointer;background:var(--bg-alt);border-left:1px solid var(--divider);white-space:nowrap;flex-shrink:0;border-bottom:2px solid transparent; }
+    .tab-more-btn:hover { color:var(--blue);background:var(--blue-xlt); }
+    .tab-more-btn.has-active { color:var(--blue);border-bottom:2px solid var(--blue); }
+    .tab-overflow-popover { display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);z-index:200;width:320px;overflow:hidden; }
+    .tab-overflow-popover.show { display:block; }
+    .overflow-popover-head { padding:10px 14px;border-bottom:1px solid var(--divider);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);background:var(--bg-alt); }
+    .overflow-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:8px; }
+    .overflow-tile { display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;border-radius:var(--radius);cursor:pointer;text-align:center;transition:all 0.15s;gap:4px; }
+    .overflow-tile:hover { background:var(--blue-xlt); }
+    .overflow-tile.active { background:var(--blue-lt); }
+    .overflow-tile-icon { font-size:20px; }
+    .overflow-tile-name { font-size:10px;font-weight:600;color:var(--ink-mid);line-height:1.2; }
+    .overflow-tile-badge { font-size:9px;font-weight:700;color:var(--blue-dk);background:var(--blue-lt);padding:1px 6px;border-radius:20px; }
+    .overflow-tile.empty .overflow-tile-badge { color:var(--muted);background:var(--bg-alt); }
+    .overflow-popover-footer { padding:8px 14px;border-top:1px solid var(--divider);font-size:10px;color:var(--muted);text-align:center;background:var(--bg-alt); }
+    .tab-content-wrap { background:var(--white);border:1px solid var(--divider);border-radius:0 0 var(--radius-lg) var(--radius-lg);min-height:120px;overflow:hidden; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .rl-table-wrap { overflow-x:auto; }
+    .rl-table { width:100%;border-collapse:collapse; }
+    .rl-table th { padding:8px 14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:left;border-bottom:1px solid var(--divider);white-space:nowrap;background:var(--bg-alt); }
+    .rl-table td { padding:9px 14px;font-size:12px;color:var(--ink-mid);border-bottom:1px solid var(--divider);vertical-align:middle; }
+    .rl-table tr:last-child td { border-bottom:none; }
+    .rl-table tr:hover td { background:var(--blue-xlt);cursor:pointer; }
+    .rl-table .td-primary { font-weight:700;color:var(--ink); }
+    .tab-panel-head { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--divider);background:var(--bg-alt); }
+    .tab-panel-title { font-size:12px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px; }
+    .tab-panel-actions { display:flex;gap:6px; }
+    .btn-rl-new { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--blue);color:var(--white);border:none;border-radius:var(--radius);font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer; }
+    .btn-rl-new:hover { background:var(--blue-dk); }
+    .btn-rl-viewall { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--white);color:var(--blue);border:1.5px solid var(--blue);border-radius:var(--radius);font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer; }
+    .btn-rl-viewall:hover { background:var(--blue);color:var(--white); }
+    .rl-empty { text-align:center;padding:32px 20px;color:var(--muted);font-size:12px; }
+    .rl-empty-icon { font-size:28px;margin-bottom:8px; }
+    .rl-loading { display:flex;align-items:center;gap:10px;padding:20px 14px;color:var(--muted);font-size:12px; }
+    .empty-state { text-align:center;padding:24px 16px;color:var(--muted);font-size:12px; }
   </style>
 </head>
 <body>
 
-<div id="vbadge">v1.8.1</div>
-
+<div id="vbadge">v1.8.5</div>
 <div id="loading">
   <div class="spinner"></div>
-  <div class="loading-text">Loading client profile…</div>
+  <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
 </div>
 
 <div class="page" id="main-page">
 <div class="page-wrap">
 
-  <!-- ══ HERO ══════════════════════════════════════════════════════ -->
+  <!-- ══ HERO — full width (grid-column: 1/-1) ══════════════════════ -->
   <div class="hero">
     <div class="hero-left">
       <div class="avatar" id="hero-avatar">?</div>
-      <div class="hero-info">
+      <div>
         <div class="hero-name" id="hero-name">Loading…</div>
         <div class="hero-role" id="hero-role"></div>
         <div class="hero-tags" id="hero-tags"></div>
@@ -1081,159 +365,78 @@
     </div>
     <div class="hero-actions">
       <button class="btn btn-primary" style="border:2px solid #ffffff;" onclick="sendEmail()">✉ Email</button>
-      <button class="btn btn-call" style="border:2px solid #ffffff;"   onclick="logCall()">📞 Call</button>
-    
+      <button class="btn btn-call"    style="border:2px solid #ffffff;" onclick="logCall()">📞 Call</button>
       <button class="btn-edit" id="edit-toggle-btn" onclick="toggleEditMode()">✎ Edit</button>
     </div>
   </div>
 
-  <!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
-  <div class="sidebar">
+  <!-- ══ MAIN COLUMN (left, wide) ══════════════════════════════════ -->
+  <div class="main-col">
 
-    <!-- Owner / Adviser -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon" style="background:#07385D;color:var(--white);">👤</div>
-        <div>
-          <div class="card-title" style="color:var(--navy);">Contact Owner</div>
+    <!-- ══ RELATED LISTS TAB SYSTEM ═══════════════════════════════ -->
+    <div class="related-lists-section" id="related-lists-section">
+      <div class="related-lists-header">
+        <div class="related-lists-title">
+          📋 Related Information
+          <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">Drag tabs to reorder</span>
+        </div>
+        <button class="rl-reset-btn" onclick="resetTabOrder()">↺ Reset Layout</button>
+      </div>
+      <div class="tab-bar-wrap" id="tab-bar-wrap" style="position:relative;">
+        <div class="tab-bar" id="tab-bar"></div>
+        <div class="tab-more-btn" id="tab-more-btn" onclick="toggleOverflow(event)" style="display:none;">⋯ More <span id="overflow-count"></span></div>
+        <div class="tab-overflow-popover" id="tab-overflow-popover">
+          <div class="overflow-popover-head">All Related Lists</div>
+          <div class="overflow-grid" id="overflow-grid"></div>
+          <div class="overflow-popover-footer">💡 Drag tabs to reorder your favourites</div>
         </div>
       </div>
-      <div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Owner</span>
-          <span class="sidebar-row-value" id="sb-owner">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Lead Source</span>
-          <span class="sidebar-row-value" id="sb-lead-source">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Status</span>
-          <span class="sidebar-row-value" id="sb-status">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Last Activity</span>
-          <span class="sidebar-row-value" id="sb-last-activity">—</span>
-        </div>
-      </div>
+      <div class="tab-content-wrap" id="tab-content-wrap"></div>
     </div>
-
-    <!-- Review -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">🗓</div>
-        <div>
-          <div class="card-title">Review Schedule</div>
-        </div>
-      </div>
-      <div id="review-alert-wrap"></div>
-      <div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Review Date</span>
-          <span class="sidebar-row-value" id="sb-review-date">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Account Review</span>
-          <span class="sidebar-row-value" id="sb-account-review">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Review Month</span>
-          <span class="sidebar-row-value" id="sb-review-month">—</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📊</div>
-        <div><div class="card-title">Quick Stats</div></div>
-      </div>
-      <div>
-
-        <!-- Hidden but referenced by JS for calculations -->
-        <div class="sidebar-row" style="display:none;" id="row-birthday">
-          <span class="sidebar-row-label">Next Birthday</span>
-          <span class="sidebar-row-value" id="sb-birthday">—</span>
-        </div>
-        <div class="sidebar-row" style="display:none;" id="row-days-nb">
-          <span class="sidebar-row-label">Days to Birthday</span>
-          <span class="sidebar-row-value" id="sb-days-nb">—</span>
-        </div>
-        <div class="sidebar-row">
-          <span class="sidebar-row-label">Expiry Date</span>
-          <span class="sidebar-row-value" id="sb-expiry">—</span>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /sidebar -->
-
-  <!-- ══ MAIN COLUMN ════════════════════════════════════════════════ -->
-  <div class="main-col" style="min-width:0;overflow:hidden;">
 
     <!-- Personal Information -->
     <div class="card">
       <div class="card-head">
-        <div class="card-icon">📱</div>
+        <div class="card-icon">👤</div>
         <div>
           <div class="card-title">Personal Information</div>
-          <div class="card-sub">Communication & account information</div>
+          <div class="card-sub">Identity, date of birth and personal details</div>
         </div>
       </div>
       <div class="card-body">
-        <!-- Account Name — spans 2 columns at top -->
+        <!-- Account Name — spans full width at top -->
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
             <div class="field-label">Account Name</div>
             <div class="field-value" id="f-account">—</div>
           </div>
         </div>
-
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Salutation</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-salutation">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-salutation')" title="Edit Salutation">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-salutation">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-salutation')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">First Name <span style="color:#e53935;font-weight:700;">*</span></div>
-            <div class="field-wrap">
-              <div class="field-value editable mandatory" id="f-first-name">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-first-name')" title="Edit First Name">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable mandatory" id="f-first-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-first-name')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Middle Name</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-middle-name">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-middle-name')" title="Edit Middle Name">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-middle-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-middle-name')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Last Name <span style="color:#e53935;font-weight:700;">*</span></div>
-            <div class="field-wrap">
-              <div class="field-value editable mandatory" id="f-last-name">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-last-name')" title="Edit Last Name">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable mandatory" id="f-last-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-last-name')">✎</button></div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Preferred Name</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-preferred-name">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-preferred-name')" title="Edit Preferred Name">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-preferred-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-preferred-name')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Date of Birth</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-dob">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-dob')" title="Edit Date of Birth">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-dob">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-dob')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Age</div>
@@ -1241,26 +444,17 @@
           </div>
           <div class="field">
             <div class="field-label">Gender</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-gender">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-gender')" title="Edit Gender">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-gender">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-gender')">✎</button></div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Marital Status</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-marital">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-marital')" title="Edit Marital Status">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-marital">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-marital')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">NZ Residency</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-nz-residency">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-nz-residency')" title="Edit NZ Residency">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-nz-residency">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-nz-residency')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Contact Type</div>
@@ -1282,17 +476,11 @@
           </div>
           <div class="field">
             <div class="field-label">Tax Number</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-tax-number">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-tax-number')" title="Edit Tax Number">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-tax-number">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-tax-number')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Country of Birth</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-country-birth">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-country-birth')" title="Edit Country of Birth">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-country-birth">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-country-birth')">✎</button></div>
           </div>
         </div>
       </div>
@@ -1301,223 +489,45 @@
     <!-- Contact Details -->
     <div class="card">
       <div class="card-head">
-        <div class="card-icon">👤</div>
+        <div class="card-icon">📱</div>
         <div>
           <div class="card-title">Contact Details</div>
-          <div class="card-sub">Identity & contact details</div>
+          <div class="card-sub">Phone, email and contact details</div>
         </div>
       </div>
       <div class="card-body">
-
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
-            <div class="field-label">Email</div>
-            <div class="field-value editable" id="f-email">—</div>
+            <div class="field-label">Email <span style="color:#e53935;font-weight:700;">*</span></div>
+            <div class="field-wrap"><div class="field-value editable mandatory" id="f-email">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-email')">✎</button></div>
           </div>
           <div class="field span-2">
             <div class="field-label">Secondary Email</div>
-            <div class="field-value editable" id="f-secondary-email">—</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-secondary-email">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-secondary-email')">✎</button></div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Mobile</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-mobile">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-mobile')" title="Edit Mobile">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-mobile">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-mobile')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Phone</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-phone">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-phone')" title="Edit Phone">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-phone">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-phone')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Home Phone</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-home-phone">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-home-phone')" title="Edit Home Phone">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-home-phone">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-home-phone')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">Lead Source</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-lead-source">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-lead-source')" title="Edit Lead Source">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-lead-source">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-lead-source')">✎</button></div>
           </div>
         </div>
         <div class="field-grid cols-4">
           <div class="field span-2">
             <div class="field-label">LinkedIn</div>
-            <div class="field-value editable" id="f-linkedin">—</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Employment & Financial -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">💼</div>
-        <div>
-          <div class="card-title">Employment & Financial</div>
-          <div class="card-sub">Occupation, income and financial details</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="field-grid cols-3" style="margin-bottom:10px;">
-          <div class="field span-2">
-            <div class="field-label">Employer / Business</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-employer">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-employer')" title="Edit Employer">✎</button>
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Title / Role</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-title">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-title')" title="Edit Title">✎</button>
-            </div>
-          </div>
-        </div>
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field span-2">
-            <div class="field-label">Occupation</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-occupation">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-occupation')" title="Edit Occupation">✎</button>
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Occupation Class</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-occupation-class">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-occupation-class')" title="Edit Occupation Class">✎</button>
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Employment Status</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-employment-status">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-employment-status')" title="Edit Employment Status">✎</button>
-            </div>
-          </div>
-        </div>
-        <div class="field-grid cols-4">
-          <div class="field">
-            <div class="field-label">Annual Income</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-annual-income">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-annual-income')" title="Edit Annual Income">✎</button>
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Household Expenses</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-household-expenses">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-household-expenses')" title="Edit Household Expenses">✎</button>
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Mortgage Repayment</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-mortgage-repayment">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-mortgage-repayment')" title="Edit Mortgage Repayment">✎</button>
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Housing Status</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-housing-status">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-housing-status')" title="Edit Housing Status">✎</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Insurance Cover Summary -->
-    <div class="card">
-      <div class="card-head" style="justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="card-icon">🛡</div>
-          <div>
-            <div class="card-title">Insurance Cover Summary</div>
-            <div class="card-sub">Current cover amounts on file</div>
-          </div>
-        </div>
-        <button class="btn-outline-nav" onclick="managePolicies()">📋 Manage Policies</button>
-      </div>
-      <div class="cover-strip">
-        <div class="cover-item">
-          <div class="cover-label">Life Cover</div>
-          <div class="cover-value" id="cv-life">—</div>
-        </div>
-        <div class="cover-item">
-          <div class="cover-label">Trauma Cover</div>
-          <div class="cover-value" id="cv-trauma">—</div>
-        </div>
-        <div class="cover-item">
-          <div class="cover-label">Income Cover</div>
-          <div class="cover-value" id="cv-income">—</div>
-        </div>
-        <div class="cover-item">
-          <div class="cover-label">Total Disability</div>
-          <div class="cover-value" id="cv-tpd">—</div>
-        </div>
-        <div class="cover-item">
-          <div class="cover-label">Household Expenses</div>
-          <div class="cover-value" id="cv-hh-expenses">—</div>
-        </div>
-        <div class="cover-item">
-          <div class="cover-label">Mortgage Repayment</div>
-          <div class="cover-value" id="cv-mortgage">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Investment Summary — hidden until investments confirmed -->
-    <div class="card" id="inv-summary-card" style="display:none;">
-      <div class="card-head" style="justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="card-icon" style="background:var(--teal-lt,#ccfbf1);">📈</div>
-          <div>
-            <div class="card-title">Investment Summary</div>
-            <div class="card-sub" id="inv-summary-sub">Loading investment balances…</div>
-          </div>
-        </div>
-        <button class="btn btn-outline-nav" onclick="manageInvestments()">📊 Manage Investments</button>
-      </div>
-      <div id="inv-strip-wrap">
-        <div class="inv-loading">
-          <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></span>
-          Fetching investment balances…
-        </div>
-      </div>
-    </div>
-
-    <!-- Active Products & Benefits -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📦</div>
-        <div>
-          <div class="card-title">Active Products & Benefits</div>
-          <div class="card-sub">Current products and benefits on file</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="field-grid cols-2">
-          <div class="field">
-            <div class="field-label">Active Products</div>
-            <div class="field-value" id="f-active-products" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Active Benefits</div>
-            <div class="field-value" id="f-active-benefits" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-linkedin">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-linkedin')">✎</button></div>
           </div>
         </div>
       </div>
@@ -1536,24 +546,139 @@
         <div class="field-grid cols-4">
           <div class="field">
             <div class="field-label">ID Type</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-id-type">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-id-type')" title="Edit ID Type">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-id-type">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-type')">✎</button></div>
           </div>
           <div class="field span-2">
             <div class="field-label">ID Number</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-id-number">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-id-number')" title="Edit ID Number">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-id-number">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-number')">✎</button></div>
           </div>
           <div class="field">
             <div class="field-label">ID Expiry Date</div>
-            <div class="field-wrap">
-              <div class="field-value editable" id="f-id-expiry">—</div>
-              <button class="pencil-btn" onclick="enterInlineEdit('f-id-expiry')" title="Edit ID Expiry">✎</button>
-            </div>
+            <div class="field-wrap"><div class="field-value editable" id="f-id-expiry">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-expiry')">✎</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employment & Financial -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">💼</div>
+        <div>
+          <div class="card-title">Employment &amp; Financial</div>
+          <div class="card-sub">Occupation, income and financial details</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-3" style="margin-bottom:10px;">
+          <div class="field span-2">
+            <div class="field-label">Employer / Business</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-employer">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-employer')">✎</button></div>
+          </div>
+          <div class="field">
+            <div class="field-label">Title / Role</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-title">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-title')">✎</button></div>
+          </div>
+        </div>
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
+          <div class="field span-2">
+            <div class="field-label">Occupation</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-occupation">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-occupation')">✎</button></div>
+          </div>
+          <div class="field">
+            <div class="field-label">Occupation Class</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-occupation-class">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-occupation-class')">✎</button></div>
+          </div>
+          <div class="field">
+            <div class="field-label">Employment Status</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-employment-status">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-employment-status')">✎</button></div>
+          </div>
+        </div>
+        <div class="field-grid cols-2">
+          <div class="field">
+            <div class="field-label">Annual Income</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-annual-income">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-annual-income')">✎</button></div>
+          </div>
+          <div class="field">
+            <div class="field-label">Housing Status</div>
+            <div class="field-wrap"><div class="field-value editable" id="f-housing-status">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-housing-status')">✎</button></div>
+          </div>
+        </div>
+        <!-- Hidden for JS reference -->
+        <div style="display:none;">
+          <div id="f-household-expenses"></div>
+          <div id="f-mortgage-repayment"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insurance Cover Summary -->
+    <div class="card">
+      <div class="card-head" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="card-icon">🛡</div>
+          <div>
+            <div class="card-title">Insurance Cover Summary</div>
+            <div class="card-sub">Current cover amounts on file</div>
+          </div>
+        </div>
+        <button class="btn-outline-nav" onclick="managePolicies()">📋 Manage Policies</button>
+      </div>
+      <div class="cover-strip">
+        <div class="cover-item"><div class="cover-label">Life Cover</div><div class="cover-value" id="cv-life">—</div></div>
+        <div class="cover-item"><div class="cover-label">Trauma Cover</div><div class="cover-value" id="cv-trauma">—</div></div>
+        <div class="cover-item"><div class="cover-label">Income Cover</div><div class="cover-value" id="cv-income">—</div></div>
+        <div class="cover-item"><div class="cover-label">Total Disability</div><div class="cover-value" id="cv-tpd">—</div></div>
+        <div class="cover-item"><div class="cover-label">Household Expenses</div><div class="cover-value" id="cv-hh-expenses">—</div></div>
+        <div class="cover-item"><div class="cover-label">Mortgage Repayment</div><div class="cover-value" id="cv-mortgage">—</div></div>
+      </div>
+      <!-- Life Policies In Force -->
+      <div id="life-policies-wrap" style="border-top:1px solid var(--divider);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-alt);">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">🛡 Life Policies In Force</div>
+          <div id="life-policies-count" style="font-size:10px;color:var(--muted);"></div>
+        </div>
+        <div id="life-policies-body">
+          <div style="padding:14px 16px;text-align:center;color:var(--muted);font-size:11px;">Loading policies…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investment Summary -->
+    <div class="card" id="inv-summary-card" style="display:none;">
+      <div class="card-head" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="card-icon" style="background:var(--teal-lt);">📈</div>
+          <div>
+            <div class="card-title">Investment Summary</div>
+            <div class="card-sub" id="inv-summary-sub">Loading…</div>
+          </div>
+        </div>
+        <button class="btn-outline-nav" onclick="manageInvestments()">📊 Manage Investments</button>
+      </div>
+      <div id="inv-strip-wrap">
+        <div style="padding:14px;text-align:center;color:var(--muted);font-size:12px;">Loading investment balances…</div>
+      </div>
+    </div>
+
+    <!-- Active Products & Benefits -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📦</div>
+        <div>
+          <div class="card-title">Active Products &amp; Benefits</div>
+          <div class="card-sub">Current products and benefits on file</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid cols-2">
+          <div class="field">
+            <div class="field-label">Active Products</div>
+            <div class="field-value" id="f-active-products" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Active Benefits</div>
+            <div class="field-value" id="f-active-benefits" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
           </div>
         </div>
       </div>
@@ -1563,96 +688,83 @@
     <div class="card">
       <div class="card-head">
         <div class="card-icon">📝</div>
-        <div>
-          <div class="card-title">Description</div>
-        </div>
+        <div><div class="card-title">Description</div></div>
       </div>
       <div class="card-body">
         <div class="field-value multiline" id="f-description" style="min-height:80px;width:100%;"></div>
       </div>
     </div>
 
-
-
     <!-- Address Information -->
     <div class="card">
       <div class="card-head">
         <div class="card-icon">📍</div>
-        <div>
-          <div class="card-title">Address Information</div>
-        </div>
+        <div><div class="card-title">Address Information</div></div>
       </div>
       <div class="addr-cols">
         <div class="addr-col">
           <div class="addr-col-label">Mailing Address</div>
-          <div class="addr-line" id="addr-mailing">
-            <span class="empty">Not recorded</span>
-          </div>
+          <div class="addr-line" id="addr-mailing"><span class="empty">Not recorded</span></div>
         </div>
         <div class="addr-col">
           <div class="addr-col-label">Other Address</div>
-          <div class="addr-line" id="addr-other">
-            <span class="empty">Not recorded</span>
-          </div>
+          <div class="addr-line" id="addr-other"><span class="empty">Not recorded</span></div>
         </div>
       </div>
     </div>
 
-    <!-- ══ RELATED LISTS TAB SYSTEM ══════════════════════════════ -->
-    <div class="related-lists-section" id="related-lists-section">
-
-      <div class="related-lists-header">
-        <div class="related-lists-title">
-          📋 Related Information
-          <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">
-            Drag tabs to reorder · preferences saved to your profile
-          </span>
-        </div>
-        <div class="related-lists-actions">
-          <button class="rl-reset-btn" onclick="resetTabOrder()" title="Reset to default order">↺ Reset Layout</button>
-        </div>
-      </div>
-
-      <!-- Tab bar -->
-      <div class="tab-bar-wrap" id="tab-bar-wrap" style="position:relative;">
-        <div class="tab-bar" id="tab-bar">
-          <!-- Tabs rendered by JS -->
-        </div>
-        <div class="tab-more-btn" id="tab-more-btn" onclick="toggleOverflow(event)" style="display:none;">
-          ⋯ More <span id="overflow-count"></span>
-        </div>
-        <!-- Overflow popover -->
-        <div class="tab-overflow-popover" id="tab-overflow-popover">
-          <div class="overflow-popover-head">All Related Lists</div>
-          <div class="overflow-grid" id="overflow-grid"></div>
-          <div class="overflow-popover-footer">💡 Drag tabs to reorder your favourites</div>
-        </div>
-      </div>
-
-      <!-- Tab content panels -->
-      <div class="tab-content-wrap" id="tab-content-wrap">
-        <!-- Panels rendered by JS -->
-      </div>
-
-    </div><!-- /related-lists-section -->
-
   </div><!-- /main-col -->
 
-</div><!-- /page-wrap -->
-<!-- Debug panel — only shows if PageLoad never fires -->
-<div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#07385D;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#6a9bb5;font-size:10px;">v1.8.1 — share this with your developer</span>
-    <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #2d2d44;color:#6a9bb5;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
-  </div>
-  <div id="debug-log" style="line-height:1.8;color:#d0e4ef;"></div>
-  <div style="margin-top:8px;color:#6a9bb5;font-size:10px;">
-    URL: <span id="debug-url"></span>
-  </div>
-</div>
+  <!-- ══ SIDEBAR (right, narrow) ═══════════════════════════════════ -->
+  <div class="sidebar">
 
-<!-- Edit toolbar — fixed bottom bar shown in edit mode -->
+    <!-- Contact Owner -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#07385D;color:var(--white);">👤</div>
+        <div><div class="card-title" style="color:var(--navy);">Contact Owner</div></div>
+      </div>
+      <div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Owner</span><span class="sidebar-row-value" id="sb-owner">—</span></div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Lead Source</span><span class="sidebar-row-value" id="sb-lead-source">—</span></div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Status</span><span class="sidebar-row-value" id="sb-status">—</span></div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Last Activity</span><span class="sidebar-row-value" id="sb-last-activity">—</span></div>
+      </div>
+    </div>
+
+    <!-- Review Schedule -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">🗓</div>
+        <div><div class="card-title">Review Schedule</div></div>
+      </div>
+      <div id="review-alert-wrap"></div>
+      <div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Review Date</span><span class="sidebar-row-value" id="sb-review-date">—</span></div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Account Review</span><span class="sidebar-row-value" id="sb-account-review">—</span></div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Review Month</span><span class="sidebar-row-value" id="sb-review-month">—</span></div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📊</div>
+        <div><div class="card-title">Quick Stats</div></div>
+      </div>
+      <div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Age</span><span class="sidebar-row-value" id="sb-age">—</span></div>
+        <div class="sidebar-row"><span class="sidebar-row-label">Expiry Date</span><span class="sidebar-row-value" id="sb-expiry">—</span></div>
+        <!-- Hidden but retained for JS -->
+        <div style="display:none;"><span id="sb-birthday"></span><span id="sb-days-nb"></span></div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+</div><!-- /page-wrap -->
+
+<!-- Edit toolbar -->
 <div class="edit-toolbar" id="edit-toolbar">
   <span class="edit-toolbar-label">Edit Mode</span>
   <span class="changes-count" id="changes-count"></span>
@@ -1660,32 +772,26 @@
   <button class="btn-save" onclick="saveContact()">💾 Save Changes</button>
 </div>
 
-<!-- Toast notification -->
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Validation overlay -->
+<!-- Validation -->
 <div class="validation-overlay" id="validation-overlay" onclick="closeValidation()"></div>
-
-<!-- Validation popup -->
 <div class="validation-popup" id="validation-popup">
-  <div class="validation-popup-head">
-    <span style="font-size:18px;">⚠</span>
-    <h3>Required Fields Missing</h3>
-  </div>
+  <div class="validation-popup-head"><span style="font-size:18px;">⚠</span><h3>Required Fields Missing</h3></div>
   <div class="validation-popup-body">
     <p>Please fill in the following required fields before saving:</p>
     <ul class="validation-field-list" id="validation-field-list"></ul>
   </div>
-  <div class="validation-popup-footer">
-    <button class="btn-validation-ok" onclick="closeValidation()">OK — I'll fix these</button>
-  </div>
+  <div class="validation-popup-footer"><button class="btn-validation-ok" onclick="closeValidation()">OK — I'll fix these</button></div>
 </div>
 
 </div><!-- /page -->
 
 <script>
+
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.8.1
+//  Adviser CRM — Contact Layout Page v1.8.5
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1969,6 +1075,109 @@ function populateContact(c) {
 
 
 // ── Investment Summary ────────────────────────────────────────────
+// ── Life Policies In Force ────────────────────────────────────────
+function loadLifePolicies(contactId) {
+  if (!contactId || typeof ZOHO === 'undefined') {
+    renderLifePolicies([]);
+    return;
+  }
+
+  ZOHO.CRM.API.getRelatedRecords({
+    Entity:      'Contacts',
+    RecordID:    contactId,
+    RelatedList: 'Life_Policies',
+    page:        1,
+    per_page:    20,
+  })
+  .then(function(resp) {
+    var all      = resp.data || [];
+    // Filter to In Force only
+    var inForce  = all.filter(function(p) {
+      return p.Status === 'In Force' || p.Policy_Status === 'In Force';
+    });
+    renderLifePolicies(inForce, all.length);
+  })
+  .catch(function(err) {
+    console.log('[ACRM] Life Policies failed:', err);
+    // Try alternative related list name
+    ZOHO.CRM.API.getRelatedRecords({
+      Entity:      'Contacts',
+      RecordID:    contactId,
+      RelatedList: 'Life_Policies1',
+      page:        1,
+      per_page:    20,
+    })
+    .then(function(resp2) {
+      var all     = resp2.data || [];
+      var inForce = all.filter(function(p) {
+        return p.Status === 'In Force' || p.Policy_Status === 'In Force';
+      });
+      renderLifePolicies(inForce, all.length);
+    })
+    .catch(function() {
+      renderLifePolicies([]);
+    });
+  });
+}
+
+function renderLifePolicies(policies, totalCount) {
+  var body     = document.getElementById('life-policies-body');
+  var countEl  = document.getElementById('life-policies-count');
+  var wrap     = document.getElementById('life-policies-wrap');
+  if (!body) return;
+
+  if (countEl) {
+    countEl.textContent = policies.length + ' In Force' +
+      (totalCount && totalCount > policies.length ? ' of ' + totalCount + ' total' : '');
+  }
+
+  if (!policies.length) {
+    body.innerHTML = '<div style="padding:14px 16px;text-align:center;color:var(--muted);font-size:11px;">No Life Policies In Force</div>';
+    return;
+  }
+
+  var tableHtml = '<table class="lp-table">' +
+    '<thead><tr>' +
+    '<th>Insurer</th>' +
+    '<th>Policy Name</th>' +
+    '<th>Policy Number</th>' +
+    '<th>Premium</th>' +
+    '<th>Frequency</th>' +
+    '<th>Status</th>' +
+    '</tr></thead><tbody>';
+
+  policies.forEach(function(p) {
+    var insurer   = p.Insurer || p.Insurer_Name || '—';
+    var policyName= p.Name || p.Policy_Name || '—';
+    var policyNum = p.Policy_Number || p.Policy_No || '—';
+    var premium   = p.Premium ? fmtCurr(p.Premium) : '—';
+    var frequency = p.Premium_Frequency || p.Frequency || '—';
+    var status    = p.Status || p.Policy_Status || '—';
+
+    tableHtml += '<tr data-pid="' + (p.id||'') + '" onclick="openPolicyRecord(this.dataset.pid)">' +
+      '<td class="td-name">' + escHtml(insurer) + '</td>' +
+      '<td>' + escHtml(policyName) + '</td>' +
+      '<td>' + escHtml(policyNum) + '</td>' +
+      '<td style="font-weight:700;color:var(--navy);">' + premium + '</td>' +
+      '<td>' + escHtml(frequency) + '</td>' +
+      '<td><span class="lp-pill-active">' + escHtml(status) + '</span></td>' +
+      '</tr>';
+  });
+
+  tableHtml += '</tbody></table>';
+  body.innerHTML = tableHtml;
+}
+
+function openPolicyRecord(id) {
+  if (id && typeof ZOHO !== 'undefined') {
+    ZOHO.CRM.UI.Record.open({ Entity:'Life_Policies', RecordID:id });
+  }
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function loadInvestmentSummary(contactId) {
   if (!contactId || typeof ZOHO === 'undefined') {
     renderInvestmentSummary([]);
@@ -3094,6 +2303,16 @@ function openAction(entity) {
       embeddedApp:{ _h:{}, on(e,fn){this._h[e]=fn;}, init(){ var s=this; setTimeout(function(){ var f=s._h['PageLoad']; if(f) f({EntityId:'c-001',Entity:'Contacts'}); },600); } },
       CRM:{ API:{
         getRecord(){ return Promise.resolve({data:[M]}); },
+        getRelatedRecords(o){
+          if (o && (o.RelatedList === 'Life_Policies' || o.RelatedList === 'Life_Policies1')) {
+            return Promise.resolve({data:[
+              { id:'lp-001', Insurer:'AIA', Name:'AIA Life Plus', Policy_Number:'AIA-123456', Premium:245, Premium_Frequency:'Monthly', Status:'In Force' },
+              { id:'lp-002', Insurer:'Partners Life', Name:'Partners Life Cover', Policy_Number:'PL-789012', Premium:189, Premium_Frequency:'Monthly', Status:'In Force' },
+              { id:'lp-003', Insurer:'Asteron', Name:'Asteron Life', Policy_Number:'AST-345678', Premium:312, Premium_Frequency:'Monthly', Status:'Lapsed' },
+            ]});
+          }
+          return Promise.resolve({data:[]});
+        },
         coql(){ return Promise.resolve({data:[
           { id:'inv-001', Name:'INV-001', Investment_Type:'KiwiSaver', Balance:148750, Provider:'Fisher Funds', Status:'Active' },
           { id:'inv-002', Name:'INV-002', Investment_Type:'Managed Fund', Balance:62400, Provider:'Milford', Status:'Active' },
@@ -3173,6 +2392,7 @@ function startApp() {
       populateContact(contact);
       // Load investment summary in background
       loadInvestmentSummary(ENTITY_ID);
+      loadLifePolicies(ENTITY_ID);
     })
     .catch(function(err){
       dbg('ERROR fetching contact: ' + JSON.stringify(err));
@@ -3230,6 +2450,7 @@ setTimeout(function(){
     el('main-page').classList.add('visible');
   }
 }, 8000);
+
 </script>
 </body>
 </html>
