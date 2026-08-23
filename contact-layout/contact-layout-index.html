@@ -15,7 +15,7 @@
     // page version. If different, reloads with cache-bust param.
     // This means users get cached speed but always get latest version.
     (function() {
-      var CURRENT_VERSION = '1.6.5';
+      var CURRENT_VERSION = '1.8.0';
       var VERSION_URL     = './version.json';
 
       // Only check if not already a forced reload (avoid loops)
@@ -402,6 +402,25 @@
     .toast.saving  { border-left: 4px solid var(--blue); }
 
     /* Edit button in hero */
+    /* Manage nav buttons */
+    .btn-outline-nav {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px;
+      border: 1.5px solid var(--blue);
+      border-radius: var(--radius);
+      background: white;
+      color: var(--blue);
+      font-family: var(--sans);
+      font-size: 11px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-outline-nav:hover {
+      background: var(--blue);
+      color: white;
+    }
+
     .btn-edit {
       background: rgba(255,255,255,0.12);
       color: white;
@@ -426,6 +445,119 @@
       border-color: var(--amber) !important;
       background: #fffbeb !important;
     }
+
+    /* ── Inline edit controls ── */
+    .field-value.editable {
+      cursor: default !important;  /* No longer click-to-edit directly */
+      position: relative;
+    }
+    .field-value.editable:hover { border-color: transparent !important; }
+
+    /* Pencil icon shown on hover */
+    .field-wrap {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .field-wrap .field-value {
+      flex: 1;
+    }
+    .pencil-btn {
+      opacity: 0;
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      border: 1.5px solid #07385D;
+      border-radius: 6px;
+      background: #07385D;
+      color: #ffffff;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 3px;
+      transition: all 0.15s;
+      box-shadow: 0 2px 8px rgba(7,56,93,0.4);
+    }
+    .pencil-btn:hover {
+      background: var(--blue);
+      border-color: var(--blue);
+      transform: scale(1.1);
+      box-shadow: 0 3px 12px rgba(0,171,230,0.5);
+    }
+    .field-wrap:hover .pencil-btn {
+      opacity: 1;
+    }
+    .field-wrap:hover .field-value {
+      border-color: var(--blue-lt) !important;
+      background: white !important;
+    }
+
+    /* Inline edit input with tick/cross */
+    .field-value.editing {
+      border: 1.5px solid var(--blue) !important;
+      background: white !important;
+      padding: 0 !important;
+      cursor: text;
+    }
+    .inline-edit-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+    }
+    .inline-edit-wrap input,
+    .inline-edit-wrap select,
+    .inline-edit-wrap textarea {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      outline: none;
+      padding: 7px 8px;
+      width: 100%;
+    }
+    .inline-edit-wrap textarea {
+      min-height: 60px;
+      resize: none;
+      line-height: 1.5;
+    }
+    .inline-edit-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 4px;
+      padding: 0 4px 0 4px;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .inline-tick, .inline-cross {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .inline-tick {
+      background: var(--green);
+      color: white;
+    }
+    .inline-tick:hover { background: #047857; transform: scale(1.1); }
+    .inline-cross {
+      background: #fee2e2;
+      color: var(--red);
+      border: 1px solid #fca5a5;
+    }
+    .inline-cross:hover { background: var(--red); color: white; transform: scale(1.1); }
 
     /* Mandatory field indicator — red left border like Zoho */
     .field-value.mandatory {
@@ -532,6 +664,290 @@
     }
     .validation-overlay.show { display: block; }
 
+    /* ══ Related Lists Tab System ══════════════════════════════════ */
+
+    /* Tab container */
+    .related-lists-section {
+      margin-bottom: 14px;
+    }
+    .related-lists-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .related-lists-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .related-lists-actions {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .rl-reset-btn {
+      font-size: 10px; color: var(--muted);
+      background: none; border: none; cursor: pointer;
+      font-family: var(--sans);
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .rl-reset-btn:hover { color: var(--blue); background: var(--blue-xlt); }
+
+    /* Tab bar wrapper */
+    .tab-bar-wrap {
+      background: var(--white);
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border-bottom: none;
+      display: flex; align-items: stretch;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Tab bar scroll container */
+    .tab-bar {
+      display: flex; align-items: stretch;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Individual tab */
+    .rl-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 14px;
+      font-size: 11px; font-weight: 600;
+      color: var(--ink-mid);
+      cursor: pointer;
+      border-right: 1px solid var(--divider);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: all 0.15s;
+      user-select: none;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .rl-tab:hover {
+      background: var(--blue-xlt);
+      color: var(--blue);
+    }
+    .rl-tab.active {
+      background: var(--white);
+      color: var(--blue);
+      border-bottom: 2px solid var(--blue);
+      font-weight: 700;
+    }
+    .rl-tab.empty {
+      color: var(--muted);
+      opacity: 0.6;
+    }
+    .rl-tab.dragging {
+      opacity: 0.4;
+      background: var(--blue-lt);
+    }
+    .rl-tab.drag-over {
+      border-left: 2px solid var(--blue);
+    }
+
+    /* Tab count badge */
+    .tab-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px;
+      padding: 0 5px;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      border-radius: 20px;
+      font-size: 10px; font-weight: 700;
+    }
+    .rl-tab.active .tab-badge {
+      background: var(--blue);
+      color: var(--white);
+    }
+    .rl-tab.empty .tab-badge {
+      background: var(--bg-alt);
+      color: var(--muted);
+    }
+
+    /* Tab icon */
+    .tab-icon { font-size: 13px; }
+
+    /* More button */
+    .tab-more-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 10px 14px;
+      font-size: 11px; font-weight: 700;
+      color: var(--ink-mid);
+      cursor: pointer;
+      background: var(--bg-alt);
+      border-left: 1px solid var(--divider);
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-more-btn:hover { color: var(--blue); background: var(--blue-xlt); }
+    .tab-more-btn.has-active {
+      color: var(--blue);
+      border-bottom: 2px solid var(--blue);
+    }
+
+    /* Overflow popover */
+    .tab-overflow-popover {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: var(--white);
+      border: 1px solid var(--divider);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      z-index: 200;
+      width: 320px;
+      overflow: hidden;
+    }
+    .tab-overflow-popover.show { display: block; }
+    .overflow-popover-head {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--divider);
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--bg-alt);
+    }
+    .overflow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      padding: 8px;
+    }
+    .overflow-tile {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 10px 6px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      gap: 4px;
+    }
+    .overflow-tile:hover { background: var(--blue-xlt); }
+    .overflow-tile.active { background: var(--blue-lt); }
+    .overflow-tile-icon { font-size: 20px; }
+    .overflow-tile-name {
+      font-size: 10px; font-weight: 600;
+      color: var(--ink-mid); line-height: 1.2;
+    }
+    .overflow-tile-badge {
+      font-size: 9px; font-weight: 700;
+      color: var(--blue-dk);
+      background: var(--blue-lt);
+      padding: 1px 6px; border-radius: 20px;
+    }
+    .overflow-tile.empty .overflow-tile-badge {
+      color: var(--muted); background: var(--bg-alt);
+    }
+    .overflow-popover-footer {
+      padding: 8px 14px;
+      border-top: 1px solid var(--divider);
+      font-size: 10px; color: var(--muted);
+      text-align: center;
+      background: var(--bg-alt);
+    }
+
+    /* Tab content panel */
+    .tab-content-wrap {
+      background: var(--white);
+      border: 1px solid var(--divider);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      min-height: 120px;
+      overflow: hidden;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Related list table */
+    .rl-table-wrap { overflow-x: auto; }
+    .rl-table {
+      width: 100%; border-collapse: collapse;
+    }
+    .rl-table th {
+      padding: 8px 14px;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); text-align: left;
+      border-bottom: 1px solid var(--divider);
+      white-space: nowrap;
+      background: var(--bg-alt);
+    }
+    .rl-table td {
+      padding: 9px 14px;
+      font-size: 12px; color: var(--ink-mid);
+      border-bottom: 1px solid var(--divider);
+      vertical-align: middle;
+    }
+    .rl-table tr:last-child td { border-bottom: none; }
+    .rl-table tr:hover td { background: var(--blue-xlt); cursor: pointer; }
+    .rl-table .td-primary { font-weight: 700; color: var(--ink); }
+    .rl-table .td-link { color: var(--blue); font-weight: 600; cursor: pointer; }
+    .rl-table .td-link:hover { text-decoration: underline; }
+
+    /* Tab panel header */
+    .tab-panel-head {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--divider);
+      background: var(--bg-alt);
+    }
+    .tab-panel-title {
+      font-size: 12px; font-weight: 700;
+      color: var(--ink);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tab-panel-actions { display: flex; gap: 6px; }
+    .btn-rl-new {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px;
+      background: var(--blue); color: var(--white);
+      border: none; border-radius: var(--radius);
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-rl-new:hover { background: var(--blue-dk); }
+    .btn-rl-viewall {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px;
+      background: var(--white); color: var(--blue);
+      border: 1.5px solid var(--blue);
+      border-radius: var(--radius);
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-rl-viewall:hover { background: var(--blue); color: var(--white); }
+
+    /* Empty state */
+    .rl-empty {
+      text-align: center; padding: 32px 20px;
+      color: var(--muted); font-size: 12px;
+    }
+    .rl-empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+    /* Loading state */
+    .rl-loading {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 14px;
+      color: var(--muted); font-size: 12px;
+    }
+
+    /* Drag handle hint */
+    .rl-tab::before {
+      content: '⠿';
+      font-size: 10px;
+      color: var(--divider);
+      margin-right: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .rl-tab:hover::before { opacity: 1; }
+
     /* ── Investment summary strip ── */
     .inv-strip {
       display:grid;
@@ -625,7 +1041,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.6.5</div>
+<div id="vbadge">v1.8.0</div>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -738,42 +1154,68 @@
   <!-- ══ MAIN COLUMN ════════════════════════════════════════════════ -->
   <div class="main-col">
 
-    <!-- Contact Details -->
+    <!-- Personal Information -->
     <div class="card">
       <div class="card-head">
         <div class="card-icon">📱</div>
         <div>
-          <div class="card-title">Contact Details</div>
+          <div class="card-title">Personal Information</div>
           <div class="card-sub">Communication & account information</div>
         </div>
       </div>
       <div class="card-body">
+        <!-- Account Name — spans 2 columns at top -->
+        <div class="field-grid cols-4" style="margin-bottom:10px;">
+          <div class="field span-2">
+            <div class="field-label">Account Name</div>
+            <div class="field-value" id="f-account">—</div>
+          </div>
+        </div>
+
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Salutation</div>
-            <div class="field-value editable" id="f-salutation">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-salutation">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-salutation')" title="Edit Salutation">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">First Name <span style="color:#e53935;font-weight:700;">*</span></div>
-            <div class="field-value editable mandatory" id="f-first-name">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable mandatory" id="f-first-name">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-first-name')" title="Edit First Name">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Middle Name</div>
-            <div class="field-value editable" id="f-middle-name">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-middle-name">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-middle-name')" title="Edit Middle Name">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Last Name <span style="color:#e53935;font-weight:700;">*</span></div>
-            <div class="field-value editable mandatory" id="f-last-name">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable mandatory" id="f-last-name">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-last-name')" title="Edit Last Name">✎</button>
+            </div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Preferred Name</div>
-            <div class="field-value editable" id="f-preferred-name">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-preferred-name">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-preferred-name')" title="Edit Preferred Name">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Date of Birth</div>
-            <div class="field-value editable" id="f-dob">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-dob">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-dob')" title="Edit Date of Birth">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Age</div>
@@ -781,17 +1223,26 @@
           </div>
           <div class="field">
             <div class="field-label">Gender</div>
-            <div class="field-value editable" id="f-gender">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-gender">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-gender')" title="Edit Gender">✎</button>
+            </div>
           </div>
         </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Marital Status</div>
-            <div class="field-value editable" id="f-marital">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-marital">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-marital')" title="Edit Marital Status">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">NZ Residency</div>
-            <div class="field-value editable" id="f-nz-residency">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-nz-residency">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-nz-residency')" title="Edit NZ Residency">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Contact Type</div>
@@ -813,36 +1264,33 @@
           </div>
           <div class="field">
             <div class="field-label">Tax Number</div>
-            <div class="field-value editable" id="f-tax-number">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-tax-number">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-tax-number')" title="Edit Tax Number">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Country of Birth</div>
-            <div class="field-value editable" id="f-country-birth">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-country-birth">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-country-birth')" title="Edit Country of Birth">✎</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Personal Information -->
+    <!-- Contact Details -->
     <div class="card">
       <div class="card-head">
         <div class="card-icon">👤</div>
         <div>
-          <div class="card-title">Personal Information</div>
+          <div class="card-title">Contact Details</div>
           <div class="card-sub">Identity & contact details</div>
         </div>
       </div>
       <div class="card-body">
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field span-2">
-            <div class="field-label">Account Name</div>
-            <div class="field-value" id="f-account">—</div>
-          </div>
-          <div class="field span-2">
-            <div class="field-label">Title / Role</div>
-            <div class="field-value editable" id="f-title">—</div>
-          </div>
-        </div>
+
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
             <div class="field-label">Email</div>
@@ -856,29 +1304,37 @@
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field">
             <div class="field-label">Mobile</div>
-            <div class="field-value editable" id="f-mobile">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-mobile">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-mobile')" title="Edit Mobile">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Phone</div>
-            <div class="field-value editable" id="f-phone">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-phone">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-phone')" title="Edit Phone">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Home Phone</div>
-            <div class="field-value editable" id="f-home-phone">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-home-phone">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-home-phone')" title="Edit Home Phone">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Lead Source</div>
-            <div class="field-value editable" id="f-lead-source">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-lead-source">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-lead-source')" title="Edit Lead Source">✎</button>
+            </div>
           </div>
         </div>
         <div class="field-grid cols-4">
           <div class="field span-2">
             <div class="field-label">LinkedIn</div>
             <div class="field-value editable" id="f-linkedin">—</div>
-          </div>
-          <div class="field span-2">
-            <div class="field-label">Employer / Business</div>
-            <div class="field-value editable" id="f-employer">—</div>
           </div>
         </div>
       </div>
@@ -894,36 +1350,73 @@
         </div>
       </div>
       <div class="card-body">
+        <div class="field-grid cols-3" style="margin-bottom:10px;">
+          <div class="field span-2">
+            <div class="field-label">Employer / Business</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-employer">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-employer')" title="Edit Employer">✎</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">Title / Role</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-title">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-title')" title="Edit Title">✎</button>
+            </div>
+          </div>
+        </div>
         <div class="field-grid cols-4" style="margin-bottom:10px;">
           <div class="field span-2">
             <div class="field-label">Occupation</div>
-            <div class="field-value editable" id="f-occupation">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-occupation">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-occupation')" title="Edit Occupation">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Occupation Class</div>
-            <div class="field-value editable" id="f-occupation-class">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-occupation-class">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-occupation-class')" title="Edit Occupation Class">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Employment Status</div>
-            <div class="field-value editable" id="f-employment-status">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-employment-status">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-employment-status')" title="Edit Employment Status">✎</button>
+            </div>
           </div>
         </div>
         <div class="field-grid cols-4">
           <div class="field">
             <div class="field-label">Annual Income</div>
-            <div class="field-value editable" id="f-annual-income">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-annual-income">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-annual-income')" title="Edit Annual Income">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Household Expenses</div>
-            <div class="field-value editable" id="f-household-expenses">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-household-expenses">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-household-expenses')" title="Edit Household Expenses">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Mortgage Repayment</div>
-            <div class="field-value editable" id="f-mortgage-repayment">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-mortgage-repayment">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-mortgage-repayment')" title="Edit Mortgage Repayment">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">Housing Status</div>
-            <div class="field-value editable" id="f-housing-status">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-housing-status">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-housing-status')" title="Edit Housing Status">✎</button>
+            </div>
           </div>
         </div>
       </div>
@@ -931,12 +1424,15 @@
 
     <!-- Insurance Cover Summary -->
     <div class="card">
-      <div class="card-head">
-        <div class="card-icon">🛡</div>
-        <div>
-          <div class="card-title">Insurance Cover Summary</div>
-          <div class="card-sub">Current cover amounts on file</div>
+      <div class="card-head" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="card-icon">🛡</div>
+          <div>
+            <div class="card-title">Insurance Cover Summary</div>
+            <div class="card-sub">Current cover amounts on file</div>
+          </div>
         </div>
+        <button class="btn-outline-nav" onclick="managePolicies()">📋 Manage Policies</button>
       </div>
       <div class="cover-strip">
         <div class="cover-item">
@@ -955,17 +1451,28 @@
           <div class="cover-label">Total Disability</div>
           <div class="cover-value" id="cv-tpd">—</div>
         </div>
+        <div class="cover-item">
+          <div class="cover-label">Household Expenses</div>
+          <div class="cover-value" id="cv-hh-expenses">—</div>
+        </div>
+        <div class="cover-item">
+          <div class="cover-label">Mortgage Repayment</div>
+          <div class="cover-value" id="cv-mortgage">—</div>
+        </div>
       </div>
     </div>
 
     <!-- Investment Summary — hidden until investments confirmed -->
     <div class="card" id="inv-summary-card" style="display:none;">
-      <div class="card-head">
-        <div class="card-icon" style="background:var(--teal-lt,#ccfbf1);">📈</div>
-        <div>
-          <div class="card-title">Investment Summary</div>
-          <div class="card-sub" id="inv-summary-sub">Loading investment balances…</div>
+      <div class="card-head" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="card-icon" style="background:var(--teal-lt,#ccfbf1);">📈</div>
+          <div>
+            <div class="card-title">Investment Summary</div>
+            <div class="card-sub" id="inv-summary-sub">Loading investment balances…</div>
+          </div>
         </div>
+        <button class="btn btn-outline-nav" onclick="manageInvestments()">📊 Manage Investments</button>
       </div>
       <div id="inv-strip-wrap">
         <div class="inv-loading">
@@ -1011,19 +1518,43 @@
         <div class="field-grid cols-4">
           <div class="field">
             <div class="field-label">ID Type</div>
-            <div class="field-value editable" id="f-id-type">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-id-type">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-id-type')" title="Edit ID Type">✎</button>
+            </div>
           </div>
           <div class="field span-2">
             <div class="field-label">ID Number</div>
-            <div class="field-value editable" id="f-id-number">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-id-number">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-id-number')" title="Edit ID Number">✎</button>
+            </div>
           </div>
           <div class="field">
             <div class="field-label">ID Expiry Date</div>
-            <div class="field-value editable" id="f-id-expiry">—</div>
+            <div class="field-wrap">
+              <div class="field-value editable" id="f-id-expiry">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-id-expiry')" title="Edit ID Expiry">✎</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Description -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📝</div>
+        <div>
+          <div class="card-title">Description</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-value multiline" id="f-description" style="min-height:80px;width:100%;"></div>
+      </div>
+    </div>
+
+
 
     <!-- Address Information -->
     <div class="card">
@@ -1049,20 +1580,43 @@
       </div>
     </div>
 
-    <!-- Description -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📝</div>
-        <div>
-          <div class="card-title">Description</div>
+    <!-- ══ RELATED LISTS TAB SYSTEM ══════════════════════════════ -->
+    <div class="related-lists-section" id="related-lists-section">
+
+      <div class="related-lists-header">
+        <div class="related-lists-title">
+          📋 Related Information
+          <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">
+            Drag tabs to reorder · preferences saved to your profile
+          </span>
+        </div>
+        <div class="related-lists-actions">
+          <button class="rl-reset-btn" onclick="resetTabOrder()" title="Reset to default order">↺ Reset Layout</button>
         </div>
       </div>
-      <div class="card-body">
-        <div class="field-value multiline" id="f-description" style="min-height:80px;width:100%;"></div>
+
+      <!-- Tab bar -->
+      <div class="tab-bar-wrap" id="tab-bar-wrap" style="position:relative;">
+        <div class="tab-bar" id="tab-bar">
+          <!-- Tabs rendered by JS -->
+        </div>
+        <div class="tab-more-btn" id="tab-more-btn" onclick="toggleOverflow(event)" style="display:none;">
+          ⋯ More <span id="overflow-count"></span>
+        </div>
+        <!-- Overflow popover -->
+        <div class="tab-overflow-popover" id="tab-overflow-popover">
+          <div class="overflow-popover-head">All Related Lists</div>
+          <div class="overflow-grid" id="overflow-grid"></div>
+          <div class="overflow-popover-footer">💡 Drag tabs to reorder your favourites</div>
+        </div>
       </div>
-    </div>
 
+      <!-- Tab content panels -->
+      <div class="tab-content-wrap" id="tab-content-wrap">
+        <!-- Panels rendered by JS -->
+      </div>
 
+    </div><!-- /related-lists-section -->
 
   </div><!-- /main-col -->
 
@@ -1071,7 +1625,7 @@
 <div id="debug-panel" style="display:block;position:fixed;bottom:0;left:0;right:0;background:#07385D;color:#7dd3fc;font-family:monospace;font-size:11px;padding:12px 16px;z-index:9999;border-top:2px solid #00ABE6;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <strong style="color:#00ABE6;">Adviser CRM — Debug Log</strong>
-    <span style="color:#6a9bb5;font-size:10px;">v1.6.5 — share this with your developer</span>
+    <span style="color:#6a9bb5;font-size:10px;">v1.8.0 — share this with your developer</span>
     <button onclick="el('debug-panel').style.display='none'" style="background:none;border:1px solid #2d2d44;color:#6a9bb5;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">✕ Close</button>
   </div>
   <div id="debug-log" style="line-height:1.8;color:#d0e4ef;"></div>
@@ -1113,7 +1667,7 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.6.5
+//  Adviser CRM — Contact Layout Page v1.8.0
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -1158,6 +1712,8 @@ function reveal() {
   // Tell Zoho to resize the iframe to fit the full page content
   resizeToFit();
   setTimeout(setupInlineEdit, 100);
+  // Init related lists tab system
+  setTimeout(initRelatedLists, 200);
 }
 
 function resizeToFit() {
@@ -1343,10 +1899,12 @@ function populateContact(c) {
 
   // ── Insurance Cover ──
   const cvFmt = v => v ? fmtCurr(v) : '<span class="cover-value nil">Not recorded</span>';
-  setEl('cv-life',   cvFmt(c.Life_Cover),   true);
-  setEl('cv-trauma', cvFmt(c.Trauma_Cover), true);
-  setEl('cv-income', cvFmt(c.Income_Cover), true);
-  setEl('cv-tpd',    cvFmt(c.Total_Disability), true);
+  setEl('cv-life',       cvFmt(c.Life_Cover),          true);
+  setEl('cv-trauma',     cvFmt(c.Trauma_Cover),        true);
+  setEl('cv-income',     cvFmt(c.Income_Cover),        true);
+  setEl('cv-tpd',        cvFmt(c.Total_Disability),    true);
+  setEl('cv-hh-expenses',cvFmt(c.Household_Expenses),  true);
+  setEl('cv-mortgage',   cvFmt(c.Mortgage_Repayment),  true);
 
   // ── Active Products & Benefits ──
   renderTags('f-active-products', c.Active_Products, '');
@@ -1716,15 +2274,13 @@ function updateChangesCount() {
 
 // ── Inline click-to-edit (single field) ───────────────────────────
 function setupInlineEdit() {
-  document.querySelectorAll('.field-value.editable').forEach(function(fieldEl) {
-    fieldEl.addEventListener('click', function() {
-      if (EDIT_MODE) return; // Already in full edit mode
-      var fid = this.id;
-      if (!fid || !FIELD_MAP[fid]) return;
-      // Enter single field edit
-      enterSingleFieldEdit(fid);
-    });
-  });
+  // Pencil buttons are already wired via onclick in HTML
+  // Nothing to set up here — kept for compatibility
+}
+
+function enterInlineEdit(fid) {
+  if (EDIT_MODE) return; // Full edit mode handles everything
+  enterSingleFieldEdit(fid);
 }
 
 function enterSingleFieldEdit(fid) {
@@ -1732,9 +2288,13 @@ function enterSingleFieldEdit(fid) {
   var def     = FIELD_MAP[fid];
   if (!fieldEl || !def) return;
 
+  // Don't re-enter if already editing
+  if (fieldEl.classList.contains('editing')) return;
+
   var currentVal = CONTACT[def.api] || '';
   ORIGINAL[fid]  = currentVal;
 
+  // Build input
   var input;
   if (def.type === 'select') {
     input = document.createElement('select');
@@ -1747,37 +2307,76 @@ function enterSingleFieldEdit(fid) {
   } else if (def.type === 'textarea') {
     input = document.createElement('textarea');
     input.value = currentVal;
-    input.rows = 4;
+    input.rows = 3;
   } else {
     input = document.createElement('input');
     input.type = def.type || 'text';
-    if (def.type === 'date' && currentVal) input.value = currentVal.substring(0, 10);
+    if (def.type === 'date' && currentVal) input.value = currentVal.substring(0,10);
     else input.value = currentVal;
   }
 
-  // Save on blur
-  input.addEventListener('blur', function() {
-    var newVal = this.value;
-    if (newVal !== String(currentVal)) {
-      saveSingleField(fid, def.api, newVal);
-    } else {
-      cancelSingleField(fid);
-    }
-  });
-
-  // Save on Enter (except textarea)
+  // Keyboard shortcuts
   if (def.type !== 'textarea') {
     input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter')  { this.blur(); }
+      if (e.key === 'Enter')  { confirmInlineEdit(fid); }
       if (e.key === 'Escape') { cancelSingleField(fid); }
     });
   }
 
+  // Build tick/cross action buttons
+  var tickBtn  = document.createElement('button');
+  tickBtn.className = 'inline-tick';
+  tickBtn.title = 'Save (Enter)';
+  tickBtn.innerHTML = '✓';
+  tickBtn.addEventListener('mousedown', function(e) {
+    e.preventDefault(); // Prevent blur before click
+    confirmInlineEdit(fid);
+  });
+
+  var crossBtn = document.createElement('button');
+  crossBtn.className = 'inline-cross';
+  crossBtn.title = 'Cancel (Esc)';
+  crossBtn.innerHTML = '✕';
+  crossBtn.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    cancelSingleField(fid);
+  });
+
+  var actions = document.createElement('div');
+  actions.className = 'inline-edit-actions';
+  actions.appendChild(tickBtn);
+  actions.appendChild(crossBtn);
+
+  var wrap = document.createElement('div');
+  wrap.className = 'inline-edit-wrap';
+  wrap.appendChild(input);
+  wrap.appendChild(actions);
+
+  // Switch field to editing state
   fieldEl.innerHTML = '';
-  fieldEl.appendChild(input);
-  fieldEl.classList.add('edit-mode-active');
+  fieldEl.appendChild(wrap);
+  fieldEl.classList.add('editing');
+
+  // Hide the pencil button while editing
+  var pencilBtn = fieldEl.parentElement.querySelector('.pencil-btn');
+  if (pencilBtn) pencilBtn.style.opacity = '0';
+
   input.focus();
-  if (input.select) input.select();
+  if (input.select && def.type === 'text') input.select();
+}
+
+function confirmInlineEdit(fid) {
+  var fieldEl = el(fid);
+  if (!fieldEl) return;
+  var input = fieldEl.querySelector('input, select, textarea');
+  if (!input) return;
+  var newVal = input.value;
+  var def    = FIELD_MAP[fid];
+  if (newVal !== String(ORIGINAL[fid] || '')) {
+    saveSingleField(fid, def.api, newVal);
+  } else {
+    cancelSingleField(fid); // No change — just close
+  }
 }
 
 function saveSingleField(fid, apiName, value) {
@@ -1817,7 +2416,12 @@ function cancelSingleField(fid) {
   if (!fieldEl || !def) return;
 
   var val = CONTACT[def.api];
+  fieldEl.classList.remove('editing');
   fieldEl.classList.remove('edit-mode-active');
+
+  // Restore pencil button
+  var pencilBtn = fieldEl.parentElement ? fieldEl.parentElement.querySelector('.pencil-btn') : null;
+  if (pencilBtn) pencilBtn.style.opacity = '';
 
   if (fid === 'f-dob' || fid === 'f-id-expiry') {
     setFv(fid, fmtDate(val));
@@ -1955,6 +2559,465 @@ function saveContact() {
       showToast('Save failed — please try again', 'error');
     }
   });
+}
+
+// ══ RELATED LISTS TAB SYSTEM ═════════════════════════════════════
+
+// ── Tab definitions ───────────────────────────────────────────────
+// All 18 related lists for Adviser CRM Contacts module
+var ALL_TABS = [
+  { id:'life_policies',    label:'Life Policies',     icon:'🛡',  entity:'Life_Policies',    newLabel:'New Policy' },
+  { id:'loans',            label:'Loans',             icon:'🏠',  entity:'Loans',            newLabel:'New Loan' },
+  { id:'investments',      label:'Investments',       icon:'📈',  entity:'Investments',      newLabel:'New Investment' },
+  { id:'advice_records',   label:'Advice Records',    icon:'📋',  entity:'Advice_Records',   newLabel:'New Advice Record' },
+  { id:'memos',            label:'Memos',             icon:'📝',  entity:'Memos',            newLabel:'New Memo' },
+  { id:'trauma',           label:'Trauma Cover',      icon:'💊',  entity:'Trauma_Cover',     newLabel:'New Trauma' },
+  { id:'income_prot',      label:'Income Protection', icon:'💵',  entity:'Income_Protection',newLabel:'New IP' },
+  { id:'medical',          label:'Medical Cover',     icon:'🏥',  entity:'Medical_Cover',    newLabel:'New Medical' },
+  { id:'assets',           label:'Assets',            icon:'🏡',  entity:'Assets',           newLabel:'New Asset' },
+  { id:'liabilities',      label:'Liabilities',       icon:'💳',  entity:'Liabilities',      newLabel:'New Liability' },
+  { id:'income',           label:'Income',            icon:'💰',  entity:'Income',           newLabel:'New Income' },
+  { id:'expenses',         label:'Expenses',          icon:'🧾',  entity:'Expenses',         newLabel:'New Expense' },
+  { id:'activities',       label:'Activities',        icon:'📅',  entity:'Activities',       newLabel:'New Activity' },
+  { id:'notes',            label:'Notes',             icon:'🗒',  entity:'Notes',            newLabel:'New Note' },
+  { id:'attachments',      label:'Attachments',       icon:'📎',  entity:'Attachments',      newLabel:'New Attachment' },
+  { id:'claims',           label:'Claims',            icon:'⚠️',  entity:'Claims',           newLabel:'New Claim' },
+  { id:'complaints',       label:'Complaints',        icon:'📣',  entity:'Complaints',       newLabel:'New Complaint' },
+  { id:'general_policies', label:'General Policies',  icon:'📑',  entity:'General_Policies', newLabel:'New Policy' },
+];
+
+// Default order — first 6 show in tab bar, rest in overflow
+var DEFAULT_ORDER = ['life_policies','loans','investments','advice_records','memos','trauma',
+  'income_prot','medical','assets','liabilities','income','expenses',
+  'activities','notes','attachments','claims','complaints','general_policies'];
+
+var TAB_ORDER    = [];  // current order (loaded from Zoho or default)
+var TAB_COUNTS   = {};  // record counts per tab
+var TAB_DATA     = {};  // loaded data per tab
+var ACTIVE_TAB   = null;
+var MAX_VISIBLE  = 5;   // max tabs before overflow
+var DRAG_SRC_ID  = null;
+var PREF_FIELD   = 'Tab_Layout_Contacts'; // Zoho user field API name
+
+// ── Load tab preferences from Zoho ────────────────────────────────
+function loadTabPreferences() {
+  if (typeof ZOHO === 'undefined') {
+    TAB_ORDER = DEFAULT_ORDER.slice();
+    return Promise.resolve();
+  }
+  return ZOHO.CRM.CONFIG.getCurrentUser()
+    .then(function(resp) {
+      var user = resp.users && resp.users[0];
+      if (user && user[PREF_FIELD]) {
+        try {
+          var saved = JSON.parse(user[PREF_FIELD]);
+          // Merge saved with any new tabs not in saved list
+          var missing = DEFAULT_ORDER.filter(function(id) {
+            return saved.indexOf(id) === -1;
+          });
+          TAB_ORDER = saved.concat(missing);
+        } catch(e) {
+          TAB_ORDER = DEFAULT_ORDER.slice();
+        }
+      } else {
+        TAB_ORDER = DEFAULT_ORDER.slice();
+      }
+    })
+    .catch(function() {
+      TAB_ORDER = DEFAULT_ORDER.slice();
+    });
+}
+
+// ── Save tab preferences to Zoho ──────────────────────────────────
+function saveTabPreferences() {
+  if (typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.CONFIG.getCurrentUser()
+    .then(function(resp) {
+      var user = resp.users && resp.users[0];
+      if (!user) return;
+      var data = {};
+      data[PREF_FIELD] = JSON.stringify(TAB_ORDER);
+      data.id = user.id;
+      return ZOHO.CRM.API.updateRecord({
+        Entity: 'users',
+        RecordID: user.id,
+        APIData: data,
+      });
+    })
+    .catch(function(e) {
+      console.log('[ACRM] Tab pref save failed:', e);
+      // Fallback to sessionStorage if Zoho save fails
+      try { sessionStorage.setItem('acrm_tab_order', JSON.stringify(TAB_ORDER)); } catch(e2){}
+    });
+}
+
+// ── Reset tab order ────────────────────────────────────────────────
+function resetTabOrder() {
+  TAB_ORDER = DEFAULT_ORDER.slice();
+  saveTabPreferences();
+  renderTabBar();
+  // Reload active tab
+  if (ACTIVE_TAB) loadTabData(ACTIVE_TAB);
+  showToast('Tab layout reset to default', 'success');
+}
+
+// ── Get tab definition by id ───────────────────────────────────────
+function getTab(id) {
+  return ALL_TABS.find(function(t) { return t.id === id; });
+}
+
+// ── Render the tab bar ─────────────────────────────────────────────
+function renderTabBar() {
+  var barEl      = document.getElementById('tab-bar');
+  var moreBtn    = document.getElementById('tab-more-btn');
+  var overflowEl = document.getElementById('overflow-grid');
+  if (!barEl) return;
+
+  // Calculate how many tabs fit
+  var containerWidth = barEl.parentElement.offsetWidth - 100; // reserve space for More btn
+  var approxTabWidth = 130;
+  var maxVisible = Math.max(2, Math.floor(containerWidth / approxTabWidth));
+
+  var visibleIds  = TAB_ORDER.slice(0, maxVisible);
+  var overflowIds = TAB_ORDER.slice(maxVisible);
+  var hasActiveInOverflow = overflowIds.indexOf(ACTIVE_TAB) !== -1;
+
+  // Render visible tabs
+  barEl.innerHTML = '';
+  visibleIds.forEach(function(id) {
+    var tab   = getTab(id);
+    if (!tab) return;
+    var count = TAB_COUNTS[id] !== undefined ? TAB_COUNTS[id] : '…';
+    var isEmpty = TAB_COUNTS[id] === 0;
+    var isActive = ACTIVE_TAB === id;
+
+    var el = document.createElement('div');
+    el.className = 'rl-tab' +
+      (isActive ? ' active' : '') +
+      (isEmpty  ? ' empty'  : '');
+    el.dataset.id = id;
+    el.draggable  = true;
+    el.innerHTML  =
+      '<span class="tab-icon">' + tab.icon + '</span>' +
+      tab.label +
+      '<span class="tab-badge">' + count + '</span>';
+
+    // Click to activate
+    el.addEventListener('click', function() { activateTab(id); });
+
+    // Drag and drop
+    el.addEventListener('dragstart', function(e) {
+      DRAG_SRC_ID = id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function() { el.classList.add('dragging'); }, 0);
+    });
+    el.addEventListener('dragend', function() {
+      el.classList.remove('dragging');
+      document.querySelectorAll('.rl-tab').forEach(function(t) {
+        t.classList.remove('drag-over');
+      });
+    });
+    el.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.rl-tab').forEach(function(t) {
+        t.classList.remove('drag-over');
+      });
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('drop', function(e) {
+      e.preventDefault();
+      if (DRAG_SRC_ID && DRAG_SRC_ID !== id) {
+        // Swap positions
+        var srcIdx = TAB_ORDER.indexOf(DRAG_SRC_ID);
+        var dstIdx = TAB_ORDER.indexOf(id);
+        if (srcIdx !== -1 && dstIdx !== -1) {
+          TAB_ORDER.splice(srcIdx, 1);
+          TAB_ORDER.splice(dstIdx, 0, DRAG_SRC_ID);
+          saveTabPreferences();
+          renderTabBar();
+        }
+      }
+      DRAG_SRC_ID = null;
+    });
+
+    barEl.appendChild(el);
+  });
+
+  // Render More button
+  if (overflowIds.length > 0) {
+    moreBtn.style.display = 'flex';
+    moreBtn.className = 'tab-more-btn' + (hasActiveInOverflow ? ' has-active' : '');
+    var overflowCount = document.getElementById('overflow-count');
+    if (overflowCount) overflowCount.textContent = '+' + overflowIds.length;
+
+    // Render overflow grid
+    if (overflowEl) {
+      overflowEl.innerHTML = overflowIds.map(function(id) {
+        var tab   = getTab(id);
+        if (!tab) return '';
+        var count = TAB_COUNTS[id] !== undefined ? TAB_COUNTS[id] : '…';
+        var isEmpty = TAB_COUNTS[id] === 0;
+        var isActive = ACTIVE_TAB === id;
+        return '<div class="overflow-tile' +
+          (isActive ? ' active' : '') +
+          (isEmpty  ? ' empty'  : '') +
+          '" data-id="' + id + '" onclick="activateTabFromOverflow(this.dataset.id)">' +
+          '<div class="overflow-tile-icon">' + tab.icon + '</div>' +
+          '<div class="overflow-tile-name">' + tab.label + '</div>' +
+          '<div class="overflow-tile-badge">' + count + '</div>' +
+          '</div>';
+      }).join('');
+    }
+  } else {
+    moreBtn.style.display = 'none';
+  }
+}
+
+// ── Toggle overflow popover ────────────────────────────────────────
+function toggleOverflow(e) {
+  e.stopPropagation();
+  var pop = document.getElementById('tab-overflow-popover');
+  if (pop) pop.classList.toggle('show');
+}
+
+// Close popover when clicking outside
+document.addEventListener('click', function() {
+  var pop = document.getElementById('tab-overflow-popover');
+  if (pop) pop.classList.remove('show');
+});
+
+// ── Activate tab from overflow — promotes to visible bar ──────────
+function activateTabFromOverflow(id) {
+  // Move to position 0 (front of visible bar)
+  var idx = TAB_ORDER.indexOf(id);
+  if (idx !== -1) {
+    TAB_ORDER.splice(idx, 1);
+    TAB_ORDER.unshift(id);
+    saveTabPreferences();
+  }
+  var pop = document.getElementById('tab-overflow-popover');
+  if (pop) pop.classList.remove('show');
+  activateTab(id);
+}
+
+// ── Activate a tab ─────────────────────────────────────────────────
+function activateTab(id) {
+  ACTIVE_TAB = id;
+  renderTabBar();
+  renderTabContent(id);
+  if (!TAB_DATA[id]) loadTabData(id);
+}
+
+// ── Render tab content panel ───────────────────────────────────────
+function renderTabContent(id) {
+  var wrap = document.getElementById('tab-content-wrap');
+  if (!wrap) return;
+  var tab = getTab(id);
+  if (!tab) return;
+
+  var data  = TAB_DATA[id];
+  var count = TAB_COUNTS[id];
+
+  var html = '<div class="tab-panel active">';
+
+  // Panel header
+  html += '<div class="tab-panel-head">';
+  html += '<div class="tab-panel-title">' + tab.icon + ' ' + tab.label;
+  if (count !== undefined) html += ' <span class="tab-badge" style="background:var(--blue);color:white;">' + count + '</span>';
+  html += '</div>';
+  html += '<div class="tab-panel-actions">';
+  html += '<button class="btn-rl-new" data-id="' + id + '" onclick="newRelatedRecord(this.dataset.id)">＋ ' + tab.newLabel + '</button>';
+  if (count > 5) {
+    html += '<button class="btn-rl-viewall" data-id="' + id + '" onclick="viewAllRelated(this.dataset.id)">View All →</button>';
+  }
+  html += '</div></div>';
+
+  // Panel body
+  if (!data) {
+    html += '<div class="rl-loading"><div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>Loading ' + tab.label + '…</div>';
+  } else if (data.length === 0) {
+    html += '<div class="rl-empty"><div class="rl-empty-icon">' + tab.icon + '</div>No ' + tab.label + ' on file</div>';
+  } else {
+    html += renderRelatedTable(id, data);
+  }
+
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+// ── Render related list as table ───────────────────────────────────
+function renderRelatedTable(id, records) {
+  var cols = getTableColumns(id);
+  var html = '<div class="rl-table-wrap"><table class="rl-table"><thead><tr>';
+  cols.forEach(function(c) { html += '<th>' + c.label + '</th>'; });
+  html += '<th></th></tr></thead><tbody>';
+
+  records.slice(0,5).forEach(function(r) {
+    html += '<tr data-tid="' + id + '" data-rid="' + (r.id||'') + '" onclick="openRelatedRecord(this.dataset.tid,this.dataset.rid)">';
+    cols.forEach(function(c, i) {
+      var val = getNestedVal(r, c.field) || '—';
+      if (c.format === 'currency') val = val !== '—' ? fmtCurr(val) : '—';
+      if (c.format === 'date')     val = val !== '—' ? fmtDate(val) : '—';
+      html += '<td class="' + (i===0 ? 'td-primary' : '') + '">' + escHtml(String(val)) + '</td>';
+    });
+    html += '<td style="text-align:right;"><span style="color:var(--blue);font-size:11px;font-weight:700;">Open →</span></td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function getNestedVal(obj, field) {
+  if (!field) return '';
+  var parts = field.split('.');
+  var val   = obj;
+  parts.forEach(function(p) { val = val && val[p]; });
+  return val;
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Column definitions per tab ─────────────────────────────────────
+function getTableColumns(id) {
+  var cols = {
+    'life_policies':    [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Life Assured', field:'Life_Assured.name' },{ label:'Sum Insured', field:'Sum_Insured', format:'currency' },{ label:'Premium', field:'Premium', format:'currency' },{ label:'Status', field:'Status' }],
+    'loans':            [{ label:'Description', field:'Name' },{ label:'Lender', field:'Lender' },{ label:'Balance', field:'Balance', format:'currency' },{ label:'Rate', field:'Interest_Rate' },{ label:'Status', field:'Status' }],
+    'investments':      [{ label:'Name', field:'Name' },{ label:'Type', field:'Investment_Type' },{ label:'Provider', field:'Provider' },{ label:'Balance', field:'Balance', format:'currency' },{ label:'Status', field:'Status' }],
+    'advice_records':   [{ label:'Record', field:'Name' },{ label:'Status', field:'Status' },{ label:'Meeting Date', field:'Date_Time_of_Meeting', format:'date' },{ label:'Owner', field:'Owner.name' }],
+    'memos':            [{ label:'Subject', field:'Note_Title' },{ label:'Date', field:'Created_Time', format:'date' },{ label:'Owner', field:'Owner.name' }],
+    'trauma':           [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Sum Insured', field:'Sum_Insured', format:'currency' },{ label:'Status', field:'Status' }],
+    'income_prot':      [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Benefit', field:'Monthly_Benefit', format:'currency' },{ label:'Status', field:'Status' }],
+    'medical':          [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Premium', field:'Premium', format:'currency' },{ label:'Status', field:'Status' }],
+    'assets':           [{ label:'Asset', field:'Name' },{ label:'Type', field:'Asset_Type' },{ label:'Value', field:'Value', format:'currency' },{ label:'Owner', field:'Owner.name' }],
+    'liabilities':      [{ label:'Liability', field:'Name' },{ label:'Type', field:'Liability_Type' },{ label:'Balance', field:'Balance', format:'currency' },{ label:'Status', field:'Status' }],
+    'income':           [{ label:'Source', field:'Name' },{ label:'Type', field:'Income_Type' },{ label:'Amount', field:'Amount', format:'currency' },{ label:'Frequency', field:'Frequency' }],
+    'expenses':         [{ label:'Expense', field:'Name' },{ label:'Type', field:'Expense_Type' },{ label:'Amount', field:'Amount', format:'currency' },{ label:'Frequency', field:'Frequency' }],
+    'activities':       [{ label:'Subject', field:'Subject' },{ label:'Type', field:'Activity_Type' },{ label:'Due Date', field:'Due_Date', format:'date' },{ label:'Status', field:'Status' }],
+    'notes':            [{ label:'Title', field:'Note_Title' },{ label:'Date', field:'Created_Time', format:'date' },{ label:'Created By', field:'Owner.name' }],
+    'attachments':      [{ label:'File Name', field:'File_Name' },{ label:'Size', field:'File_Size' },{ label:'Date Added', field:'Created_Time', format:'date' }],
+    'claims':           [{ label:'Claim No.', field:'Name' },{ label:'Type', field:'Claim_Type' },{ label:'Date', field:'Claim_Date', format:'date' },{ label:'Status', field:'Status' }],
+    'complaints':       [{ label:'Subject', field:'Name' },{ label:'Date', field:'Created_Time', format:'date' },{ label:'Status', field:'Status' }],
+    'general_policies': [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Type', field:'Policy_Type' },{ label:'Status', field:'Status' }],
+  };
+  return cols[id] || [{ label:'Name', field:'Name' }];
+}
+
+// ── Load tab data via API ──────────────────────────────────────────
+function loadTabData(id) {
+  var tab = getTab(id);
+  if (!tab || !ENTITY_ID || typeof ZOHO === 'undefined') {
+    TAB_DATA[id] = [];
+    renderTabContent(id);
+    return;
+  }
+
+  ZOHO.CRM.API.getRelatedRecords({
+    Entity:      'Contacts',
+    RecordID:    ENTITY_ID,
+    RelatedList: tab.entity,
+    page:        1,
+    per_page:    5,
+  })
+  .then(function(resp) {
+    TAB_DATA[id]   = resp.data || [];
+    TAB_COUNTS[id] = resp.info ? resp.info.count : (resp.data || []).length;
+    renderTabBar();
+    if (ACTIVE_TAB === id) renderTabContent(id);
+  })
+  .catch(function(err) {
+    console.log('[ACRM] Related list failed:', tab.entity, err);
+    TAB_DATA[id]   = [];
+    TAB_COUNTS[id] = 0;
+    renderTabBar();
+    if (ACTIVE_TAB === id) renderTabContent(id);
+  });
+}
+
+// ── Load all tab counts in background ─────────────────────────────
+function loadAllTabCounts() {
+  TAB_ORDER.forEach(function(id) {
+    var tab = getTab(id);
+    if (!tab || !ENTITY_ID || typeof ZOHO === 'undefined') {
+      TAB_COUNTS[id] = 0;
+      return;
+    }
+    ZOHO.CRM.API.getRelatedRecords({
+      Entity:      'Contacts',
+      RecordID:    ENTITY_ID,
+      RelatedList: tab.entity,
+      page:        1,
+      per_page:    1,
+    })
+    .then(function(resp) {
+      TAB_COUNTS[id] = resp.info ? resp.info.count : (resp.data || []).length;
+      renderTabBar();
+    })
+    .catch(function() {
+      TAB_COUNTS[id] = 0;
+      renderTabBar();
+    });
+  });
+}
+
+// ── CRM actions for related lists ──────────────────────────────────
+function newRelatedRecord(tabId) {
+  var tab = getTab(tabId);
+  if (!tab || typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.UI.Record.create({ Entity: tab.entity });
+}
+
+function openRelatedRecord(tabId, recordId) {
+  var tab = getTab(tabId);
+  if (!tab || !recordId || typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.UI.Record.open({ Entity: tab.entity, RecordID: recordId });
+}
+
+function viewAllRelated(tabId) {
+  var tab = getTab(tabId);
+  if (!tab || typeof ZOHO === 'undefined') return;
+  try {
+    ZOHO.CRM.UI.RelatedList.open({ Entity:'Contacts', RecordID:ENTITY_ID, RelatedList:tab.entity });
+  } catch(e) {
+    ZOHO.CRM.UI.Record.open({ Entity:tab.entity, RecordID:ENTITY_ID });
+  }
+}
+
+// ── Initialise related lists ───────────────────────────────────────
+function initRelatedLists() {
+  loadTabPreferences().then(function() {
+    renderTabBar();
+    // Activate first tab
+    if (TAB_ORDER.length > 0) {
+      ACTIVE_TAB = TAB_ORDER[0];
+      activateTab(ACTIVE_TAB);
+    }
+    // Load all counts in background
+    setTimeout(loadAllTabCounts, 500);
+  });
+}
+
+// ── Navigation actions ────────────────────────────────────────────
+function managePolicies() {
+  // Open the Life Policies related list for the current contact's account
+  if (typeof ZOHO !== 'undefined' && CONTACT.Account_Name && CONTACT.Account_Name.id) {
+    ZOHO.CRM.UI.Record.open({ Entity:'Accounts', RecordID:CONTACT.Account_Name.id });
+  } else if (typeof ZOHO !== 'undefined' && ENTITY_ID) {
+    // Fallback — open policies related list on current contact
+    ZOHO.CRM.UI.RelatedList.open({ Entity:'Contacts', RecordID:ENTITY_ID, RelatedList:'Life_Policies' });
+  }
+}
+
+function manageInvestments() {
+  // Open the Investments related list for the current contact's account
+  if (typeof ZOHO !== 'undefined' && CONTACT.Account_Name && CONTACT.Account_Name.id) {
+    ZOHO.CRM.UI.Record.open({ Entity:'Accounts', RecordID:CONTACT.Account_Name.id });
+  } else if (typeof ZOHO !== 'undefined' && ENTITY_ID) {
+    ZOHO.CRM.UI.RelatedList.open({ Entity:'Contacts', RecordID:ENTITY_ID, RelatedList:'Investments' });
+  }
 }
 
 // ── CRM Actions ────────────────────────────────────────────────────
