@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.1.0';
+      var CURRENT_VERSION = '2.1.1';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -127,17 +127,20 @@
     .layout {
       display: grid;
       grid-template-columns: var(--nav-width) 1fr;
-      min-height: calc(100vh - 72px);
+      min-height: 100vh;
       gap: 0;
+      align-items: start;
     }
 
     /* ══ LEFT NAV ══ */
     .left-nav {
       background: var(--bg-card);
-      min-height: calc(100vh - 72px);
+      min-height: 100vh;
       padding: 16px 12px;
       position: sticky;
       top: 0;
+      height: 100vh;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -208,6 +211,7 @@
     .right-content {
       padding: var(--gap) var(--gap) 60px;
       min-width: 0;
+      min-height: 100vh;
     }
 
     /* ══ CARDS ══ */
@@ -414,7 +418,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.1.0</div>
+<div id="vbadge">v2.1.1</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -1173,12 +1177,16 @@ var _resizeTimer = null;
 function scheduleResize() {
   if (_resizeTimer) clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(function() {
-    var h = Math.max(
+    // Use the larger of content height or viewport height
+    // This fills the canvas frame completely, no blank space
+    var contentH = Math.max(
       document.body.scrollHeight,
       document.body.offsetHeight,
       document.documentElement.scrollHeight,
       document.documentElement.offsetHeight
-    ) + 50;
+    );
+    var viewportH = window.innerHeight || 800;
+    var h = Math.max(contentH, viewportH) + 20;
     if (h === _lastHeight) return;
     _lastHeight = h;
     try {
