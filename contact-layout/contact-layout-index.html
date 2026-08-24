@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.9.0';
+      var CURRENT_VERSION = '2.1.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -22,7 +22,7 @@
       }
       var s = document.createElement('script');
       s.src = './ZohoEmbededAppSDK.min.js' + (params.has('nocache') ? '?t=' + Date.now() : '');
-      s.onerror = function() { console.log('[ACRM] SDK not found'); };
+      s.onerror = function() { console.log('[ACRM] SDK not found - mock mode'); };
       document.head.appendChild(s);
     })();
   </script>
@@ -30,16 +30,15 @@
     :root {
       --blue:      #00ABE6;
       --blue-dk:   #0089b8;
-      --blue-lt:   #d0eefa;
-      --blue-xlt:  #ebf7fd;
+      --blue-lt:   #e8f7fd;
+      --blue-mid:  #b8e4f5;
       --navy:      #07385D;
-      --navy-lt:   #0e5a8a;
       --ink:       #1a1a2e;
-      --ink-mid:   #2d2d44;
-      --muted:     #6a9bb5;
-      --divider:   #d0e4ef;
-      --bg:        #f4f9fc;
-      --bg-alt:    #e8f2f8;
+      --ink-mid:   #4a4a6a;
+      --muted:     #9090b0;
+      --divider:   #f0f0f8;
+      --bg:        #f5f6fa;
+      --bg-card:   #ffffff;
       --white:     #ffffff;
       --green:     #059669;
       --green-lt:  #d1fae5;
@@ -47,766 +46,768 @@
       --amber-lt:  #fef3c7;
       --red:       #dc2626;
       --red-lt:    #fee2e2;
-      --purple:    #7c3aed;
-      --purple-lt: #ede9fe;
       --teal:      #0d9488;
       --teal-lt:   #ccfbf1;
-      --sans:      Verdana, Geneva, sans-serif;
-      --radius:    8px;
-      --radius-lg: 12px;
-      --shadow:    0 1px 3px rgba(7,56,93,0.08);
-      --shadow-md: 0 4px 16px rgba(7,56,93,0.10);
+      --sans:      -apple-system, BlinkMacSystemFont, "Segoe UI", Verdana, sans-serif;
+      --radius:    12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+      --shadow:    0 2px 12px rgba(0,0,0,0.07);
+      --shadow-md: 0 4px 24px rgba(0,0,0,0.09);
+      --nav-width: 220px;
+      --gap:       20px;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html {  }
+
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     body {
-      font-family: var(--sans); background: var(--bg);
-      color: var(--ink); font-size: 12px; line-height: 1.5;
-      -webkit-font-smoothing: antialiased; 
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
-    #vbadge { position:fixed;top:6px;right:10px;font-size:10px;color:var(--muted);opacity:0.45;pointer-events:none;z-index:999; }
+
+    /* ── Loading ── */
     #loading { position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:998;transition:opacity 0.3s; }
     #loading.hidden { opacity:0;pointer-events:none; }
     .spinner { width:36px;height:36px;border:3px solid var(--divider);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes spin { to{transform:rotate(360deg);} }
     .page { display:none; }
     .page.visible { display:block; }
+    #vbadge { position:fixed;top:8px;right:14px;font-size:10px;color:var(--muted);opacity:0.5;pointer-events:none;z-index:999;font-family:monospace; }
 
-    /* ── Layout ── */
-    .page-wrap {
-      display: grid;
-      grid-template-columns: 1fr 280px;
-      grid-template-rows: auto;
-      gap: 16px;
-      padding: 16px 20px 60px;
-      width: 100%; box-sizing: border-box;
-      align-items: start;
+    /* ══ TOP HEADER ══ */
+    .header {
+      background: var(--bg-card);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-radius: 0;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      z-index: 10;
     }
-    @media (max-width:900px) { .page-wrap { grid-template-columns:1fr; } }
-
-    /* ── Hero — full width ── */
-    .hero {
-      grid-column: 1 / -1;
-      background: linear-gradient(135deg, #07385D 0%, #00ABE6 100%);
-      border-radius: var(--radius-lg);
-      padding: 20px 24px;
-      display: flex; align-items: center;
-      justify-content: space-between; gap: 20px;
-      box-shadow: var(--shadow-md);
-    }
-    .hero-left { display:flex;align-items:center;gap:16px; }
+    .header-left { display:flex;align-items:center;gap:14px; }
     .avatar {
-      width:56px;height:56px;border-radius:50%;
-      background:rgba(0,171,230,0.25);border:2px solid rgba(0,171,230,0.5);
-      display:flex;align-items:center;justify-content:center;
-      font-size:18px;font-weight:700;color:var(--white);flex-shrink:0;overflow:hidden;
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--navy) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; font-weight: 700; color: #fff;
+      flex-shrink: 0; overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,171,230,0.3);
     }
-    .hero-name { font-size:20px;font-weight:700;color:var(--white);line-height:1.2;margin-bottom:3px; }
-    .hero-role { font-size:12px;color:rgba(255,255,255,0.65);margin-bottom:8px; }
-    .hero-tags { display:flex;flex-wrap:wrap;gap:6px; }
-    .tag { display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700; }
-    .tag-white  { background:rgba(255,255,255,0.15);color:var(--white);border:1px solid rgba(255,255,255,0.25); }
-    .tag-green  { background:rgba(5,150,105,0.3);color:#6ee7b7;border:1px solid rgba(5,150,105,0.4); }
-    .tag-amber  { background:rgba(217,119,6,0.3);color:#fcd34d;border:1px solid rgba(217,119,6,0.4); }
-    .tag-red    { background:rgba(220,38,38,0.3);color:#fca5a5;border:1px solid rgba(220,38,38,0.4); }
-    .tag-blue   { background:rgba(0,171,230,0.3);color:#7dd3fc;border:1px solid rgba(0,171,230,0.4); }
-    .hero-actions { display:flex;gap:8px;flex-shrink:0; }
-    .btn {
-      display:inline-flex;align-items:center;gap:5px;
-      padding:7px 14px;border-radius:var(--radius);
-      font-family:var(--sans);font-size:11px;font-weight:700;
-      cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;
-    }
-    .btn-primary { background:var(--blue);color:var(--white); }
-    .btn-primary:hover { background:var(--blue-dk); }
-    .btn-call { background:#059669;color:var(--white); }
-    .btn-call:hover { background:#047857; }
-    .btn-outline-nav {
-      display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
-      border:1.5px solid var(--blue);border-radius:var(--radius);
-      background:white;color:var(--blue);font-family:var(--sans);
-      font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;
-    }
-    .btn-outline-nav:hover { background:var(--blue);color:white; }
-    .btn-edit {
-      background:rgba(255,255,255,0.12);color:white;
-      border:2px solid rgba(255,255,255,0.4);padding:7px 14px;
-      border-radius:8px;font-family:var(--sans);font-size:11px;font-weight:700;
-      cursor:pointer;transition:all 0.15s;
-    }
-    .btn-edit:hover { background:rgba(255,255,255,0.22); }
-    .btn-edit.active { background:var(--amber);border-color:var(--amber);color:white; }
+    .header-info {}
+    .header-name { font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+    .header-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .header-tags { display:flex;flex-wrap:wrap;gap:6px;margin-top:6px; }
+    .tag { display:inline-flex;align-items:center;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:600; }
+    .tag-green  { background:var(--green-lt);color:var(--green); }
+    .tag-blue   { background:var(--blue-lt);color:var(--blue-dk); }
+    .tag-amber  { background:var(--amber-lt);color:var(--amber); }
+    .tag-red    { background:var(--red-lt);color:var(--red); }
+    .tag-grey   { background:var(--divider);color:var(--ink-mid); }
+    .header-actions { display:flex;gap:10px;flex-shrink:0; }
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;white-space:nowrap; }
+    .btn-primary { background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(0,171,230,0.3); }
+    .btn-primary:hover { background:var(--blue-dk);box-shadow:0 4px 16px rgba(0,171,230,0.4); }
+    .btn-success { background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(5,150,105,0.25); }
+    .btn-success:hover { background:#047857; }
+    .btn-ghost { background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider); }
+    .btn-ghost:hover { border-color:var(--blue);color:var(--blue);background:var(--blue-lt); }
+    .btn-edit { background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider);padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s; }
+    .btn-edit:hover { border-color:var(--blue);color:var(--blue); }
+    .btn-edit.active { background:var(--amber);border-color:var(--amber);color:#fff; }
 
-    /* ── Main col ── */
-    .main-col { min-width:0; }
+    /* ══ MAIN LAYOUT ══ */
+    .layout {
+      display: grid;
+      grid-template-columns: var(--nav-width) 1fr;
+      min-height: calc(100vh - 72px);
+      gap: 0;
+    }
 
-    /* ── Cards ── */
-    .card { background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px; }
-    .card-head { display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--divider);background:var(--bg-alt); }
-    .card-icon { width:28px;height:28px;border-radius:7px;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0; }
-    .card-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink); }
-    .card-sub { font-size:10px;color:var(--muted);margin-top:1px; }
-    .card-body { padding:14px 16px; }
+    /* ══ LEFT NAV ══ */
+    .left-nav {
+      background: var(--bg-card);
+      min-height: calc(100vh - 72px);
+      padding: 16px 12px;
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      box-shadow: var(--shadow-sm);
+    }
 
-    /* ── Field grid ── */
-    .field-grid { display:grid;grid-template-columns:repeat(var(--cols,2),1fr);gap:10px 14px; }
-    .cols-1{--cols:1}.cols-2{--cols:2}.cols-3{--cols:3}.cols-4{--cols:4}
-    .span-2{grid-column:span 2}.span-3{grid-column:span 3}.span-full{grid-column:1/-1}
-    .field { display:flex;flex-direction:column;gap:3px; }
-    .field-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted); }
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding: 10px 12px 6px;
+      margin-top: 8px;
+    }
+    .nav-section-label:first-child { margin-top: 0; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-mid);
+      cursor: pointer;
+      transition: all 0.18s;
+      user-select: none;
+    }
+    .nav-item:hover {
+      background: var(--blue-lt);
+      color: var(--blue);
+    }
+    .nav-item.active {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--navy) 100%);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,171,230,0.3);
+    }
+    .nav-item.active .nav-badge { background:rgba(255,255,255,0.25);color:#fff; }
+    .nav-item-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-item-label { flex: 1; }
+    .nav-badge {
+      font-size: 10px; font-weight: 700;
+      background: var(--bg);
+      color: var(--muted);
+      padding: 2px 7px; border-radius: 20px;
+      min-width: 20px; text-align: center;
+      transition: all 0.18s;
+    }
+    .nav-badge.has-data { background: var(--blue-lt); color: var(--blue-dk); }
+
+    /* Nav owner */
+    .nav-owner {
+      margin-top: auto;
+      padding: 14px;
+      background: var(--bg);
+      border-radius: 14px;
+      margin-top: 12px;
+    }
+    .nav-owner-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px; }
+    .nav-owner-row { display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px; }
+    .nav-owner-row span:last-child { color:var(--ink);font-weight:600;text-align:right;max-width:60%; }
+    .review-alert-nav { margin-top:8px;background:var(--amber-lt);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--amber);font-weight:600; }
+
+    /* ══ RIGHT CONTENT ══ */
+    .right-content {
+      padding: var(--gap) var(--gap) 60px;
+      min-width: 0;
+    }
+
+    /* ══ CARDS ══ */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: var(--gap);
+    }
+    .card-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--divider);
+    }
+    .card-head-split { justify-content: space-between; }
+    .card-head-left { display:flex;align-items:center;gap:12px; }
+    .card-icon {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: var(--blue-lt);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .card-body { padding: 16px 20px; }
+
+    /* ══ FIELD GRID ══ */
+    .field-grid { display:grid;grid-template-columns:repeat(var(--cols,2),1fr);gap:12px 16px; }
+    .cols-2{--cols:2}.cols-3{--cols:3}.cols-4{--cols:4}
+    .span-2{grid-column:span 2}.span-full{grid-column:1/-1}
+    .field { display:flex;flex-direction:column;gap:5px; }
+    .field-label { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted); }
     .field-value {
-      font-size:12px;font-weight:500;color:var(--ink);
-      padding:7px 10px;background:var(--bg);border-radius:var(--radius);
-      min-height:34px;display:flex;align-items:center;
-      border:1px solid transparent;
+      font-size: 13px; font-weight: 500; color: var(--ink);
+      padding: 9px 12px;
+      background: var(--bg);
+      border-radius: 10px;
+      min-height: 38px;
+      display: flex; align-items: center;
+      border: 1.5px solid transparent;
+      transition: all 0.15s;
     }
-    .field-value.empty { color:var(--muted);font-style:italic; }
+    .field-value:hover { border-color: var(--blue-mid); background: #fff; }
+    .field-value.empty { color: var(--muted); font-style: italic; }
     .field-value a { color:var(--blue);text-decoration:none;font-weight:600; }
-    .field-value.multiline { align-items:flex-start;min-height:80px; }
+    .field-value.multiline { align-items:flex-start;min-height:90px; }
 
-    /* ── Pills ── */
-    .pill { display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap; }
+    /* ══ INLINE EDIT ══ */
+    .field-wrap { position:relative;display:flex;align-items:flex-start;gap:6px; }
+    .field-wrap .field-value { flex:1; }
+    .pencil-btn {
+      opacity: 0; flex-shrink: 0;
+      width: 30px; height: 30px;
+      border: none; border-radius: 9px;
+      background: var(--blue); color: #fff;
+      font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 4px;
+      transition: all 0.18s;
+      box-shadow: 0 3px 10px rgba(0,171,230,0.35);
+    }
+    .pencil-btn:hover { background:var(--navy);transform:scale(1.08); }
+    .field-wrap:hover .pencil-btn { opacity:1; }
+    .field-wrap:hover .field-value { border-color:var(--blue-mid)!important;background:#fff!important; }
+    .field-value.editing { border:1.5px solid var(--blue)!important;background:#fff!important;padding:0!important; }
+    .inline-edit-wrap { display:flex;align-items:center;gap:4px;width:100%; }
+    .inline-edit-wrap input,.inline-edit-wrap select,.inline-edit-wrap textarea { flex:1;border:none;background:transparent;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink);outline:none;padding:8px 12px; }
+    .inline-edit-wrap textarea { min-height:60px;resize:none;line-height:1.5; }
+    .inline-edit-actions { display:flex;gap:4px;padding:0 4px;flex-shrink:0;align-items:center; }
+    .inline-tick,.inline-cross { width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all 0.15s; }
+    .inline-tick { background:var(--green);color:#fff; }
+    .inline-tick:hover { background:#047857;transform:scale(1.1); }
+    .inline-cross { background:var(--red-lt);color:var(--red);border:1px solid #fca5a5; }
+    .inline-cross:hover { background:var(--red);color:#fff;transform:scale(1.1); }
+    .field-value.mandatory { border-color:rgba(220,38,38,0.3)!important; }
+    .field-value.changed { border-color:var(--amber)!important;background:#fffbeb!important; }
+    .field-value.mandatory-error { border-color:var(--red)!important;background:var(--red-lt)!important;animation:shake 0.3s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)} }
+
+    /* ══ FULL EDIT MODE ══ */
+    .edit-mode-active .field-value.editable { background:#fff!important;border:1.5px solid var(--blue)!important;padding:0!important; }
+    .edit-mode-active .field-value.editable input,
+    .edit-mode-active .field-value.editable select,
+    .edit-mode-active .field-value.editable textarea { width:100%;padding:8px 12px;border:none;background:transparent;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink);outline:none;box-sizing:border-box;min-height:36px; }
+    .edit-mode-active .field-value.editable select { height:38px;cursor:pointer;-webkit-appearance:auto; }
+    .edit-mode-active .field-value.editable textarea { min-height:80px;resize:vertical;padding:8px 12px; }
+    .edit-mode-active .field-value.changed { border-color:var(--amber)!important;background:#fffbeb!important; }
+
+    /* ══ PILLS ══ */
+    .pill { display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap; }
     .pill-blue   { background:var(--blue-lt);color:var(--blue-dk); }
     .pill-green  { background:var(--green-lt);color:var(--green); }
     .pill-amber  { background:var(--amber-lt);color:var(--amber); }
     .pill-red    { background:var(--red-lt);color:var(--red); }
-    .pill-grey   { background:var(--bg-alt);color:var(--muted); }
+    .pill-grey   { background:var(--bg);color:var(--muted); }
 
-    /* ── Inline edit ── */
-    .field-wrap { position:relative;display:flex;align-items:flex-start;gap:6px; }
-    .field-wrap .field-value { flex:1; }
-    .pencil-btn {
-      opacity:0;flex-shrink:0;width:28px;height:28px;
-      border:1.5px solid #07385D;border-radius:6px;
-      background:#07385D;color:#ffffff;font-size:14px;
-      cursor:pointer;display:flex;align-items:center;justify-content:center;
-      margin-top:3px;transition:all 0.15s;box-shadow:0 2px 8px rgba(7,56,93,0.4);
-    }
-    .pencil-btn:hover { background:var(--blue);border-color:var(--blue);transform:scale(1.1); }
-    .field-wrap:hover .pencil-btn { opacity:1; }
-    .field-wrap:hover .field-value { border-color:var(--blue-lt)!important;background:white!important; }
-    .field-value.editing { border:1.5px solid var(--blue)!important;background:white!important;padding:0!important; }
-    .inline-edit-wrap { display:flex;align-items:center;gap:4px;width:100%; }
-    .inline-edit-wrap input,.inline-edit-wrap select,.inline-edit-wrap textarea {
-      flex:1;border:none;background:transparent;font-family:var(--sans);
-      font-size:12px;font-weight:500;color:var(--ink);outline:none;padding:7px 8px;
-    }
-    .inline-edit-wrap textarea { min-height:60px;resize:none;line-height:1.5; }
-    .inline-edit-actions { display:flex;flex-direction:row;gap:4px;padding:0 4px;flex-shrink:0;align-items:center; }
-    .inline-tick,.inline-cross { width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all 0.15s;flex-shrink:0; }
-    .inline-tick { background:var(--green);color:white; }
-    .inline-tick:hover { background:#047857;transform:scale(1.1); }
-    .inline-cross { background:#fee2e2;color:var(--red);border:1px solid #fca5a5; }
-    .inline-cross:hover { background:var(--red);color:white;transform:scale(1.1); }
-    .field-value.mandatory { border-left:3px solid #e53935!important; }
-    .field-value.changed { border-color:var(--amber)!important;background:#fffbeb!important; }
-    .field-value.mandatory-error { border-left:3px solid #e53935!important;border-color:#e53935!important;background:#fff5f5!important;animation:shake 0.3s ease; }
-    @keyframes shake { 0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)} }
+    /* ══ COVER STRIP ══ */
+    .cover-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); }
+    .cover-item { padding:16px 18px;border-right:1px solid var(--divider);text-align:center; }
+    .cover-item:last-child { border-right:none; }
+    .cover-label { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px; }
+    .cover-value { font-size:16px;font-weight:700;color:var(--navy); }
+    .cover-value.nil { color:var(--muted);font-size:12px;font-weight:400; }
 
-    /* ── Edit toolbar ── */
-    .edit-toolbar { display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);border-radius:12px;padding:10px 16px;box-shadow:0 8px 32px rgba(7,56,93,0.3);z-index:500;align-items:center;gap:10px;white-space:nowrap; }
+    /* ══ LIFE POLICIES ══ */
+    .lp-table { width:100%;border-collapse:collapse; }
+    .lp-table th { padding:9px 20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);text-align:left;border-bottom:1px solid var(--divider);white-space:nowrap;background:var(--bg); }
+    .lp-table td { padding:11px 20px;font-size:12px;color:var(--ink-mid);border-bottom:1px solid var(--divider);vertical-align:middle; }
+    .lp-table tr:last-child td { border-bottom:none; }
+    .lp-table tr:hover td { background:var(--blue-lt);cursor:pointer; }
+    .lp-table .td-name { font-weight:700;color:var(--ink); }
+    .lp-pill-active { display:inline-flex;padding:3px 9px;background:var(--green-lt);color:var(--green);border-radius:20px;font-size:10px;font-weight:700; }
+
+    /* ══ INVESTMENT STRIP ══ */
+    .inv-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); }
+    .inv-item { padding:16px 18px;border-right:1px solid var(--divider);text-align:center; }
+    .inv-item:last-child { border-right:none; }
+    .inv-label { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px; }
+    .inv-value { font-size:16px;font-weight:700;color:var(--teal); }
+    .inv-type { font-size:10px;color:var(--muted);margin-top:3px; }
+
+    /* ══ MULTISELECT TAGS ══ */
+    .ms-tags { display:flex;flex-wrap:wrap;gap:5px; }
+    .ms-tag { display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--blue-lt);color:var(--blue-dk); }
+
+    /* ══ ADDRESS ══ */
+    .addr-cols { display:grid;grid-template-columns:1fr 1fr; }
+    .addr-col { padding:16px 20px; }
+    .addr-col:first-child { border-right:1px solid var(--divider); }
+    .addr-col-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:10px; }
+    .addr-line { display:flex;flex-direction:column;gap:3px; }
+    .addr-line span { font-size:13px;color:var(--ink); }
+    .addr-line .empty { color:var(--muted);font-style:italic; }
+
+    /* ══ RELATED LIST PANEL ══ */
+    .rl-panel-header {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: var(--gap);
+    }
+    .rl-panel-title { display:flex;align-items:center;gap:12px; }
+    .rl-panel-icon { font-size:26px; }
+    .rl-panel-name { font-size:17px;font-weight:700;color:var(--ink); }
+    .rl-panel-count { font-size:12px;color:var(--muted);margin-top:2px; }
+    .rl-panel-actions { display:flex;gap:10px; }
+    .btn-rl-new { display:inline-flex;align-items:center;gap:5px;padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,171,230,0.3); }
+    .btn-rl-new:hover { background:var(--blue-dk); }
+    .btn-back { display:inline-flex;align-items:center;gap:5px;padding:9px 18px;background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider);border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer; }
+    .btn-back:hover { border-color:var(--blue);color:var(--blue);background:var(--blue-lt); }
+    .rl-table-wrap { background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden; }
+    .rl-table { width:100%;border-collapse:collapse; }
+    .rl-table th { padding:11px 20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);text-align:left;border-bottom:1px solid var(--divider);background:var(--bg);white-space:nowrap; }
+    .rl-table td { padding:13px 20px;font-size:13px;color:var(--ink-mid);border-bottom:1px solid var(--divider);vertical-align:middle; }
+    .rl-table tr:last-child td { border-bottom:none; }
+    .rl-table tr:hover td { background:var(--blue-lt);cursor:pointer; }
+    .rl-table .td-primary { font-weight:700;color:var(--ink); }
+    .rl-empty { text-align:center;padding:56px 20px;color:var(--muted);font-size:13px; }
+    .rl-empty-icon { font-size:40px;margin-bottom:14px;opacity:0.5; }
+    .rl-loading { display:flex;align-items:center;gap:12px;padding:40px 20px;color:var(--muted);font-size:13px;justify-content:center; }
+
+    /* ══ OUTLINE NAV BTN ══ */
+    .btn-outline-nav { display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:1.5px solid var(--blue);border-radius:9px;background:#fff;color:var(--blue);font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.18s; }
+    .btn-outline-nav:hover { background:var(--blue);color:#fff; }
+
+    /* ══ EDIT TOOLBAR ══ */
+    .edit-toolbar { display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);border-radius:16px;padding:12px 20px;box-shadow:0 8px 32px rgba(7,56,93,0.25);z-index:500;align-items:center;gap:12px;white-space:nowrap; }
     .edit-toolbar.visible { display:flex; }
-    .edit-toolbar-label { font-size:12px;color:rgba(255,255,255,0.7); }
-    .changes-count { font-size:11px;color:var(--blue);font-weight:700; }
-    .btn-save { background:var(--green);color:white;border:2px solid #047857;padding:7px 18px;border-radius:8px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer; }
-    .btn-save:hover { background:#047857; }
-    .btn-cancel-edit { background:transparent;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);padding:7px 14px;border-radius:8px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer; }
-    .btn-cancel-edit:hover { background:rgba(255,255,255,0.1);color:white; }
+    .edit-toolbar-label { font-size:12px;color:rgba(255,255,255,0.6); }
+    .changes-count { font-size:12px;color:var(--blue);font-weight:700; }
+    .btn-save { background:var(--green);color:#fff;border:none;padding:9px 20px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,0.3); }
+    .btn-cancel-edit { background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);padding:9px 16px;border-radius:10px;font-family:var(--sans);font-size:12px;cursor:pointer; }
 
-    /* ── Toast ── */
-    .toast { position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--navy);color:white;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:1000;transition:transform 0.3s ease;display:flex;align-items:center;gap:8px; }
+    /* ══ TOAST ══ */
+    .toast { position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-100px);background:var(--navy);color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:var(--shadow-md);z-index:1000;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);display:flex;align-items:center;gap:10px; }
     .toast.show { transform:translateX(-50%) translateY(0); }
     .toast.success { border-left:4px solid var(--green); }
     .toast.error   { border-left:4px solid var(--red); }
     .toast.saving  { border-left:4px solid var(--blue); }
 
-    /* ── Validation popup ── */
-    .validation-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:1000; }
+    /* ══ VALIDATION ══ */
+    .validation-overlay { display:none;position:fixed;inset:0;background:rgba(15,15,30,0.4);backdrop-filter:blur(4px);z-index:1000; }
     .validation-overlay.show { display:block; }
-    .validation-popup { display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1001;width:380px;overflow:hidden; }
+    .validation-popup { display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.15);z-index:1001;width:400px;overflow:hidden; }
     .validation-popup.show { display:block; }
-    .validation-popup-head { background:#e53935;padding:14px 18px;display:flex;align-items:center;gap:10px; }
-    .validation-popup-head h3 { color:white;font-size:14px;font-weight:700;margin:0; }
-    .validation-popup-body { padding:16px 18px; }
-    .validation-popup-body p { font-size:13px;color:#475569;margin-bottom:12px; }
+    .validation-popup-head { background:var(--red);padding:18px 22px;display:flex;align-items:center;gap:12px; }
+    .validation-popup-head h3 { color:#fff;font-size:15px;font-weight:700;margin:0; }
+    .validation-popup-body { padding:20px 22px; }
+    .validation-popup-body p { font-size:13px;color:var(--ink-mid);margin-bottom:14px; }
     .validation-field-list { list-style:none;margin-bottom:16px; }
-    .validation-field-list li { display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:#e53935;font-weight:600;border-bottom:1px solid #fee2e2; }
+    .validation-field-list li { display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;color:var(--red);font-weight:600;border-bottom:1px solid var(--red-lt); }
     .validation-field-list li:last-child { border-bottom:none; }
     .validation-field-list li::before { content:"●";font-size:8px; }
-    .validation-popup-footer { padding:12px 18px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end; }
-    .btn-validation-ok { background:#e53935;color:white;border:none;padding:8px 20px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer; }
+    .validation-popup-footer { padding:14px 22px;border-top:1px solid var(--divider);display:flex;justify-content:flex-end; }
+    .btn-validation-ok { background:var(--red);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer; }
 
-    /* ── Cover strip ── */
-    .cover-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0; }
-    .cover-item { padding:12px 14px;border-right:1px solid var(--divider);text-align:center; }
-    .cover-item:last-child { border-right:none; }
-    .cover-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px; }
-    .cover-value { font-size:15px;font-weight:700;color:var(--navy); }
-    .cover-value.nil { color:var(--muted);font-size:12px; }
-
-    /* ── Life Policies inline list ── */
-    .lp-table { width:100%;border-collapse:collapse; }
-    .lp-table th { padding:7px 14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:left;border-bottom:1px solid var(--divider);white-space:nowrap; }
-    .lp-table td { padding:9px 14px;font-size:11px;color:var(--ink-mid);border-bottom:1px solid var(--divider);vertical-align:middle; }
-    .lp-table tr:last-child td { border-bottom:none; }
-    .lp-table tr:hover td { background:var(--blue-xlt);cursor:pointer; }
-    .lp-table .td-name { font-weight:700;color:var(--ink); }
-    .lp-pill-active { display:inline-flex;padding:2px 8px;background:var(--green-lt);color:var(--green);border-radius:20px;font-size:9px;font-weight:700; }
-
-    /* ── Investment summary strip ── */
-    .inv-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0; }
-    .inv-item { padding:12px 14px;border-right:1px solid var(--divider);text-align:center; }
-    .inv-item:last-child { border-right:none; }
-    .inv-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px; }
-    .inv-value { font-size:15px;font-weight:700;color:var(--teal); }
-    .inv-value.nil { color:var(--muted);font-size:12px;font-style:italic;font-weight:400; }
-    .inv-type { font-size:9px;color:var(--muted);margin-top:2px; }
-
-    /* ── Multiselect tags ── */
-    .ms-tags { display:flex;flex-wrap:wrap;gap:4px; }
-    .ms-tag { display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--blue-lt);color:var(--blue-dk); }
-
-    /* ── Address ── */
-    .addr-cols { display:grid;grid-template-columns:1fr 1fr; }
-    .addr-col { padding:14px 16px; }
-    .addr-col:first-child { border-right:1px solid var(--divider); }
-    .addr-col-label { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);margin-bottom:8px; }
-    .addr-line { display:flex;flex-direction:column;gap:2px; }
-    .addr-line span { font-size:12px;color:var(--ink); }
-    .addr-line .empty { color:var(--muted);font-style:italic; }
-
-    /* ── Sidebar ── */
-    .sidebar { position:sticky;top:16px;min-width:0; }
-    .sidebar .card { margin-bottom:12px; }
-    .sidebar-row { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:9px 14px;border-bottom:1px solid var(--divider);font-size:11px; }
-    .sidebar-row:last-child { border-bottom:none; }
-    .sidebar-row-label { color:var(--muted);flex-shrink:0;white-space:nowrap; }
-    .sidebar-row-value { color:var(--ink);font-weight:600;text-align:right; }
-    .review-alert { background:var(--amber-lt);border:1px solid var(--amber);border-radius:var(--radius);padding:10px 14px;margin:10px 14px;font-size:11px;color:var(--amber);font-weight:700;display:flex;align-items:center;gap:6px; }
-
-    /* ══ Related Lists Tab System ══ */
-    .related-lists-section { margin-bottom:14px;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden; }
-    .related-lists-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
-    .related-lists-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:flex;align-items:center;gap:8px; }
-    .rl-reset-btn { font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--sans);padding:3px 8px;border-radius:4px; }
-    .rl-reset-btn:hover { color:var(--blue);background:var(--blue-xlt); }
-    .tab-bar-wrap { background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0;border-bottom:none;display:flex;align-items:stretch;overflow:visible;position:relative;width:100%;max-width:100%;box-sizing:border-box; }
-    .tab-bar { display:flex;align-items:stretch;flex:1;overflow:hidden;position:relative;min-width:0; }
-    .rl-tab { display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:11px;font-weight:600;color:var(--ink-mid);cursor:pointer;border-right:1px solid var(--divider);border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;user-select:none;position:relative;flex-shrink:0; }
-    .rl-tab:hover { background:var(--blue-xlt);color:var(--blue); }
-    .rl-tab.active { background:var(--white);color:var(--blue);border-bottom:2px solid var(--blue);font-weight:700; }
-    .rl-tab.empty { color:var(--muted);opacity:0.6; }
-    .rl-tab.dragging { opacity:0.4;background:var(--blue-lt); }
-    .rl-tab.drag-over { border-left:2px solid var(--blue); }
-    .rl-tab::before { content:"⠿";font-size:10px;color:var(--divider);margin-right:2px;opacity:0;transition:opacity 0.15s; }
-    .rl-tab:hover::before { opacity:1; }
-    .tab-badge { display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:var(--blue-lt);color:var(--blue-dk);border-radius:20px;font-size:10px;font-weight:700; }
-    .rl-tab.active .tab-badge { background:var(--blue);color:var(--white); }
-    .rl-tab.empty .tab-badge { background:var(--bg-alt);color:var(--muted); }
-    .tab-icon { font-size:13px; }
-    .tab-more-btn { display:flex;align-items:center;gap:4px;padding:10px 14px;font-size:11px;font-weight:700;color:var(--ink-mid);cursor:pointer;background:var(--bg-alt);border-left:1px solid var(--divider);white-space:nowrap;flex-shrink:0;border-bottom:2px solid transparent; }
-    .tab-more-btn:hover { color:var(--blue);background:var(--blue-xlt); }
-    .tab-more-btn.has-active { color:var(--blue);border-bottom:2px solid var(--blue); }
-    .tab-overflow-popover { display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:9999;width:340px;overflow:visible; }
-    .tab-overflow-popover.show { display:block; }
-    .overflow-popover-head { padding:10px 14px;border-bottom:1px solid var(--divider);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);background:var(--bg-alt); }
-    .overflow-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:8px; }
-    .overflow-tile { display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;border-radius:var(--radius);cursor:pointer;text-align:center;transition:all 0.15s;gap:4px; }
-    .overflow-tile:hover { background:var(--blue-xlt); }
-    .overflow-tile.active { background:var(--blue-lt); }
-    .overflow-tile-icon { font-size:20px; }
-    .overflow-tile-name { font-size:10px;font-weight:600;color:var(--ink-mid);line-height:1.2; }
-    .overflow-tile-badge { font-size:9px;font-weight:700;color:var(--blue-dk);background:var(--blue-lt);padding:1px 6px;border-radius:20px; }
-    .overflow-tile.empty .overflow-tile-badge { color:var(--muted);background:var(--bg-alt); }
-    .overflow-popover-footer { padding:8px 14px;border-top:1px solid var(--divider);font-size:10px;color:var(--muted);text-align:center;background:var(--bg-alt); }
-    .tab-content-wrap { background:var(--white);border:1px solid var(--divider);border-radius:0 0 var(--radius-lg) var(--radius-lg);min-height:60px; }
-    .tab-panel { display:none; }
-    .tab-panel.active { display:block; }
-    .rl-table-wrap { overflow-x:auto; }
-    .rl-table { width:100%;border-collapse:collapse; }
-    .rl-table th { padding:8px 14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:left;border-bottom:1px solid var(--divider);white-space:nowrap;background:var(--bg-alt); }
-    .rl-table td { padding:9px 14px;font-size:12px;color:var(--ink-mid);border-bottom:1px solid var(--divider);vertical-align:middle; }
-    .rl-table tr:last-child td { border-bottom:none; }
-    .rl-table tr:hover td { background:var(--blue-xlt);cursor:pointer; }
-    .rl-table .td-primary { font-weight:700;color:var(--ink); }
-    .tab-panel-head { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--divider);background:var(--bg-alt); }
-    .tab-panel-title { font-size:12px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px; }
-    .tab-panel-actions { display:flex;gap:6px; }
-    .btn-rl-new { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--blue);color:var(--white);border:none;border-radius:var(--radius);font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer; }
-    .btn-rl-new:hover { background:var(--blue-dk); }
-    .btn-rl-viewall { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--white);color:var(--blue);border:1.5px solid var(--blue);border-radius:var(--radius);font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer; }
-    .btn-rl-viewall:hover { background:var(--blue);color:var(--white); }
-    .rl-empty { text-align:center;padding:32px 20px;color:var(--muted);font-size:12px; }
-    .rl-empty-icon { font-size:28px;margin-bottom:8px; }
-    .rl-loading { display:flex;align-items:center;gap:10px;padding:20px 14px;color:var(--muted);font-size:12px; }
-    .empty-state { text-align:center;padding:24px 16px;color:var(--muted);font-size:12px; }
-
-    /* ── Full edit mode ── */
-    .edit-mode-active .field-value.editable {
-      background: #ffffff !important;
-      border: 1.5px solid var(--blue) !important;
-      padding: 0 !important;
-      cursor: text;
-    }
-    .edit-mode-active .field-value.editable input,
-    .edit-mode-active .field-value.editable select,
-    .edit-mode-active .field-value.editable textarea {
-      width: 100%;
-      padding: 7px 10px;
-      border: none;
-      background: transparent;
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--ink);
-      outline: none;
-      box-sizing: border-box;
-      min-height: 32px;
-    }
-    .edit-mode-active .field-value.editable select {
-      height: 34px;
-      cursor: pointer;
-      -webkit-appearance: auto;
-      padding: 6px 10px;
-    }
-    .edit-mode-active .field-value.editable textarea {
-      min-height: 80px;
-      resize: vertical;
-      line-height: 1.5;
-      padding: 8px 10px;
-    }
-    /* Currency fields in edit mode — remove $ prefix issues */
-    .edit-mode-active .field-value.editable input[type="number"] {
-      padding: 7px 10px;
-    }
-    /* Changed field highlight */
-    .edit-mode-active .field-value.changed {
-      border-color: var(--amber) !important;
-      background: #fffbeb !important;
-    }
+    /* ══ RESPONSIVE ══ */
+    @media (max-width:900px) { .layout { grid-template-columns:1fr; } .left-nav { min-height:auto;position:static; } }
   </style>
 </head>
 <body>
 
-<div id="vbadge">v1.9.0</div>
+<div id="vbadge">v2.1.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
 </div>
 
 <div class="page" id="main-page">
-<div class="page-wrap">
 
-  <!-- ══ HERO — full width (grid-column: 1/-1) ══════════════════════ -->
-  <div class="hero">
-    <div class="hero-left">
+  <!-- ══ HERO ══ -->
+  <div class="header">
+    <div class="header-left">
       <div class="avatar" id="hero-avatar">?</div>
       <div>
-        <div class="hero-name" id="hero-name">Loading…</div>
-        <div class="hero-role" id="hero-role"></div>
-        <div class="hero-tags" id="hero-tags"></div>
+        <div class="header-name" id="hero-name">Loading…</div>
+        <div class="header-role" id="hero-role"></div>
+        <div class="header-tags" id="hero-tags"></div>
       </div>
     </div>
-    <div class="hero-actions">
-      <button class="btn btn-primary" style="border:2px solid #ffffff;" onclick="sendEmail()">✉ Email</button>
-      <button class="btn btn-call"    style="border:2px solid #ffffff;" onclick="logCall()">📞 Call</button>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="sendEmail()">✉ Email</button>
+      <button class="btn btn-call"    onclick="logCall()">📞 Call</button>
       <button class="btn-edit" id="edit-toggle-btn" onclick="toggleEditMode()">✎ Edit</button>
     </div>
   </div>
 
-  <!-- ══ MAIN COLUMN (left, wide) ══════════════════════════════════ -->
-  <div class="main-col">
+  <!-- ══ LAYOUT: LEFT NAV + RIGHT CONTENT ══ -->
+  <div class="layout">
 
-    <!-- ══ RELATED LISTS TAB SYSTEM ═══════════════════════════════ -->
-    <div class="related-lists-section" id="related-lists-section">
-      <div class="related-lists-header">
-        <div class="related-lists-title">
-          📋 Related Information
-          <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">Drag tabs to reorder</span>
-        </div>
-        <button class="rl-reset-btn" onclick="resetTabOrder()">↺ Reset Layout</button>
-      </div>
-      <div class="tab-bar-wrap" id="tab-bar-wrap" style="position:relative;">
-        <div class="tab-bar" id="tab-bar"></div>
-        <div class="tab-more-btn" id="tab-more-btn" onclick="toggleOverflow(event)" style="display:none;">⋯ More <span id="overflow-count"></span></div>
-        <div class="tab-overflow-popover" id="tab-overflow-popover">
-          <div class="overflow-popover-head">All Related Lists</div>
-          <div class="overflow-grid" id="overflow-grid"></div>
-          <div class="overflow-popover-footer">💡 Drag tabs to reorder your favourites</div>
-        </div>
-      </div>
-      <div class="tab-content-wrap" id="tab-content-wrap"></div>
-    </div>
+    <!-- ══ LEFT NAV ══ -->
+    <div class="left-nav" id="left-nav">
 
-    <!-- Personal Information -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">👤</div>
-        <div>
-          <div class="card-title">Personal Information</div>
-          <div class="card-sub">Identity, date of birth and personal details</div>
-        </div>
+      <!-- Overview -->
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" id="nav-overview" onclick="showOverview()">
+        <span class="nav-item-icon">👤</span>
+        <span class="nav-item-label">Contact Details</span>
       </div>
-      <div class="card-body">
-        <!-- Account Name — spans full width at top -->
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field span-2">
-            <div class="field-label">Account Name</div>
-            <div class="field-value" id="f-account">—</div>
-          </div>
-        </div>
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field">
-            <div class="field-label">Salutation</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-salutation">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-salutation')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">First Name <span style="color:#e53935;font-weight:700;">*</span></div>
-            <div class="field-wrap"><div class="field-value editable mandatory" id="f-first-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-first-name')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Middle Name</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-middle-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-middle-name')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Last Name <span style="color:#e53935;font-weight:700;">*</span></div>
-            <div class="field-wrap"><div class="field-value editable mandatory" id="f-last-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-last-name')">✎</button></div>
-          </div>
-        </div>
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field">
-            <div class="field-label">Preferred Name</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-preferred-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-preferred-name')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Date of Birth</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-dob">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-dob')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Age</div>
-            <div class="field-value" id="f-age">—</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Gender</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-gender">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-gender')">✎</button></div>
-          </div>
-        </div>
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field">
-            <div class="field-label">Marital Status</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-marital">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-marital')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">NZ Residency</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-nz-residency">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-nz-residency')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Contact Type</div>
-            <div class="field-value" id="f-contact-type">—</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Status</div>
-            <div class="field-value" id="f-status">—</div>
-          </div>
-        </div>
-        <div class="field-grid cols-4">
-          <div class="field">
-            <div class="field-label">Smoker</div>
-            <div class="field-value" id="f-smoker">—</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Vulnerable Client</div>
-            <div class="field-value" id="f-vulnerable">—</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Tax Number</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-tax-number">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-tax-number')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Country of Birth</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-country-birth">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-country-birth')">✎</button></div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Contact Details -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📱</div>
-        <div>
-          <div class="card-title">Contact Details</div>
-          <div class="card-sub">Phone, email and contact details</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field span-2">
-            <div class="field-label">Email <span style="color:#e53935;font-weight:700;">*</span></div>
-            <div class="field-wrap"><div class="field-value editable mandatory" id="f-email">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-email')">✎</button></div>
-          </div>
-          <div class="field span-2">
-            <div class="field-label">Secondary Email</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-secondary-email">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-secondary-email')">✎</button></div>
-          </div>
-        </div>
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field">
-            <div class="field-label">Mobile</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-mobile">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-mobile')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Phone</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-phone">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-phone')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Home Phone</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-home-phone">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-home-phone')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Lead Source</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-lead-source">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-lead-source')">✎</button></div>
-          </div>
-        </div>
-        <div class="field-grid cols-4">
-          <div class="field span-2">
-            <div class="field-label">LinkedIn</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-linkedin">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-linkedin')">✎</button></div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Related Lists</div>
 
-    <!-- ID Verification -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">🪪</div>
-        <div>
-          <div class="card-title">ID Verification</div>
-          <div class="card-sub">AML/CFT identification details</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="field-grid cols-4">
-          <div class="field">
-            <div class="field-label">ID Type</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-id-type">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-type')">✎</button></div>
-          </div>
-          <div class="field span-2">
-            <div class="field-label">ID Number</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-id-number">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-number')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">ID Expiry Date</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-id-expiry">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-expiry')">✎</button></div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <!-- 18 Related list nav items — rendered by JS -->
+      <div id="nav-related-items"></div>
 
-    <!-- Employment & Financial -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">💼</div>
-        <div>
-          <div class="card-title">Employment &amp; Financial</div>
-          <div class="card-sub">Occupation, income and financial details</div>
-        </div>
+      <!-- Owner info pinned to bottom -->
+      <div class="nav-owner" id="nav-owner">
+        <div class="nav-owner-label">Contact Owner</div>
+        <div class="nav-owner-row"><span>Owner</span><span id="nav-owner-name">—</span></div>
+        <div class="nav-owner-row"><span>Status</span><span id="nav-owner-status">—</span></div>
+        <div class="nav-owner-row"><span>Last Activity</span><span id="nav-owner-activity">—</span></div>
+        <div id="nav-review-alert"></div>
       </div>
-      <div class="card-body">
-        <div class="field-grid cols-3" style="margin-bottom:10px;">
-          <div class="field span-2">
-            <div class="field-label">Employer / Business</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-employer">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-employer')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Title / Role</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-title">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-title')">✎</button></div>
-          </div>
-        </div>
-        <div class="field-grid cols-4" style="margin-bottom:10px;">
-          <div class="field span-2">
-            <div class="field-label">Occupation</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-occupation">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-occupation')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Occupation Class</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-occupation-class">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-occupation-class')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Employment Status</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-employment-status">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-employment-status')">✎</button></div>
-          </div>
-        </div>
-        <div class="field-grid cols-2">
-          <div class="field">
-            <div class="field-label">Annual Income</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-annual-income">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-annual-income')">✎</button></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Housing Status</div>
-            <div class="field-wrap"><div class="field-value editable" id="f-housing-status">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-housing-status')">✎</button></div>
-          </div>
-        </div>
-        <!-- Hidden for JS reference -->
-        <div style="display:none;">
-          <div id="f-household-expenses"></div>
-          <div id="f-mortgage-repayment"></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Insurance Cover Summary -->
-    <div class="card">
-      <div class="card-head" style="justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="card-icon">🛡</div>
-          <div>
-            <div class="card-title">Insurance Cover Summary</div>
-            <div class="card-sub">Current cover amounts on file</div>
-          </div>
-        </div>
-        <button class="btn-outline-nav" onclick="managePolicies()">📋 Manage Policies</button>
-      </div>
-      <div class="cover-strip">
-        <div class="cover-item"><div class="cover-label">Life Cover</div><div class="cover-value" id="cv-life">—</div></div>
-        <div class="cover-item"><div class="cover-label">Trauma Cover</div><div class="cover-value" id="cv-trauma">—</div></div>
-        <div class="cover-item"><div class="cover-label">Income Cover</div><div class="cover-value" id="cv-income">—</div></div>
-        <div class="cover-item"><div class="cover-label">Total Disability</div><div class="cover-value" id="cv-tpd">—</div></div>
-        <div class="cover-item"><div class="cover-label">Household Expenses</div><div class="cover-value" id="cv-hh-expenses">—</div></div>
-        <div class="cover-item"><div class="cover-label">Mortgage Repayment</div><div class="cover-value" id="cv-mortgage">—</div></div>
-      </div>
-      <!-- Life Policies In Force -->
-      <div id="life-policies-wrap" style="border-top:1px solid var(--divider);">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-alt);">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">🛡 Life Policies In Force</div>
-          <div id="life-policies-count" style="font-size:10px;color:var(--muted);"></div>
-        </div>
-        <div id="life-policies-body">
-          <div style="padding:14px 16px;text-align:center;color:var(--muted);font-size:11px;">Loading policies…</div>
-        </div>
-      </div>
-    </div>
+    </div><!-- /left-nav -->
 
-    <!-- Investment Summary -->
-    <div class="card" id="inv-summary-card" style="display:none;">
-      <div class="card-head" style="justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="card-icon" style="background:var(--teal-lt);">📈</div>
-          <div>
-            <div class="card-title">Investment Summary</div>
-            <div class="card-sub" id="inv-summary-sub">Loading…</div>
-          </div>
-        </div>
-        <button class="btn-outline-nav" onclick="manageInvestments()">📊 Manage Investments</button>
-      </div>
-      <div id="inv-strip-wrap">
-        <div style="padding:14px;text-align:center;color:var(--muted);font-size:12px;">Loading investment balances…</div>
-      </div>
-    </div>
+    <!-- ══ RIGHT CONTENT ══ -->
+    <div class="right-content" id="right-content">
 
-    <!-- Active Products & Benefits -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📦</div>
-        <div>
-          <div class="card-title">Active Products &amp; Benefits</div>
-          <div class="card-sub">Current products and benefits on file</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="field-grid cols-2">
-          <div class="field">
-            <div class="field-label">Active Products</div>
-            <div class="field-value" id="f-active-products" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+      <!-- ── OVERVIEW PANEL ── -->
+      <div id="panel-overview">
+
+        <!-- Personal Information -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">👤</div>
+            <div>
+              <div class="card-title">Personal Information</div>
+              <div class="card-sub">Identity, date of birth and personal details</div>
+            </div>
           </div>
-          <div class="field">
-            <div class="field-label">Active Benefits</div>
-            <div class="field-value" id="f-active-benefits" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+          <div class="card-body">
+            <div class="field-grid cols-4" style="margin-bottom:10px;">
+              <div class="field span-2">
+                <div class="field-label">Account Name</div>
+                <div class="field-value" id="f-account">—</div>
+              </div>
+            </div>
+            <div class="field-grid cols-4" style="margin-bottom:10px;">
+              <div class="field">
+                <div class="field-label">Salutation</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-salutation">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-salutation')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">First Name <span style="color:#e53935">*</span></div>
+                <div class="field-wrap"><div class="field-value editable mandatory" id="f-first-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-first-name')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Middle Name</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-middle-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-middle-name')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Last Name <span style="color:#e53935">*</span></div>
+                <div class="field-wrap"><div class="field-value editable mandatory" id="f-last-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-last-name')">✎</button></div>
+              </div>
+            </div>
+            <div class="field-grid cols-4" style="margin-bottom:10px;">
+              <div class="field">
+                <div class="field-label">Preferred Name</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-preferred-name">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-preferred-name')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Date of Birth</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-dob">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-dob')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Age</div>
+                <div class="field-value" id="f-age">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Gender</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-gender">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-gender')">✎</button></div>
+              </div>
+            </div>
+            <div class="field-grid cols-4" style="margin-bottom:10px;">
+              <div class="field">
+                <div class="field-label">Marital Status</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-marital">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-marital')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">NZ Residency</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-nz-residency">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-nz-residency')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Contact Type</div>
+                <div class="field-value" id="f-contact-type">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Status</div>
+                <div class="field-value" id="f-status">—</div>
+              </div>
+            </div>
+            <div class="field-grid cols-4">
+              <div class="field">
+                <div class="field-label">Smoker</div>
+                <div class="field-value" id="f-smoker">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Vulnerable Client</div>
+                <div class="field-value" id="f-vulnerable">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Tax Number</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-tax-number">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-tax-number')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Country of Birth</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-country-birth">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-country-birth')">✎</button></div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Description -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📝</div>
-        <div><div class="card-title">Description</div></div>
-      </div>
-      <div class="card-body">
-        <div class="field-value multiline" id="f-description" style="min-height:80px;width:100%;"></div>
-      </div>
-    </div>
-
-    <!-- Address Information -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📍</div>
-        <div><div class="card-title">Address Information</div></div>
-      </div>
-      <div class="addr-cols">
-        <div class="addr-col">
-          <div class="addr-col-label">Mailing Address</div>
-          <div class="addr-line" id="addr-mailing"><span class="empty">Not recorded</span></div>
+        <!-- Contact Details -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">📱</div>
+            <div>
+              <div class="card-title">Contact Details</div>
+              <div class="card-sub">Phone, email and contact details</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid cols-4" style="margin-bottom:10px;">
+              <div class="field span-2">
+                <div class="field-label">Email <span style="color:#e53935">*</span></div>
+                <div class="field-wrap"><div class="field-value editable mandatory" id="f-email">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-email')">✎</button></div>
+              </div>
+              <div class="field span-2">
+                <div class="field-label">Secondary Email</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-secondary-email">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-secondary-email')">✎</button></div>
+              </div>
+            </div>
+            <div class="field-grid cols-4" style="margin-bottom:10px;">
+              <div class="field">
+                <div class="field-label">Mobile</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-mobile">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-mobile')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Phone</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-phone">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-phone')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Home Phone</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-home-phone">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-home-phone')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Lead Source</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-lead-source">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-lead-source')">✎</button></div>
+              </div>
+            </div>
+            <div class="field-grid cols-4">
+              <div class="field span-2">
+                <div class="field-label">LinkedIn</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-linkedin">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-linkedin')">✎</button></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="addr-col">
-          <div class="addr-col-label">Other Address</div>
-          <div class="addr-line" id="addr-other"><span class="empty">Not recorded</span></div>
+
+        <!-- ID Verification -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">🪪</div>
+            <div>
+              <div class="card-title">ID Verification</div>
+              <div class="card-sub">AML/CFT identification details</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid cols-4">
+              <div class="field">
+                <div class="field-label">ID Type</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-id-type">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-type')">✎</button></div>
+              </div>
+              <div class="field span-2">
+                <div class="field-label">ID Number</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-id-number">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-number')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">ID Expiry Date</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-id-expiry">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-expiry')">✎</button></div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-  </div><!-- /main-col -->
+        <!-- Employment & Financial -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">💼</div>
+            <div>
+              <div class="card-title">Employment &amp; Financial</div>
+              <div class="card-sub">Occupation, income and financial details</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid cols-3" style="margin-bottom:10px;">
+              <div class="field span-2">
+                <div class="field-label">Employer / Business</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-employer">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-employer')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Title / Role</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-title">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-title')">✎</button></div>
+              </div>
+            </div>
+            <div class="field-grid cols-4" style="margin-bottom:10px;">
+              <div class="field span-2">
+                <div class="field-label">Occupation</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-occupation">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-occupation')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Occupation Class</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-occupation-class">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-occupation-class')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Employment Status</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-employment-status">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-employment-status')">✎</button></div>
+              </div>
+            </div>
+            <div class="field-grid cols-2">
+              <div class="field">
+                <div class="field-label">Annual Income</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-annual-income">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-annual-income')">✎</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label">Housing Status</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-housing-status">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-housing-status')">✎</button></div>
+              </div>
+            </div>
+            <div style="display:none;"><div id="f-household-expenses"></div><div id="f-mortgage-repayment"></div></div>
+          </div>
+        </div>
 
-  <!-- ══ SIDEBAR (right, narrow) ═══════════════════════════════════ -->
-  <div class="sidebar">
+        <!-- Insurance Cover -->
+        <div class="card">
+          <div class="card-head card-head-split">
+            <div class="card-head-left">
+              <div class="card-icon">🛡</div>
+              <div>
+                <div class="card-title">Insurance Cover Summary</div>
+                <div class="card-sub">Current cover amounts on file</div>
+              </div>
+            </div>
+            <button class="btn-outline-nav" onclick="managePolicies()">📋 Manage Policies</button>
+          </div>
+          <div class="cover-strip">
+            <div class="cover-item"><div class="cover-label">Life Cover</div><div class="cover-value" id="cv-life">—</div></div>
+            <div class="cover-item"><div class="cover-label">Trauma Cover</div><div class="cover-value" id="cv-trauma">—</div></div>
+            <div class="cover-item"><div class="cover-label">Income Cover</div><div class="cover-value" id="cv-income">—</div></div>
+            <div class="cover-item"><div class="cover-label">Total Disability</div><div class="cover-value" id="cv-tpd">—</div></div>
+            <div class="cover-item"><div class="cover-label">Household Expenses</div><div class="cover-value" id="cv-hh-expenses">—</div></div>
+            <div class="cover-item"><div class="cover-label">Mortgage Repayment</div><div class="cover-value" id="cv-mortgage">—</div></div>
+          </div>
+          <!-- Life Policies In Force -->
+          <div style="border-top:1px solid var(--divider);">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-alt);">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">🛡 Life Policies In Force</div>
+              <div id="life-policies-count" style="font-size:10px;color:var(--muted);"></div>
+            </div>
+            <div id="life-policies-body"><div style="padding:14px;text-align:center;color:var(--muted);font-size:11px;">Loading policies…</div></div>
+          </div>
+        </div>
 
-    <!-- Contact Owner -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon" style="background:#07385D;color:var(--white);">👤</div>
-        <div><div class="card-title" style="color:var(--navy);">Contact Owner</div></div>
-      </div>
-      <div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Owner</span><span class="sidebar-row-value" id="sb-owner">—</span></div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Lead Source</span><span class="sidebar-row-value" id="sb-lead-source">—</span></div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Status</span><span class="sidebar-row-value" id="sb-status">—</span></div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Last Activity</span><span class="sidebar-row-value" id="sb-last-activity">—</span></div>
-      </div>
-    </div>
+        <!-- Investment Summary -->
+        <div class="card" id="inv-summary-card" style="display:none;">
+          <div class="card-head card-head-split">
+            <div class="card-head-left">
+              <div class="card-icon" style="background:var(--teal-lt);">📈</div>
+              <div>
+                <div class="card-title">Investment Summary</div>
+                <div class="card-sub" id="inv-summary-sub">Loading…</div>
+              </div>
+            </div>
+            <button class="btn-outline-nav" onclick="manageInvestments()">📊 Manage Investments</button>
+          </div>
+          <div id="inv-strip-wrap"><div style="padding:14px;text-align:center;color:var(--muted);">Loading…</div></div>
+        </div>
 
-    <!-- Review Schedule -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">🗓</div>
-        <div><div class="card-title">Review Schedule</div></div>
-      </div>
-      <div id="review-alert-wrap"></div>
-      <div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Review Date</span><span class="sidebar-row-value" id="sb-review-date">—</span></div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Account Review</span><span class="sidebar-row-value" id="sb-account-review">—</span></div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Review Month</span><span class="sidebar-row-value" id="sb-review-month">—</span></div>
-      </div>
-    </div>
+        <!-- Active Products -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">📦</div>
+            <div>
+              <div class="card-title">Active Products &amp; Benefits</div>
+              <div class="card-sub">Current products and benefits on file</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid cols-2">
+              <div class="field">
+                <div class="field-label">Active Products</div>
+                <div class="field-value" id="f-active-products" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Active Benefits</div>
+                <div class="field-value" id="f-active-benefits" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <!-- Quick Stats -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📊</div>
-        <div><div class="card-title">Quick Stats</div></div>
-      </div>
-      <div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Age</span><span class="sidebar-row-value" id="sb-age">—</span></div>
-        <div class="sidebar-row"><span class="sidebar-row-label">Expiry Date</span><span class="sidebar-row-value" id="sb-expiry">—</span></div>
-        <!-- Hidden but retained for JS -->
-        <div style="display:none;"><span id="sb-birthday"></span><span id="sb-days-nb"></span></div>
-      </div>
-    </div>
+        <!-- Description -->
+        <div class="card">
+          <div class="card-head"><div class="card-icon">📝</div><div><div class="card-title">Description</div></div></div>
+          <div class="card-body">
+            <div class="field-value multiline" id="f-description" style="min-height:80px;width:100%;"></div>
+          </div>
+        </div>
 
-  </div><!-- /sidebar -->
+        <!-- Address -->
+        <div class="card">
+          <div class="card-head"><div class="card-icon">📍</div><div><div class="card-title">Address Information</div></div></div>
+          <div class="addr-cols">
+            <div class="addr-col">
+              <div class="addr-col-label">Mailing Address</div>
+              <div class="addr-line" id="addr-mailing"><span class="empty">Not recorded</span></div>
+            </div>
+            <div class="addr-col">
+              <div class="addr-col-label">Other Address</div>
+              <div class="addr-line" id="addr-other"><span class="empty">Not recorded</span></div>
+            </div>
+          </div>
+        </div>
 
-</div><!-- /page-wrap -->
+      </div><!-- /panel-overview -->
+
+      <!-- ── RELATED LIST PANEL (shown when nav item clicked) ── -->
+      <div id="panel-related" style="display:none;">
+        <div class="rl-panel-header">
+          <div class="rl-panel-title">
+            <div class="rl-panel-icon" id="rl-panel-icon">📋</div>
+            <div>
+              <div class="rl-panel-name" id="rl-panel-name">Related List</div>
+              <div class="rl-panel-count" id="rl-panel-count"></div>
+            </div>
+          </div>
+          <div class="rl-panel-actions">
+            <button class="btn-back" onclick="showOverview()">← Back to Overview</button>
+            <button class="btn-rl-new" id="rl-new-btn" onclick="newRelatedRecord()">＋ New</button>
+          </div>
+        </div>
+        <div class="rl-table-wrap">
+          <div id="rl-panel-body">
+            <div class="rl-loading"><div class="spinner" style="width:20px;height:20px;border-width:2px;"></div>Loading…</div>
+          </div>
+        </div>
+      </div><!-- /panel-related -->
+
+    </div><!-- /right-content -->
+
+  </div><!-- /layout -->
+
+</div><!-- /page -->
 
 <!-- Edit toolbar -->
 <div class="edit-toolbar" id="edit-toolbar">
@@ -830,9 +831,292 @@
   <div class="validation-popup-footer"><button class="btn-validation-ok" onclick="closeValidation()">OK — I'll fix these</button></div>
 </div>
 
-</div><!-- /page -->
-
 <script>
+
+// ══ V2 NAV SYSTEM ════════════════════════════════════════════════
+
+var CURRENT_NAV = 'overview';
+var CURRENT_TAB_ID = null;
+
+// All 18 related lists
+var ALL_TABS = [
+  { id:'life_policies',    label:'Life Policies',     icon:'🛡',  entity:'Life_Policies',     newLabel:'New Policy' },
+  { id:'loans',            label:'Loans',             icon:'🏠',  entity:'Loans',             newLabel:'New Loan' },
+  { id:'investments',      label:'Investments',       icon:'📈',  entity:'Investments',       newLabel:'New Investment' },
+  { id:'advice_records',   label:'Advice Records',    icon:'📋',  entity:'Advice_Records',    newLabel:'New Advice Record' },
+  { id:'memos',            label:'Memos',             icon:'📝',  entity:'Memos',             newLabel:'New Memo' },
+  { id:'trauma',           label:'Trauma Cover',      icon:'💊',  entity:'Trauma_Cover',      newLabel:'New Trauma' },
+  { id:'income_prot',      label:'Income Protection', icon:'💵',  entity:'Income_Protection', newLabel:'New IP' },
+  { id:'medical',          label:'Medical Cover',     icon:'🏥',  entity:'Medical_Cover',     newLabel:'New Medical' },
+  { id:'assets',           label:'Assets',            icon:'🏡',  entity:'Assets',            newLabel:'New Asset' },
+  { id:'liabilities',      label:'Liabilities',       icon:'💳',  entity:'Liabilities',       newLabel:'New Liability' },
+  { id:'income',           label:'Income',            icon:'💰',  entity:'Income',            newLabel:'New Income' },
+  { id:'expenses',         label:'Expenses',          icon:'🧾',  entity:'Expenses',          newLabel:'New Expense' },
+  { id:'activities',       label:'Activities',        icon:'📅',  entity:'Activities',        newLabel:'New Activity' },
+  { id:'notes',            label:'Notes',             icon:'🗒',  entity:'Notes',             newLabel:'New Note' },
+  { id:'attachments',      label:'Attachments',       icon:'📎',  entity:'Attachments',       newLabel:'New Attachment' },
+  { id:'claims',           label:'Claims',            icon:'⚠️',  entity:'Claims',            newLabel:'New Claim' },
+  { id:'complaints',       label:'Complaints',        icon:'📣',  entity:'Complaints',        newLabel:'New Complaint' },
+  { id:'general_policies', label:'General Policies',  icon:'📑',  entity:'General_Policies',  newLabel:'New Policy' },
+];
+
+var TAB_COUNTS = {};
+var TAB_DATA   = {};
+var TAB_ORDER  = ALL_TABS.map(function(t){ return t.id; });
+var PREF_FIELD = 'Tab_Layout_Contacts';
+
+function getTab(id) {
+  return ALL_TABS.find(function(t){ return t.id === id; });
+}
+
+// ── Render nav items ───────────────────────────────────────────────
+function renderNavItems() {
+  var container = document.getElementById('nav-related-items');
+  if (!container) return;
+  container.innerHTML = ALL_TABS.map(function(tab) {
+    var count = TAB_COUNTS[tab.id];
+    var badge = count !== undefined
+      ? '<span class="nav-badge ' + (count > 0 ? 'has-data' : '') + '">' + count + '</span>'
+      : '<span class="nav-badge loading">…</span>';
+    return '<div class="nav-item" id="nav-' + tab.id + '" data-id="' + tab.id + '" onclick="showRelatedList(this.dataset.id)">' +
+      '<span class="nav-item-icon">' + tab.icon + '</span>' +
+      '<span class="nav-item-label">' + tab.label + '</span>' +
+      badge +
+    '</div>';
+  }).join('');
+}
+
+// ── Show overview ──────────────────────────────────────────────────
+function showOverview() {
+  CURRENT_NAV = 'overview';
+  CURRENT_TAB_ID = null;
+
+  document.getElementById('panel-overview').style.display = 'block';
+  document.getElementById('panel-related').style.display  = 'none';
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  var ov = document.getElementById('nav-overview');
+  if (ov) ov.classList.add('active');
+
+  scheduleResize();
+}
+
+// ── Show related list ──────────────────────────────────────────────
+function showRelatedList(tabId) {
+  var tab = getTab(tabId);
+  if (!tab) return;
+
+  CURRENT_NAV    = 'related';
+  CURRENT_TAB_ID = tabId;
+
+  document.getElementById('panel-overview').style.display = 'none';
+  document.getElementById('panel-related').style.display  = 'block';
+
+  // Update panel header
+  document.getElementById('rl-panel-icon').textContent = tab.icon;
+  document.getElementById('rl-panel-name').textContent  = tab.label;
+  var newBtn = document.getElementById('rl-new-btn');
+  if (newBtn) newBtn.textContent = '＋ ' + tab.newLabel;
+
+  // Update count
+  var count = TAB_COUNTS[tabId];
+  var countEl = document.getElementById('rl-panel-count');
+  if (countEl) countEl.textContent = count !== undefined ? count + ' record' + (count !== 1 ? 's' : '') : 'Loading…';
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  var navItem = document.getElementById('nav-' + tabId);
+  if (navItem) navItem.classList.add('active');
+
+  // Show cached data or load
+  if (TAB_DATA[tabId] !== undefined) {
+    renderRelatedPanel(tabId, TAB_DATA[tabId]);
+  } else {
+    document.getElementById('rl-panel-body').innerHTML =
+      '<div class="rl-loading"><div class="spinner" style="width:20px;height:20px;border-width:2px;"></div>Loading ' + tab.label + '…</div>';
+    loadRelatedList(tabId);
+  }
+
+  scheduleResize();
+}
+
+// ── Load related list data ─────────────────────────────────────────
+function loadRelatedList(tabId) {
+  var tab = getTab(tabId);
+  if (!tab || !ENTITY_ID || typeof ZOHO === 'undefined') {
+    TAB_DATA[tabId]   = [];
+    TAB_COUNTS[tabId] = 0;
+    renderRelatedPanel(tabId, []);
+    return;
+  }
+
+  ZOHO.CRM.API.getRelatedRecords({
+    Entity:      'Contacts',
+    RecordID:    ENTITY_ID,
+    RelatedList: tab.entity,
+    page:        1,
+    per_page:    25,
+  })
+  .then(function(resp) {
+    var data  = resp.data  || [];
+    var count = resp.info ? resp.info.count : data.length;
+    TAB_DATA[tabId]   = data;
+    TAB_COUNTS[tabId] = count;
+    renderNavItems();
+    if (CURRENT_TAB_ID === tabId) {
+      renderRelatedPanel(tabId, data);
+      var countEl = document.getElementById('rl-panel-count');
+      if (countEl) countEl.textContent = count + ' record' + (count !== 1 ? 's' : '');
+    }
+    setTimeout(scheduleResize, 200);
+  })
+  .catch(function(err) {
+    console.log('[ACRM] Related list error:', tab.entity, err);
+    TAB_DATA[tabId]   = [];
+    TAB_COUNTS[tabId] = 0;
+    renderNavItems();
+    if (CURRENT_TAB_ID === tabId) renderRelatedPanel(tabId, []);
+  });
+}
+
+// ── Render related list panel ──────────────────────────────────────
+function renderRelatedPanel(tabId, records) {
+  var body = document.getElementById('rl-panel-body');
+  if (!body) return;
+
+  if (!records.length) {
+    body.innerHTML = '<div class="rl-empty">' +
+      '<div class="rl-empty-icon">' + getTab(tabId).icon + '</div>' +
+      'No ' + getTab(tabId).label + ' on file' +
+    '</div>';
+    return;
+  }
+
+  var cols = getTableColumns(tabId);
+  var html = '<table class="rl-table"><thead><tr>';
+  cols.forEach(function(c){ html += '<th>' + c.label + '</th>'; });
+  html += '<th></th></tr></thead><tbody>';
+
+  records.forEach(function(r) {
+    html += '<tr data-tid="' + tabId + '" data-rid="' + (r.id||'') + '" onclick="openRelatedRecord(this.dataset.tid,this.dataset.rid)">';
+    cols.forEach(function(c, i) {
+      var val = getNestedVal(r, c.field) || '—';
+      if (c.format === 'currency') val = val !== '—' ? fmtCurr(Number(val)) : '—';
+      if (c.format === 'date')     val = val !== '—' ? fmtDate(val) : '—';
+      html += '<td class="' + (i===0?'td-primary':'') + '">' + escHtml(String(val)) + '</td>';
+    });
+    html += '<td style="text-align:right;color:var(--blue);font-size:11px;font-weight:700;">Open →</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  body.innerHTML = html;
+  setTimeout(scheduleResize, 200);
+}
+
+// ── Column definitions ─────────────────────────────────────────────
+function getTableColumns(id) {
+  var cols = {
+    'life_policies':    [{label:'Policy No.',field:'Name'},{label:'Insurer',field:'Insurer'},{label:'Life Assured',field:'Life_Assured.name'},{label:'Sum Insured',field:'Sum_Insured',format:'currency'},{label:'Premium',field:'Premium',format:'currency'},{label:'Status',field:'Status'}],
+    'loans':            [{label:'Description',field:'Name'},{label:'Lender',field:'Lender'},{label:'Balance',field:'Balance',format:'currency'},{label:'Rate',field:'Interest_Rate'},{label:'Status',field:'Status'}],
+    'investments':      [{label:'Name',field:'Name'},{label:'Type',field:'Investment_Type'},{label:'Provider',field:'Provider'},{label:'Balance',field:'Balance',format:'currency'},{label:'Status',field:'Status'}],
+    'advice_records':   [{label:'Record',field:'Name'},{label:'Status',field:'Status'},{label:'Meeting Date',field:'Date_Time_of_Meeting',format:'date'},{label:'Owner',field:'Owner.name'}],
+    'memos':            [{label:'Subject',field:'Note_Title'},{label:'Date',field:'Created_Time',format:'date'},{label:'Owner',field:'Owner.name'}],
+    'trauma':           [{label:'Policy No.',field:'Name'},{label:'Insurer',field:'Insurer'},{label:'Sum Insured',field:'Sum_Insured',format:'currency'},{label:'Status',field:'Status'}],
+    'income_prot':      [{label:'Policy No.',field:'Name'},{label:'Insurer',field:'Insurer'},{label:'Benefit',field:'Monthly_Benefit',format:'currency'},{label:'Status',field:'Status'}],
+    'medical':          [{label:'Policy No.',field:'Name'},{label:'Insurer',field:'Insurer'},{label:'Premium',field:'Premium',format:'currency'},{label:'Status',field:'Status'}],
+    'assets':           [{label:'Asset',field:'Name'},{label:'Type',field:'Asset_Type'},{label:'Value',field:'Value',format:'currency'}],
+    'liabilities':      [{label:'Liability',field:'Name'},{label:'Type',field:'Liability_Type'},{label:'Balance',field:'Balance',format:'currency'},{label:'Status',field:'Status'}],
+    'income':           [{label:'Source',field:'Name'},{label:'Type',field:'Income_Type'},{label:'Amount',field:'Amount',format:'currency'},{label:'Frequency',field:'Frequency'}],
+    'expenses':         [{label:'Expense',field:'Name'},{label:'Type',field:'Expense_Type'},{label:'Amount',field:'Amount',format:'currency'},{label:'Frequency',field:'Frequency'}],
+    'activities':       [{label:'Subject',field:'Subject'},{label:'Type',field:'Activity_Type'},{label:'Due Date',field:'Due_Date',format:'date'},{label:'Status',field:'Status'}],
+    'notes':            [{label:'Title',field:'Note_Title'},{label:'Date',field:'Created_Time',format:'date'},{label:'Owner',field:'Owner.name'}],
+    'attachments':      [{label:'File Name',field:'File_Name'},{label:'Size',field:'File_Size'},{label:'Date Added',field:'Created_Time',format:'date'}],
+    'claims':           [{label:'Claim No.',field:'Name'},{label:'Type',field:'Claim_Type'},{label:'Date',field:'Claim_Date',format:'date'},{label:'Status',field:'Status'}],
+    'complaints':       [{label:'Subject',field:'Name'},{label:'Date',field:'Created_Time',format:'date'},{label:'Status',field:'Status'}],
+    'general_policies': [{label:'Policy No.',field:'Name'},{label:'Insurer',field:'Insurer'},{label:'Type',field:'Policy_Type'},{label:'Status',field:'Status'}],
+  };
+  return cols[id] || [{label:'Name',field:'Name'}];
+}
+
+function getNestedVal(obj, field) {
+  var parts = field.split('.');
+  var val = obj;
+  parts.forEach(function(p){ val = val && val[p]; });
+  return val;
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── CRM record actions ─────────────────────────────────────────────
+function openRelatedRecord(tabId, recordId) {
+  var tab = getTab(tabId);
+  if (!tab || !recordId || typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.UI.Record.open({ Entity:tab.entity, RecordID:recordId });
+}
+
+function newRelatedRecord() {
+  if (!CURRENT_TAB_ID) return;
+  var tab = getTab(CURRENT_TAB_ID);
+  if (!tab || typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.UI.Record.create({ Entity:tab.entity });
+}
+
+// ── Load all counts in background ─────────────────────────────────
+function loadAllCounts() {
+  ALL_TABS.forEach(function(tab) {
+    if (!ENTITY_ID || typeof ZOHO === 'undefined') {
+      TAB_COUNTS[tab.id] = 0;
+      return;
+    }
+    ZOHO.CRM.API.getRelatedRecords({
+      Entity:'Contacts', RecordID:ENTITY_ID,
+      RelatedList:tab.entity, page:1, per_page:1,
+    })
+    .then(function(resp) {
+      TAB_COUNTS[tab.id] = resp.info ? resp.info.count : (resp.data||[]).length;
+      renderNavItems();
+    })
+    .catch(function() {
+      TAB_COUNTS[tab.id] = 0;
+      renderNavItems();
+    });
+  });
+}
+
+// Override initRelatedLists to use new nav system
+function initRelatedLists() {
+  renderNavItems();
+  setTimeout(loadAllCounts, 300);
+}
+
+// ── Update sidebar owner info ──────────────────────────────────────
+function updateNavOwner(c) {
+  var nameEl = document.getElementById('nav-owner-name');
+  var statusEl = document.getElementById('nav-owner-status');
+  var activityEl = document.getElementById('nav-owner-activity');
+  var alertEl = document.getElementById('nav-review-alert');
+
+  if (nameEl) nameEl.textContent = c.Owner ? c.Owner.name || '—' : '—';
+  if (statusEl) statusEl.textContent = c.Status || '—';
+  if (activityEl) activityEl.textContent = fmtDate(c.Last_Activity_Time || c.Modified_Time);
+
+  // Review alert
+  if (alertEl && (c.Review_Date || c.Review)) {
+    var rd = new Date((c.Review_Date || c.Review).replace('T',' '));
+    var days = Math.ceil((rd - new Date()) / (1000*60*60*24));
+    if (days <= 30 && days >= -30) {
+      alertEl.innerHTML = '<div class="review-alert-nav">⚠ Review ' +
+        (days < 0 ? 'overdue ' + Math.abs(days) + 'd' : 'in ' + days + ' days') + '</div>';
+    }
+  }
+}
+
+
+
 
 // ─────────────────────────────────────────────────────────────────
 //  Adviser CRM — Contact Layout Page v1.9.0
@@ -982,6 +1266,9 @@ function renderReviewAlert(reviewDate) {
 // ── Populate page ──────────────────────────────────────────────────
 function populateContact(c) {
   CONTACT = c;
+
+  // Update nav owner panel
+  updateNavOwner(c);
 
   // ── Hero ──
   const fullName = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
@@ -2545,6 +2832,7 @@ setTimeout(function(){
     el('main-page').classList.add('visible');
   }
 }, 8000);
+
 
 </script>
 </body>
