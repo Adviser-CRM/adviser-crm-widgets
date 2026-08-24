@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.8.9';
+      var CURRENT_VERSION = '1.9.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -388,7 +388,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.8.9</div>
+<div id="vbadge">v1.9.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -835,7 +835,7 @@
 <script>
 
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.8.9
+//  Adviser CRM — Contact Layout Page v1.9.0
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -874,43 +874,50 @@ function setFv(id, val) {
 function reveal() {
   el('loading').classList.add('hidden');
   el('main-page').classList.add('visible');
-  // Always update debug URL
-  var du = el('debug-url');
-  if (du) du.textContent = window.location.href;
-  // Tell Zoho to resize the iframe to fit the full page content
-  resizeToFit();
+  startResizeObserver();
+  scheduleResize();
+  setTimeout(scheduleResize, 500);
+  setTimeout(scheduleResize, 1500);
   setTimeout(setupInlineEdit, 100);
-  // Init related lists tab system
   setTimeout(initRelatedLists, 200);
 }
 
-function resizeToFit() {
-  try {
-    // Get the full scrollable height of the page content
+// ── Resize system — locks iframe to content height ────────────────
+var _lastHeight = 0;
+var _resizeTimer = null;
+
+function scheduleResize() {
+  if (_resizeTimer) clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
     var h = Math.max(
       document.body.scrollHeight,
       document.body.offsetHeight,
       document.documentElement.scrollHeight,
       document.documentElement.offsetHeight
-    );
-    if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
-      ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' });
-    }
-    // Also re-run after a short delay to catch any dynamic content
-    setTimeout(function() {
-      var h2 = Math.max(
-        document.body.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.scrollHeight,
-        document.documentElement.offsetHeight
-      );
+    ) + 50;
+    if (h === _lastHeight) return;
+    _lastHeight = h;
+    try {
       if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
-        ZOHO.CRM.UI.Resize({ height: String(h2), width: '100%' });
+        ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' });
       }
-    }, 800);
-  } catch(e) {
-    console.log('Resize error:', e);
+    } catch(e) {}
+  }, 150);
+}
+
+function startResizeObserver() {
+  if (typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(scheduleResize);
+    var page = document.getElementById('main-page');
+    if (page) ro.observe(page);
+    ro.observe(document.body);
+  } else {
+    setInterval(scheduleResize, 500);
   }
+}
+
+function resizeToFit() {
+  scheduleResize();
 }
 
 // ── Multiselect tags ───────────────────────────────────────────────
