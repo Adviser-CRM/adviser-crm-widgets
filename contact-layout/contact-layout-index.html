@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.8.8';
+      var CURRENT_VERSION = '1.8.9';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -58,11 +58,11 @@
       --shadow-md: 0 4px 16px rgba(7,56,93,0.10);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { overflow-x: hidden; }
+    html {  }
     body {
       font-family: var(--sans); background: var(--bg);
       color: var(--ink); font-size: 12px; line-height: 1.5;
-      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+      -webkit-font-smoothing: antialiased; 
     }
     #vbadge { position:fixed;top:6px;right:10px;font-size:10px;color:var(--muted);opacity:0.45;pointer-events:none;z-index:999; }
     #loading { position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:998;transition:opacity 0.3s; }
@@ -290,7 +290,7 @@
     .related-lists-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:flex;align-items:center;gap:8px; }
     .rl-reset-btn { font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--sans);padding:3px 8px;border-radius:4px; }
     .rl-reset-btn:hover { color:var(--blue);background:var(--blue-xlt); }
-    .tab-bar-wrap { background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0;border-bottom:none;display:flex;align-items:stretch;overflow:hidden;position:relative;width:100%;max-width:100%;box-sizing:border-box; }
+    .tab-bar-wrap { background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0;border-bottom:none;display:flex;align-items:stretch;overflow:visible;position:relative;width:100%;max-width:100%;box-sizing:border-box; }
     .tab-bar { display:flex;align-items:stretch;flex:1;overflow:hidden;position:relative;min-width:0; }
     .rl-tab { display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:11px;font-weight:600;color:var(--ink-mid);cursor:pointer;border-right:1px solid var(--divider);border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;user-select:none;position:relative;flex-shrink:0; }
     .rl-tab:hover { background:var(--blue-xlt);color:var(--blue); }
@@ -307,7 +307,7 @@
     .tab-more-btn { display:flex;align-items:center;gap:4px;padding:10px 14px;font-size:11px;font-weight:700;color:var(--ink-mid);cursor:pointer;background:var(--bg-alt);border-left:1px solid var(--divider);white-space:nowrap;flex-shrink:0;border-bottom:2px solid transparent; }
     .tab-more-btn:hover { color:var(--blue);background:var(--blue-xlt); }
     .tab-more-btn.has-active { color:var(--blue);border-bottom:2px solid var(--blue); }
-    .tab-overflow-popover { display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);z-index:200;width:320px;overflow:hidden; }
+    .tab-overflow-popover { display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--white);border:1px solid var(--divider);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:9999;width:340px;overflow:visible; }
     .tab-overflow-popover.show { display:block; }
     .overflow-popover-head { padding:10px 14px;border-bottom:1px solid var(--divider);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);background:var(--bg-alt); }
     .overflow-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:8px; }
@@ -388,7 +388,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.8.8</div>
+<div id="vbadge">v1.8.9</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -835,7 +835,7 @@
 <script>
 
 // ─────────────────────────────────────────────────────────────────
-//  Adviser CRM — Contact Layout Page v1.8.8
+//  Adviser CRM — Contact Layout Page v1.8.9
 //  Fields sourced from Adviser CRM Vertical Studio Contacts module
 //  All API names verified from module field screenshots
 // ─────────────────────────────────────────────────────────────────
@@ -2069,15 +2069,29 @@ function renderTabBar() {
 
 // ── Toggle overflow popover ────────────────────────────────────────
 function toggleOverflow(e) {
+  e.preventDefault();
   e.stopPropagation();
   var pop = document.getElementById('tab-overflow-popover');
-  if (pop) pop.classList.toggle('show');
+  if (!pop) return;
+  var isShowing = pop.classList.contains('show');
+  // Close all popovers first
+  document.querySelectorAll('.tab-overflow-popover').forEach(function(p) {
+    p.classList.remove('show');
+  });
+  // Toggle this one
+  if (!isShowing) {
+    pop.classList.add('show');
+    pop.style.zIndex = '9999';
+  }
 }
 
-// Close popover when clicking outside
-document.addEventListener('click', function() {
+// Close popover when clicking outside — but not on the more button
+document.addEventListener('click', function(e) {
   var pop = document.getElementById('tab-overflow-popover');
-  if (pop) pop.classList.remove('show');
+  var moreBtn = document.getElementById('tab-more-btn');
+  if (pop && !pop.contains(e.target) && moreBtn && !moreBtn.contains(e.target)) {
+    pop.classList.remove('show');
+  }
 });
 
 // ── Activate tab from overflow — promotes to visible bar ──────────
@@ -2106,6 +2120,8 @@ function activateTab(id) {
 function renderTabContent(id) {
   var wrap = document.getElementById('tab-content-wrap');
   if (!wrap) return;
+  // Resize after content renders so Zoho iframe expands
+  setTimeout(resizeToFit, 300);
   var tab = getTab(id);
   if (!tab) return;
 
@@ -2219,14 +2235,20 @@ function loadTabData(id) {
     TAB_DATA[id]   = resp.data || [];
     TAB_COUNTS[id] = resp.info ? resp.info.count : (resp.data || []).length;
     renderTabBar();
-    if (ACTIVE_TAB === id) renderTabContent(id);
+    if (ACTIVE_TAB === id) {
+      renderTabContent(id);
+      setTimeout(resizeToFit, 400);
+    }
   })
   .catch(function(err) {
     console.log('[ACRM] Related list failed:', tab.entity, err);
     TAB_DATA[id]   = [];
     TAB_COUNTS[id] = 0;
     renderTabBar();
-    if (ACTIVE_TAB === id) renderTabContent(id);
+    if (ACTIVE_TAB === id) {
+      renderTabContent(id);
+      setTimeout(resizeToFit, 400);
+    }
   });
 }
 
