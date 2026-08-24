@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.1.6';
+      var CURRENT_VERSION = '2.1.7';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -292,7 +292,10 @@
     .inline-tick:hover { background:#047857;transform:scale(1.1); }
     .inline-cross { background:var(--red-lt);color:var(--red);border:1px solid #fca5a5; }
     .inline-cross:hover { background:var(--red);color:#fff;transform:scale(1.1); }
-    .field-value.mandatory { border-color:rgba(220,38,38,0.3)!important; }
+    /* Mandatory border only shown when actively editing */
+    .field-value.mandatory { border-color:transparent; }
+    .field-value.editing.mandatory,
+    .edit-mode-active .field-value.mandatory { border-left:3px solid rgba(220,38,38,0.6)!important; }
     .field-value.changed { border-color:var(--amber)!important;background:#fffbeb!important; }
     .field-value.mandatory-error { border-color:var(--red)!important;background:var(--red-lt)!important;animation:shake 0.3s ease; }
     @keyframes shake { 0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)} }
@@ -425,7 +428,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.1.6</div>
+<div id="vbadge">v2.1.7</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -890,18 +893,24 @@ function getTab(id) {
 // ── Render nav items ───────────────────────────────────────────────
 function renderNavItems() {
   var container = document.getElementById('nav-related-items');
-  if (!container) return;
-  container.innerHTML = ALL_TABS.map(function(tab) {
-    var count = TAB_COUNTS[tab.id];
-    var badge = count !== undefined
-      ? '<span class="nav-badge ' + (count > 0 ? 'has-data' : '') + '">' + count + '</span>'
-      : '<span class="nav-badge loading">…</span>';
-    return '<div class="nav-item" id="nav-' + tab.id + '" data-id="' + tab.id + '" onclick="showRelatedList(this.dataset.id)">' +
+  if (!container) { console.log('[ACRM] nav-related-items not found'); return; }
+
+  // Rebuild active state after re-render
+  var html = ALL_TABS.map(function(tab) {
+    var count   = TAB_COUNTS[tab.id];
+    var isEmpty = count === 0;
+    var isActive = CURRENT_TAB_ID === tab.id;
+    var badgeTxt = count !== undefined ? String(count) : '…';
+    var badgeCls = count > 0 ? 'has-data' : '';
+    return '<div class="nav-item' + (isActive ? ' active' : '') + '" id="nav-' + tab.id + '" data-id="' + tab.id + '" onclick="showRelatedList(this.dataset.id)">' +
       '<span class="nav-item-icon">' + tab.icon + '</span>' +
       '<span class="nav-item-label">' + tab.label + '</span>' +
-      badge +
+      '<span class="nav-badge ' + badgeCls + '">' + badgeTxt + '</span>' +
     '</div>';
   }).join('');
+
+  container.innerHTML = html;
+  console.log('[ACRM] Nav rendered with', ALL_TABS.length, 'items');
 }
 
 // ── Show overview ──────────────────────────────────────────────────
@@ -2723,7 +2732,24 @@ function openAction(entity) {
           { id:'inv-002', Name:'INV-002', Investment_Type:'Managed Fund', Balance:62400, Provider:'Milford', Status:'Active' },
           { id:'inv-003', Name:'INV-003', Investment_Type:'Shares', Balance:38200, Provider:'Kernel', Status:'Active' },
         ]}); },
-        getRelatedRecords(){ return Promise.resolve({data:[]}); },
+        getRelatedRecords(o){
+          var mockData = {
+            'Life_Policies':    { data:[
+              {id:'lp-001',Insurer:'AIA',Name:'AIA Life Plus',Policy_Number:'AIA-123456',Premium:245,Premium_Frequency:'Monthly',Status:'In Force'},
+              {id:'lp-002',Insurer:'Partners Life',Name:'Partners Life Cover',Policy_Number:'PL-789012',Premium:189,Premium_Frequency:'Monthly',Status:'In Force'},
+              {id:'lp-003',Insurer:'Asteron',Name:'Asteron Life',Policy_Number:'AST-345678',Premium:312,Premium_Frequency:'Monthly',Status:'Lapsed'},
+            ], info:{count:3} },
+            'Loans':            { data:[{id:'ln-001',Name:'ANZ Home Loan',Lender:'ANZ',Balance:450000,Interest_Rate:'5.99%',Status:'Active'},{id:'ln-002',Name:'Car Loan',Lender:'Westpac',Balance:18500,Interest_Rate:'8.5%',Status:'Active'}], info:{count:2} },
+            'Investments':      { data:[{id:'inv-001',Name:'KiwiSaver',Investment_Type:'KiwiSaver',Provider:'Fisher Funds',Balance:148750,Status:'Active'}], info:{count:3} },
+            'Advice_Records':   { data:[{id:'ar-001',Name:'AR-2024-001',Status:'Completed',Date_Time_of_Meeting:'2024-03-15'}], info:{count:1} },
+            'Memos':            { data:[{id:'m-001',Note_Title:'Annual Review Notes',Created_Time:'2024-03-15'},{id:'m-002',Note_Title:'Policy Discussion',Created_Time:'2024-02-10'}], info:{count:2} },
+            'Notes':            { data:[{id:'n-001',Note_Title:'Client preferences',Created_Time:'2024-03-01'}], info:{count:1} },
+            'Assets':           { data:[{id:'a-001',Name:'Family Home',Asset_Type:'Property',Value:950000}], info:{count:1} },
+            'Income':           { data:[{id:'i-001',Name:'Salary',Income_Type:'Employment',Amount:120000,Frequency:'Annual'}], info:{count:1} },
+          };
+          var result = mockData[o && o.RelatedList] || { data:[], info:{count:0} };
+          return Promise.resolve(result);
+        },
       }, UI:{ Record:{ open(o){alert('[Mock] Open '+o.Entity+' '+o.RecordID);}, create(o){alert('[Mock] New '+o.Entity);} } } }
     };
   }
