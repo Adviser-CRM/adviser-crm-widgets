@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.2.0';
+      var CURRENT_VERSION = '2.2.1';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -137,7 +137,10 @@
     .btn-ghost:hover { border-color:var(--blue);color:var(--blue);background:var(--blue-lt); }
     .btn-edit { background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider);padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s; }
     .btn-edit:hover { border-color:var(--blue);color:var(--blue); }
-    .btn-edit.active { background:var(--amber);border-color:var(--amber);color:#fff; }
+    .btn-save-header { background:var(--green);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(5,150,105,0.3); }
+    .btn-save-header:hover { background:#047857; }
+    .btn-cancel-header { background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider);padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer; }
+    .btn-cancel-header:hover { border-color:var(--red);color:var(--red); }
 
     /* ══ MAIN LAYOUT ══ */
     .layout {
@@ -417,7 +420,7 @@
     .btn-outline-nav:hover { background:var(--blue);color:#fff; }
 
     /* ══ EDIT TOOLBAR ══ */
-    .edit-toolbar { display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);border-radius:16px;padding:12px 20px;box-shadow:0 8px 32px rgba(7,56,93,0.25);z-index:500;align-items:center;gap:12px;white-space:nowrap; }
+    .edit-toolbar { display:none;position:fixed;top:16px;right:24px;background:var(--navy);border-radius:12px;padding:10px 16px;box-shadow:0 8px 32px rgba(7,56,93,0.25);z-index:500;align-items:center;gap:12px;white-space:nowrap; }
     .edit-toolbar.visible { display:flex; }
     .edit-toolbar-label { font-size:12px;color:rgba(255,255,255,0.6); }
     .changes-count { font-size:12px;color:var(--blue);font-weight:700; }
@@ -453,7 +456,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.2.0</div>
+<div id="vbadge">v2.2.1</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -515,9 +518,13 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="btn btn-primary" onclick="sendEmail()">✉ Email</button>
-          <button class="btn btn-call"    onclick="logCall()">📞 Call</button>
-          <button class="btn-edit" id="edit-toggle-btn" onclick="toggleEditMode()">✎ Edit</button>
+          <button class="btn btn-primary" id="btn-email" onclick="sendEmail()">✉ Email</button>
+          <button class="btn btn-call"    id="btn-call"  onclick="logCall()">📞 Call</button>
+          <!-- Normal mode: Edit button -->
+          <button class="btn-edit" id="edit-toggle-btn" onclick="enterEditMode()" style="">✎ Edit</button>
+          <!-- Edit mode: Save + Cancel (hidden by default) -->
+          <button class="btn btn-save-header" id="btn-save-header" onclick="saveContact()" style="display:none;">💾 Save</button>
+          <button class="btn btn-cancel-header" id="btn-cancel-header" onclick="cancelEdit()" style="display:none;">✕ Cancel</button>
         </div>
   
       </div>
@@ -588,21 +595,21 @@
               </div>
               <div class="field">
                 <div class="field-label">Contact Type</div>
-                <div class="field-value" id="f-contact-type">—</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-contact-type">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-contact-type')">✎</button></div>
               </div>
               <div class="field">
                 <div class="field-label">Status</div>
-                <div class="field-value" id="f-status">—</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-status">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-status')">✎</button></div>
               </div>
             </div>
             <div class="field-grid cols-4">
               <div class="field">
                 <div class="field-label">Smoker</div>
-                <div class="field-value" id="f-smoker">—</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-smoker">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-smoker')">✎</button></div>
               </div>
               <div class="field">
                 <div class="field-label">Vulnerable Client</div>
-                <div class="field-value" id="f-vulnerable">—</div>
+                <div class="field-wrap"><div class="field-value editable" id="f-vulnerable">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-vulnerable')">✎</button></div>
               </div>
               <div class="field">
                 <div class="field-label">Tax Number</div>
@@ -1874,6 +1881,10 @@ var FIELD_MAP = {
   'f-household-expenses':{ api:'Household_Expenses',    type:'number' },
   'f-mortgage-repayment':{ api:'Mortgage_Repayment',    type:'number' },
   'f-housing-status':    { api:'Housing_Status',        type:'select',   options:['','Mortgage','Renting','Boarding','Own Home','Other'] },
+  'f-smoker':            { api:'Smoker',                type:'select',   options:['','Non-Smoker','Smoker','Ex-Smoker'] },
+  'f-vulnerable':        { api:'Vulnerable_Client',     type:'select',   options:['','Yes','No'] },
+  'f-status':            { api:'Status',                type:'select',   options:['','Active','Previous Client','Deceased','Prospect'] },
+  'f-contact-type':      { api:'Contact_Type',          type:'select',   options:['','Client','Prospect','Referral','Other'] },
   'f-id-type':           { api:'ID_Type',               type:'select',   options:['','NZ Passport','NZ Drivers Licence','NZ Firearms Licence','Foreign Passport','Other'] },
   'f-id-number':         { api:'ID_Number',             type:'text' },
   'f-id-expiry':         { api:'ID_Expiry_Date',        type:'date' },
@@ -1914,6 +1925,14 @@ function enterEditMode() {
   // Add edit-mode-active class to page
   var page = el('main-page');
   if (page) page.classList.add('edit-mode-active');
+
+  // Swap header buttons: hide Edit, show Save + Cancel
+  var editBtn   = el('edit-toggle-btn');
+  var saveBtn   = el('btn-save-header');
+  var cancelBtn = el('btn-cancel-header');
+  if (editBtn)   editBtn.style.display   = 'none';
+  if (saveBtn)   saveBtn.style.display   = '';
+  if (cancelBtn) cancelBtn.style.display = '';
 
   // Convert each editable field to an input
   Object.keys(FIELD_MAP).forEach(function(fid) {
@@ -2026,6 +2045,14 @@ function cancelEdit() {
   document.querySelectorAll('.pencil-btn').forEach(function(btn) {
     btn.style.display = '';
   });
+
+  // Restore header buttons
+  var editBtn   = el('edit-toggle-btn');
+  var saveBtn   = el('btn-save-header');
+  var cancelBtn = el('btn-cancel-header');
+  if (editBtn)   editBtn.style.display   = '';
+  if (saveBtn)   saveBtn.style.display   = 'none';
+  if (cancelBtn) cancelBtn.style.display = 'none';
 
   // Hide toolbar
   var toolbar = el('edit-toolbar');
@@ -2358,31 +2385,11 @@ function saveContact() {
 
 // ── Tab definitions ───────────────────────────────────────────────
 // All 18 related lists for Adviser CRM Contacts module
-var ALL_TABS = [
-  { id:'life_policies',    label:'Life Policies',     icon:'🛡',  entity:'Life_Policies',    newLabel:'New Policy' },
-  { id:'loans',            label:'Loans',             icon:'🏠',  entity:'Loans',            newLabel:'New Loan' },
-  { id:'investments',      label:'Investments',       icon:'📈',  entity:'Investments',      newLabel:'New Investment' },
-  { id:'advice_records',   label:'Advice Records',    icon:'📋',  entity:'Advice_Records',   newLabel:'New Advice Record' },
-  { id:'memos',            label:'Memos',             icon:'📝',  entity:'Memos',            newLabel:'New Memo' },
-  { id:'trauma',           label:'Trauma Cover',      icon:'💊',  entity:'Trauma_Cover',     newLabel:'New Trauma' },
-  { id:'income_prot',      label:'Income Protection', icon:'💵',  entity:'Income_Protection',newLabel:'New IP' },
-  { id:'medical',          label:'Medical Cover',     icon:'🏥',  entity:'Medical_Cover',    newLabel:'New Medical' },
-  { id:'assets',           label:'Assets',            icon:'🏡',  entity:'Assets',           newLabel:'New Asset' },
-  { id:'liabilities',      label:'Liabilities',       icon:'💳',  entity:'Liabilities',      newLabel:'New Liability' },
-  { id:'income',           label:'Income',            icon:'💰',  entity:'Income',           newLabel:'New Income' },
-  { id:'expenses',         label:'Expenses',          icon:'🧾',  entity:'Expenses',         newLabel:'New Expense' },
-  { id:'activities',       label:'Activities',        icon:'📅',  entity:'Activities',       newLabel:'New Activity' },
-  { id:'notes',            label:'Notes',             icon:'🗒',  entity:'Notes',            newLabel:'New Note' },
-  { id:'attachments',      label:'Attachments',       icon:'📎',  entity:'Attachments',      newLabel:'New Attachment' },
-  { id:'claims',           label:'Claims',            icon:'⚠️',  entity:'Claims',           newLabel:'New Claim' },
-  { id:'complaints',       label:'Complaints',        icon:'📣',  entity:'Complaints',       newLabel:'New Complaint' },
-  { id:'general_policies', label:'General Policies',  icon:'📑',  entity:'General_Policies', newLabel:'New Policy' },
-];
+// ALL_TABS defined above in nav system
 
 // Default order — first 6 show in tab bar, rest in overflow
-var DEFAULT_ORDER = ['life_policies','loans','investments','advice_records','memos','trauma',
-  'income_prot','medical','assets','liabilities','income','expenses',
-  'activities','notes','attachments','claims','complaints','general_policies'];
+// DEFAULT_ORDER handled by ALL_TABS above
+
 
 var TAB_ORDER    = [];  // current order (loaded from Zoho or default)
 var TAB_COUNTS   = {};  // record counts per tab
