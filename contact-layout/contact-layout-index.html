@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.2.1';
+      var CURRENT_VERSION = '2.2.2';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -370,7 +370,7 @@
     .inv-item { padding:16px 18px;border-right:1px solid var(--divider);text-align:center; }
     .inv-item:last-child { border-right:none; }
     .inv-label { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px; }
-    .inv-value { font-size:16px;font-weight:700;color:var(--teal); }
+    .inv-value { font-size:16px;font-weight:700;color:var(--ink); }
     .inv-type { font-size:10px;color:var(--muted);margin-top:3px; }
 
     /* ══ MULTISELECT TAGS ══ */
@@ -420,8 +420,29 @@
     .btn-outline-nav:hover { background:var(--blue);color:#fff; }
 
     /* ══ EDIT TOOLBAR ══ */
-    .edit-toolbar { display:none;position:fixed;top:16px;right:24px;background:var(--navy);border-radius:12px;padding:10px 16px;box-shadow:0 8px 32px rgba(7,56,93,0.25);z-index:500;align-items:center;gap:12px;white-space:nowrap; }
-    .edit-toolbar.visible { display:flex; }
+    .edit-toolbar {
+      display: none;
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--navy);
+      border-radius: 14px;
+      padding: 10px 18px;
+      box-shadow: 0 8px 32px rgba(7,56,93,0.3);
+      z-index: 500;
+      align-items: center;
+      gap: 12px;
+      white-space: nowrap;
+      cursor: grab;
+      user-select: none;
+    }
+    .edit-toolbar.visible { display: flex; }
+    .edit-toolbar:active { cursor: grabbing; }
+    .edit-toolbar-drag-hint {
+      font-size: 14px; color: rgba(255,255,255,0.3);
+      margin-right: 4px; cursor: grab;
+    }
     .edit-toolbar-label { font-size:12px;color:rgba(255,255,255,0.6); }
     .changes-count { font-size:12px;color:var(--blue);font-weight:700; }
     .btn-save { background:var(--green);color:#fff;border:none;padding:9px 20px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,0.3); }
@@ -456,7 +477,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.2.1</div>
+<div id="vbadge">v2.2.2</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -768,7 +789,7 @@
           <!-- Life Policies In Force -->
           <div style="border-top:1px solid var(--divider);">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-alt);">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">🛡 Life Policies In Force</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">🛡 Life Policies</div>
               <div id="life-policies-count" style="font-size:10px;color:var(--muted);"></div>
             </div>
             <div id="life-policies-body"><div style="padding:14px;text-align:center;color:var(--muted);font-size:11px;">Loading policies…</div></div>
@@ -790,28 +811,7 @@
           <div id="inv-strip-wrap"><div style="padding:14px;text-align:center;color:var(--muted);">Loading…</div></div>
         </div>
 
-        <!-- Active Products -->
-        <div class="card">
-          <div class="card-head">
-            <div class="card-icon">📦</div>
-            <div>
-              <div class="card-title">Active Products &amp; Benefits</div>
-              <div class="card-sub">Current products and benefits on file</div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="field-grid cols-2">
-              <div class="field">
-                <div class="field-label">Active Products</div>
-                <div class="field-value" id="f-active-products" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
-              </div>
-              <div class="field">
-                <div class="field-label">Active Benefits</div>
-                <div class="field-value" id="f-active-benefits" style="min-height:auto;background:transparent;padding:0;border:none;">—</div>
-              </div>
-            </div>
-          </div>
-        </div>
+<!-- Active Products removed -->
 
         <!-- Description -->
         <div class="card">
@@ -868,10 +868,11 @@
 
 <!-- Edit toolbar -->
 <div class="edit-toolbar" id="edit-toolbar">
-  <span class="edit-toolbar-label">Edit Mode</span>
+  <span class="edit-toolbar-drag-hint">⠿⠿</span>
+  <span class="edit-toolbar-label">Editing</span>
   <span class="changes-count" id="changes-count"></span>
   <button class="btn-cancel-edit" onclick="cancelEdit()">✕ Cancel</button>
-  <button class="btn-save" onclick="saveContact()">💾 Save Changes</button>
+  <button class="btn-save" onclick="saveContact()">💾 Save</button>
 </div>
 
 <!-- Toast -->
@@ -1369,6 +1370,7 @@ function reveal() {
   setTimeout(scheduleResize, 500);
   setTimeout(scheduleResize, 1500);
   setTimeout(setupInlineEdit, 100);
+  setTimeout(setupDraggableToolbar, 100);
   // Load counts after a short delay
   setTimeout(function() {
     loadAllCounts();
@@ -1636,42 +1638,47 @@ function loadLifePolicies(contactId) {
     return;
   }
 
-  ZOHO.CRM.API.getRelatedRecords({
-    Entity:      'Contacts',
-    RecordID:    contactId,
-    RelatedList: 'Life_Policies',
-    page:        1,
-    per_page:    20,
-  })
-  .then(function(resp) {
-    var all      = resp.data || [];
-    // Filter to In Force only
-    var inForce  = all.filter(function(p) {
-      return p.Status === 'In Force' || p.Policy_Status === 'In Force';
-    });
-    renderLifePolicies(inForce, all.length);
-  })
-  .catch(function(err) {
-    console.log('[ACRM] Life Policies failed:', err);
-    // Try alternative related list name
+  // Try multiple entity names — Vertical Studio may use different API name
+  var entitiesToTry = ['Life_Policies', 'Life_Policies1', 'Policies', 'Life_Policy'];
+  var tryIdx = 0;
+
+  function tryNext() {
+    if (tryIdx >= entitiesToTry.length) {
+      // All failed — try COQL as last resort
+      tryCoqlPolicies();
+      return;
+    }
+    var entity = entitiesToTry[tryIdx++];
     ZOHO.CRM.API.getRelatedRecords({
       Entity:      'Contacts',
       RecordID:    contactId,
-      RelatedList: 'Life_Policies1',
+      RelatedList: entity,
       page:        1,
-      per_page:    20,
+      per_page:    50,
     })
-    .then(function(resp2) {
-      var all     = resp2.data || [];
-      var inForce = all.filter(function(p) {
-        return p.Status === 'In Force' || p.Policy_Status === 'In Force';
-      });
-      renderLifePolicies(inForce, all.length);
+    .then(function(resp) {
+      var all = resp.data || [];
+      if (all.length === 0 && tryIdx < entitiesToTry.length) {
+        tryNext(); // Try next entity name
+        return;
+      }
+      // Show ALL policies — no filter — let adviser see everything
+      renderLifePolicies(all, all.length);
     })
-    .catch(function() {
-      renderLifePolicies([]);
-    });
-  });
+    .catch(function() { tryNext(); });
+  }
+
+  function tryCoqlPolicies() {
+    var q = "SELECT Name, Insurer, Policy_Number, Premium, Premium_Frequency, Status FROM Life_Policies WHERE Primary_Contact = '" + contactId + "'";
+    ZOHO.CRM.API.coql({ selectQuery: q })
+      .then(function(resp) {
+        var all = resp.data || [];
+        renderLifePolicies(all, all.length);
+      })
+      .catch(function() { renderLifePolicies([]); });
+  }
+
+  tryNext();
 }
 
 function renderLifePolicies(policies, totalCount) {
@@ -1925,6 +1932,17 @@ function enterEditMode() {
   // Add edit-mode-active class to page
   var page = el('main-page');
   if (page) page.classList.add('edit-mode-active');
+
+  // Reset toolbar position to bottom-centre
+  var tb = el('edit-toolbar');
+  if (tb) {
+    tb._posSet        = false;
+    tb.style.left     = '';
+    tb.style.top      = '';
+    tb.style.bottom   = '32px';
+    tb.style.transform = 'translateX(-50%)';
+    tb.style.removeProperty && tb.style.removeProperty('left');
+  }
 
   // Swap header buttons: hide Edit, show Save + Cancel
   var editBtn   = el('edit-toggle-btn');
@@ -2825,6 +2843,85 @@ function initRelatedLists() {
   });
 }
 
+// ── Draggable edit toolbar ────────────────────────────────────────
+function setupDraggableToolbar() {
+  var toolbar = document.getElementById('edit-toolbar');
+  if (!toolbar) return;
+
+  var isDragging = false;
+  var startX, startY, startLeft, startTop;
+
+  // Reset to bottom-centre on each edit mode entry
+  toolbar._posSet = false;
+
+  toolbar.addEventListener('mousedown', function(e) {
+    if (e.target.tagName === 'BUTTON') return; // Don't drag when clicking buttons
+    isDragging = true;
+
+    // First drag — convert from transform to absolute position
+    if (!toolbar._posSet) {
+      var rect = toolbar.getBoundingClientRect();
+      toolbar.style.left      = rect.left + 'px';
+      toolbar.style.top       = rect.top + 'px';
+      toolbar.style.bottom    = 'auto';
+      toolbar.style.transform = 'none';
+      toolbar._posSet = true;
+    }
+
+    startX    = e.clientX;
+    startY    = e.clientY;
+    startLeft = parseInt(toolbar.style.left, 10);
+    startTop  = parseInt(toolbar.style.top,  10);
+    toolbar.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    var dx = e.clientX - startX;
+    var dy = e.clientY - startY;
+    var newLeft = startLeft + dx;
+    var newTop  = startTop  + dy;
+    // Keep within viewport
+    newLeft = Math.max(0, Math.min(window.innerWidth  - toolbar.offsetWidth,  newLeft));
+    newTop  = Math.max(0, Math.min(window.innerHeight - toolbar.offsetHeight, newTop));
+    toolbar.style.left = newLeft + 'px';
+    toolbar.style.top  = newTop  + 'px';
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    toolbar.style.cursor = 'grab';
+  });
+
+  // Touch support
+  toolbar.addEventListener('touchstart', function(e) {
+    if (e.target.tagName === 'BUTTON') return;
+    var touch = e.touches[0];
+    if (!toolbar._posSet) {
+      var rect = toolbar.getBoundingClientRect();
+      toolbar.style.left = rect.left + 'px';
+      toolbar.style.top  = rect.top  + 'px';
+      toolbar.style.bottom    = 'auto';
+      toolbar.style.transform = 'none';
+      toolbar._posSet = true;
+    }
+    startX    = touch.clientX;
+    startY    = touch.clientY;
+    startLeft = parseInt(toolbar.style.left, 10);
+    startTop  = parseInt(toolbar.style.top,  10);
+  }, { passive: true });
+
+  toolbar.addEventListener('touchmove', function(e) {
+    var touch = e.touches[0];
+    var dx = touch.clientX - startX;
+    var dy = touch.clientY - startY;
+    toolbar.style.left = Math.max(0, startLeft + dx) + 'px';
+    toolbar.style.top  = Math.max(0, startTop  + dy) + 'px';
+  }, { passive: true });
+}
+
 // ── Contact photo upload ──────────────────────────────────────────
 function triggerPhotoUpload() {
   var input = document.getElementById('photo-upload-input');
@@ -2833,21 +2930,27 @@ function triggerPhotoUpload() {
 
 function handlePhotoUpload(input) {
   if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-
-  // Preview immediately
+  var file  = input.files[0];
   var reader = new FileReader();
   reader.onload = function(e) {
     var avatarEl = document.getElementById('hero-avatar');
     if (avatarEl) {
-      avatarEl.innerHTML = '<img src="' + e.target.result + '" alt="Contact photo" />';
+      avatarEl.innerHTML = '<img src="' + e.target.result + '" alt="Contact photo" style="width:100%;height:100%;object-fit:cover;" />';
+    }
+    // Upload to Zoho via SDK if available
+    if (typeof ZOHO !== 'undefined' && ENTITY_ID) {
+      ZOHO.CRM.API.attachFile({
+        Entity:   'Contacts',
+        RecordID: ENTITY_ID,
+        File: { Name: file.name, Content: file }
+      })
+      .then(function() { showToast('Photo saved successfully', 'success'); })
+      .catch(function() {
+        // Silent — photo still shows locally
+      });
     }
   };
   reader.readAsDataURL(file);
-
-  // Note: Uploading to Zoho Record_Image requires the REST API with multipart form
-  // For now show a toast directing user to use the native Zoho upload
-  showToast('Photo preview updated. To save permanently use the Zoho record image upload.', 'saving');
 }
 
 // ── Navigation actions ────────────────────────────────────────────
