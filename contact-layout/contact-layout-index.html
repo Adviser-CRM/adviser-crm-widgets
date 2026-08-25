@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.2.2';
+      var CURRENT_VERSION = '2.2.3';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -477,7 +477,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.2.2</div>
+<div id="vbadge">v2.2.3</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -900,7 +900,7 @@ var CURRENT_TAB_ID = null;
 var ALL_TABS = [
   { id:'notes',            label:'Notes',             icon:'🗒',  entity:'Notes',             newLabel:'New Note' },
   { id:'open_activities',  label:'Open Activities',   icon:'📅',  entity:'Activities',        newLabel:'New Activity' },
-  { id:'life_policies',    label:'Life Policies',     icon:'🛡',  entity:'Life_Policies',     newLabel:'New Policy' },
+  { id:'life_policies',    label:'Life Policies',     icon:'🛡',  entity:'Deals',             newLabel:'New Policy' },
   { id:'general_policies', label:'General Policies',  icon:'📑',  entity:'General_Policies',  newLabel:'New Policy' },
   { id:'loans',            label:'Loans',             icon:'🏠',  entity:'Loans',             newLabel:'New Loan' },
   { id:'investments',      label:'Investments',       icon:'📈',  entity:'Investments',       newLabel:'New Investment' },
@@ -1638,47 +1638,22 @@ function loadLifePolicies(contactId) {
     return;
   }
 
-  // Try multiple entity names — Vertical Studio may use different API name
-  var entitiesToTry = ['Life_Policies', 'Life_Policies1', 'Policies', 'Life_Policy'];
-  var tryIdx = 0;
-
-  function tryNext() {
-    if (tryIdx >= entitiesToTry.length) {
-      // All failed — try COQL as last resort
-      tryCoqlPolicies();
-      return;
-    }
-    var entity = entitiesToTry[tryIdx++];
-    ZOHO.CRM.API.getRelatedRecords({
-      Entity:      'Contacts',
-      RecordID:    contactId,
-      RelatedList: entity,
-      page:        1,
-      per_page:    50,
-    })
-    .then(function(resp) {
-      var all = resp.data || [];
-      if (all.length === 0 && tryIdx < entitiesToTry.length) {
-        tryNext(); // Try next entity name
-        return;
-      }
-      // Show ALL policies — no filter — let adviser see everything
-      renderLifePolicies(all, all.length);
-    })
-    .catch(function() { tryNext(); });
-  }
-
-  function tryCoqlPolicies() {
-    var q = "SELECT Name, Insurer, Policy_Number, Premium, Premium_Frequency, Status FROM Life_Policies WHERE Primary_Contact = '" + contactId + "'";
-    ZOHO.CRM.API.coql({ selectQuery: q })
-      .then(function(resp) {
-        var all = resp.data || [];
-        renderLifePolicies(all, all.length);
-      })
-      .catch(function() { renderLifePolicies([]); });
-  }
-
-  tryNext();
+  // Life Policies in Adviser CRM Vertical Studio use API name 'Deals'
+  ZOHO.CRM.API.getRelatedRecords({
+    Entity:      'Contacts',
+    RecordID:    contactId,
+    RelatedList: 'Deals',
+    page:        1,
+    per_page:    50,
+  })
+  .then(function(resp) {
+    var all = resp.data || [];
+    renderLifePolicies(all, all.length);
+  })
+  .catch(function(err) {
+    console.log('[ACRM] Life Policies (Deals) load failed:', err);
+    renderLifePolicies([]);
+  });
 }
 
 function renderLifePolicies(policies, totalCount) {
@@ -3046,7 +3021,7 @@ function openAction(entity) {
         ]}); },
         getRelatedRecords(o){
           var mockData = {
-            'Life_Policies':    { data:[
+            'Deals':    { data:[
               {id:'lp-001',Insurer:'AIA',Name:'AIA Life Plus',Policy_Number:'AIA-123456',Premium:245,Premium_Frequency:'Monthly',Status:'In Force'},
               {id:'lp-002',Insurer:'Partners Life',Name:'Partners Life Cover',Policy_Number:'PL-789012',Premium:189,Premium_Frequency:'Monthly',Status:'In Force'},
               {id:'lp-003',Insurer:'Asteron',Name:'Asteron Life',Policy_Number:'AST-345678',Premium:312,Premium_Frequency:'Monthly',Status:'Lapsed'},
