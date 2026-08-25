@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.2.3';
+      var CURRENT_VERSION = '2.2.4';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -477,7 +477,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.2.3</div>
+<div id="vbadge">v2.2.4</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -1197,7 +1197,7 @@ function renderRelatedPanel(tabId, records) {
 // ── Column definitions ─────────────────────────────────────────────
 function getTableColumns(id) {
   var cols = {
-    'life_policies':    [{label:'Policy No.',field:'Name'},{label:'Insurer',field:'Insurer'},{label:'Life Assured',field:'Life_Assured.name'},{label:'Sum Insured',field:'Sum_Insured',format:'currency'},{label:'Premium',field:'Premium',format:'currency'},{label:'Status',field:'Status'}],
+    'life_policies':    [{label:'Policy Name',field:'Deal_Name'},{label:'Insurer',field:'Insurer'},{label:'Policy Number',field:'Policy_Number'},{label:'Amount',field:'Amount',format:'currency'},{label:'Premium Frequency',field:'Premium_Frequency'},{label:'Stage',field:'Stage'}],
     'loans':            [{label:'Description',field:'Name'},{label:'Lender',field:'Lender'},{label:'Balance',field:'Balance',format:'currency'},{label:'Rate',field:'Interest_Rate'},{label:'Status',field:'Status'}],
     'investments':      [{label:'Name',field:'Name'},{label:'Type',field:'Investment_Type'},{label:'Provider',field:'Provider'},{label:'Balance',field:'Balance',format:'currency'},{label:'Status',field:'Status'}],
     'advice_records':   [{label:'Record',field:'Name'},{label:'Status',field:'Status'},{label:'Meeting Date',field:'Date_Time_of_Meeting',format:'date'},{label:'Owner',field:'Owner.name'}],
@@ -1657,46 +1657,49 @@ function loadLifePolicies(contactId) {
 }
 
 function renderLifePolicies(policies, totalCount) {
-  var body     = document.getElementById('life-policies-body');
-  var countEl  = document.getElementById('life-policies-count');
-  var wrap     = document.getElementById('life-policies-wrap');
+  var body    = document.getElementById('life-policies-body');
+  var countEl = document.getElementById('life-policies-count');
   if (!body) return;
 
   if (countEl) {
-    countEl.textContent = policies.length + ' In Force' +
+    countEl.textContent = policies.length + ' polic' + (policies.length !== 1 ? 'ies' : 'y') +
       (totalCount && totalCount > policies.length ? ' of ' + totalCount + ' total' : '');
   }
 
   if (!policies.length) {
-    body.innerHTML = '<div style="padding:14px 16px;text-align:center;color:var(--muted);font-size:11px;">No Life Policies In Force</div>';
+    body.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;">No Life Policies on file</div>';
     return;
   }
 
   var tableHtml = '<table class="lp-table">' +
     '<thead><tr>' +
-    '<th>Insurer</th>' +
     '<th>Policy Name</th>' +
+    '<th>Insurer</th>' +
     '<th>Policy Number</th>' +
-    '<th>Premium</th>' +
-    '<th>Frequency</th>' +
-    '<th>Status</th>' +
+    '<th>Amount</th>' +
+    '<th>Premium Frequency</th>' +
+    '<th>Stage</th>' +
     '</tr></thead><tbody>';
 
   policies.forEach(function(p) {
-    var insurer   = p.Insurer || p.Insurer_Name || '—';
-    var policyName= p.Name || p.Policy_Name || '—';
-    var policyNum = p.Policy_Number || p.Policy_No || '—';
-    var premium   = p.Premium ? fmtCurr(p.Premium) : '—';
-    var frequency = p.Premium_Frequency || p.Frequency || '—';
-    var status    = p.Status || p.Policy_Status || '—';
+    var policyName = p.Deal_Name || p.Name || '—';
+    var insurer    = p.Insurer   || '—';
+    var policyNum  = p.Policy_Number || '—';
+    var amount     = p.Amount || p.Premium || null;
+    var frequency  = p.Premium_Frequency || p.Payment_Frequency || '—';
+    var stage      = p.Stage || p.Status || '—';
+    var isInForce  = stage === 'In Force';
+    var stageHtml  = isInForce
+      ? '<span class="lp-pill-active">' + escHtml(stage) + '</span>'
+      : '<span style="font-size:11px;color:var(--ink-mid);">' + escHtml(stage) + '</span>';
 
     tableHtml += '<tr data-pid="' + (p.id||'') + '" onclick="openPolicyRecord(this.dataset.pid)">' +
-      '<td class="td-name">' + escHtml(insurer) + '</td>' +
-      '<td>' + escHtml(policyName) + '</td>' +
+      '<td class="td-name" style="color:var(--blue);">' + escHtml(policyName) + '</td>' +
+      '<td>' + escHtml(insurer) + '</td>' +
       '<td>' + escHtml(policyNum) + '</td>' +
-      '<td style="font-weight:700;color:var(--navy);">' + premium + '</td>' +
+      '<td style="font-weight:600;">' + (amount ? fmtCurr(amount) : '—') + '</td>' +
       '<td>' + escHtml(frequency) + '</td>' +
-      '<td><span class="lp-pill-active">' + escHtml(status) + '</span></td>' +
+      '<td>' + stageHtml + '</td>' +
       '</tr>';
   });
 
@@ -3022,10 +3025,12 @@ function openAction(entity) {
         getRelatedRecords(o){
           var mockData = {
             'Deals':    { data:[
-              {id:'lp-001',Insurer:'AIA',Name:'AIA Life Plus',Policy_Number:'AIA-123456',Premium:245,Premium_Frequency:'Monthly',Status:'In Force'},
-              {id:'lp-002',Insurer:'Partners Life',Name:'Partners Life Cover',Policy_Number:'PL-789012',Premium:189,Premium_Frequency:'Monthly',Status:'In Force'},
-              {id:'lp-003',Insurer:'Asteron',Name:'Asteron Life',Policy_Number:'AST-345678',Premium:312,Premium_Frequency:'Monthly',Status:'Lapsed'},
-            ], info:{count:3} },
+              {id:'lp-001',Deal_Name:'PP Plan Test',Insurer:'Partners Life',Policy_Number:'',Amount:null,Premium_Frequency:'',Stage:'In Force'},
+              {id:'lp-002',Deal_Name:'Personal Protection Plan',Insurer:'Partners Life',Policy_Number:'6876867',Amount:250,Premium_Frequency:'Fortnightly',Stage:'In Force'},
+              {id:'lp-003',Deal_Name:'CoverPlus Extra',Insurer:'ACC',Policy_Number:'ACC123456',Amount:1200,Premium_Frequency:'Yearly',Stage:'In Force'},
+              {id:'lp-004',Deal_Name:'Protection Plan',Insurer:'Partners Life',Policy_Number:'678686',Amount:250,Premium_Frequency:'Fortnightly',Stage:'In Force'},
+              {id:'lp-005',Deal_Name:'Mortgage Cover',Insurer:'OnePath',Policy_Number:'23434534534',Amount:300,Premium_Frequency:'Monthly',Stage:'In Force'},
+            ], info:{count:5} },
             'Loans':            { data:[{id:'ln-001',Name:'ANZ Home Loan',Lender:'ANZ',Balance:450000,Interest_Rate:'5.99%',Status:'Active'},{id:'ln-002',Name:'Car Loan',Lender:'Westpac',Balance:18500,Interest_Rate:'8.5%',Status:'Active'}], info:{count:2} },
             'Investments':      { data:[{id:'inv-001',Name:'KiwiSaver',Investment_Type:'KiwiSaver',Provider:'Fisher Funds',Balance:148750,Status:'Active'}], info:{count:3} },
             'Advice_Records':   { data:[{id:'ar-001',Name:'AR-2024-001',Status:'Completed',Date_Time_of_Meeting:'2024-03-15'}], info:{count:1} },
