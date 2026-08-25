@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.1.7';
+      var CURRENT_VERSION = '2.1.8';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -153,46 +153,47 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--muted);
-      padding: 10px 12px 6px;
-      margin-top: 8px;
+      padding: 12px 14px 6px;
+      margin-top: 4px;
     }
     .nav-section-label:first-child { margin-top: 0; }
 
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 12px;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-radius: 0;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 400;
       color: var(--ink-mid);
       cursor: pointer;
-      transition: all 0.18s;
+      transition: all 0.15s;
       user-select: none;
+      border-left: 3px solid transparent;
     }
     .nav-item:hover {
       background: var(--blue-lt);
       color: var(--blue);
+      border-left-color: var(--blue-mid);
     }
     .nav-item.active {
-      background: linear-gradient(135deg, var(--blue) 0%, var(--navy) 100%);
-      color: #fff;
+      background: var(--blue-lt);
+      color: var(--blue);
       font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0,171,230,0.3);
+      border-left: 3px solid var(--blue);
     }
-    .nav-item.active .nav-badge { background:rgba(255,255,255,0.25);color:#fff; }
-    .nav-item-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-item-icon { display:none; } /* Hidden — clean Zoho style */
     .nav-item-label { flex: 1; }
     .nav-badge {
       font-size: 10px; font-weight: 700;
-      background: var(--bg);
-      color: var(--muted);
-      padding: 2px 7px; border-radius: 20px;
-      min-width: 20px; text-align: center;
-      transition: all 0.18s;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      padding: 1px 6px; border-radius: 10px;
+      min-width: 18px; text-align: center;
     }
-    .nav-badge.has-data { background: var(--blue-lt); color: var(--blue-dk); }
+    .nav-badge.loading { background: transparent; color: var(--muted); }
+    .nav-badge.zero { display: none; } /* Hide zero counts */
 
     /* Nav owner */
     .nav-owner {
@@ -428,7 +429,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.1.7</div>
+<div id="vbadge">v2.1.8</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -895,22 +896,27 @@ function renderNavItems() {
   var container = document.getElementById('nav-related-items');
   if (!container) { console.log('[ACRM] nav-related-items not found'); return; }
 
-  // Rebuild active state after re-render
-  var html = ALL_TABS.map(function(tab) {
-    var count   = TAB_COUNTS[tab.id];
-    var isEmpty = count === 0;
+  var markup = ALL_TABS.map(function(tab) {
+    var count    = TAB_COUNTS[tab.id];
     var isActive = CURRENT_TAB_ID === tab.id;
-    var badgeTxt = count !== undefined ? String(count) : '…';
-    var badgeCls = count > 0 ? 'has-data' : '';
-    return '<div class="nav-item' + (isActive ? ' active' : '') + '" id="nav-' + tab.id + '" data-id="' + tab.id + '" onclick="showRelatedList(this.dataset.id)">' +
-      '<span class="nav-item-icon">' + tab.icon + '</span>' +
+    // Badge: show count if > 0, show … if not loaded yet, hide if 0
+    var badgeHtml = '';
+    if (count === undefined) {
+      badgeHtml = '<span class="nav-badge loading">…</span>';
+    } else if (count > 0) {
+      badgeHtml = '<span class="nav-badge">' + count + '</span>';
+    }
+    // else count === 0, no badge shown
+    return '<div class="nav-item' + (isActive ? ' active' : '') +
+      '" id="nav-' + tab.id +
+      '" data-id="' + tab.id +
+      '" onclick="showRelatedList(this.dataset.id)">' +
       '<span class="nav-item-label">' + tab.label + '</span>' +
-      '<span class="nav-badge ' + badgeCls + '">' + badgeTxt + '</span>' +
+      badgeHtml +
     '</div>';
   }).join('');
 
-  container.innerHTML = html;
-  console.log('[ACRM] Nav rendered with', ALL_TABS.length, 'items');
+  container.innerHTML = markup;
 }
 
 // ── Show overview ──────────────────────────────────────────────────
@@ -1094,23 +1100,41 @@ function newRelatedRecord() {
 
 // ── Load all counts in background ─────────────────────────────────
 function loadAllCounts() {
-  ALL_TABS.forEach(function(tab) {
-    if (!ENTITY_ID || typeof ZOHO === 'undefined') {
-      TAB_COUNTS[tab.id] = 0;
-      return;
-    }
-    ZOHO.CRM.API.getRelatedRecords({
-      Entity:'Contacts', RecordID:ENTITY_ID,
-      RelatedList:tab.entity, page:1, per_page:1,
-    })
-    .then(function(resp) {
-      TAB_COUNTS[tab.id] = resp.info ? resp.info.count : (resp.data||[]).length;
-      renderNavItems();
-    })
-    .catch(function() {
-      TAB_COUNTS[tab.id] = 0;
-      renderNavItems();
+  if (!ENTITY_ID || typeof ZOHO === 'undefined') {
+    // Mock mode — use mock data
+    ALL_TABS.forEach(function(tab) {
+      ZOHO.CRM.API.getRelatedRecords({
+        Entity:'Contacts', RecordID:ENTITY_ID || 'mock',
+        RelatedList:tab.entity, page:1, per_page:1,
+      })
+      .then(function(resp) {
+        TAB_COUNTS[tab.id] = resp.info ? resp.info.count : (resp.data||[]).length;
+        renderNavItems();
+      })
+      .catch(function() {
+        TAB_COUNTS[tab.id] = 0;
+        renderNavItems();
+      });
     });
+    return;
+  }
+  // Real Zoho — fetch counts one by one
+  // Stagger requests to avoid rate limits
+  ALL_TABS.forEach(function(tab, idx) {
+    setTimeout(function() {
+      ZOHO.CRM.API.getRelatedRecords({
+        Entity:'Contacts', RecordID:ENTITY_ID,
+        RelatedList:tab.entity, page:1, per_page:1,
+      })
+      .then(function(resp) {
+        TAB_COUNTS[tab.id] = resp.info ? resp.info.count : (resp.data||[]).length;
+        renderNavItems();
+      })
+      .catch(function(err) {
+        // Don't show 0 on error — just leave as undefined (shows …)
+        console.log('[ACRM] Count failed for', tab.entity, err);
+      });
+    }, idx * 100); // Stagger by 100ms each
   });
 }
 
@@ -1186,12 +1210,17 @@ function reveal() {
   el('loading').classList.add('hidden');
   el('main-page').classList.add('visible');
   showOverview();
+  // Render nav items immediately — counts load in background
+  renderNavItems();
   startResizeObserver();
   scheduleResize();
   setTimeout(scheduleResize, 500);
   setTimeout(scheduleResize, 1500);
   setTimeout(setupInlineEdit, 100);
-  setTimeout(initRelatedLists, 200);
+  // Load counts after a short delay
+  setTimeout(function() {
+    loadAllCounts();
+  }, 500);
 }
 
 // ── Resize system — locks iframe to content height ────────────────
