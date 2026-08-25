@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.2.4';
+      var CURRENT_VERSION = '2.2.5';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -477,7 +477,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.2.4</div>
+<div id="vbadge">v2.2.5</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -1713,9 +1713,8 @@ function openPolicyRecord(id) {
   }
 }
 
-function escHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+// escHtml defined above
+
 
 function loadInvestmentSummary(contactId) {
   if (!contactId || typeof ZOHO === 'undefined') {
@@ -2684,42 +2683,16 @@ function renderRelatedTable(id, records) {
   return html;
 }
 
-function getNestedVal(obj, field) {
-  if (!field) return '';
-  var parts = field.split('.');
-  var val   = obj;
-  parts.forEach(function(p) { val = val && val[p]; });
-  return val;
-}
+// getNestedVal defined above
+
 
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── Column definitions per tab ─────────────────────────────────────
-function getTableColumns(id) {
-  var cols = {
-    'life_policies':    [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Life Assured', field:'Life_Assured.name' },{ label:'Sum Insured', field:'Sum_Insured', format:'currency' },{ label:'Premium', field:'Premium', format:'currency' },{ label:'Status', field:'Status' }],
-    'loans':            [{ label:'Description', field:'Name' },{ label:'Lender', field:'Lender' },{ label:'Balance', field:'Balance', format:'currency' },{ label:'Rate', field:'Interest_Rate' },{ label:'Status', field:'Status' }],
-    'investments':      [{ label:'Name', field:'Name' },{ label:'Type', field:'Investment_Type' },{ label:'Provider', field:'Provider' },{ label:'Balance', field:'Balance', format:'currency' },{ label:'Status', field:'Status' }],
-    'advice_records':   [{ label:'Record', field:'Name' },{ label:'Status', field:'Status' },{ label:'Meeting Date', field:'Date_Time_of_Meeting', format:'date' },{ label:'Owner', field:'Owner.name' }],
-    'memos':            [{ label:'Subject', field:'Note_Title' },{ label:'Date', field:'Created_Time', format:'date' },{ label:'Owner', field:'Owner.name' }],
-    'trauma':           [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Sum Insured', field:'Sum_Insured', format:'currency' },{ label:'Status', field:'Status' }],
-    'income_prot':      [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Benefit', field:'Monthly_Benefit', format:'currency' },{ label:'Status', field:'Status' }],
-    'medical':          [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Premium', field:'Premium', format:'currency' },{ label:'Status', field:'Status' }],
-    'assets':           [{ label:'Asset', field:'Name' },{ label:'Type', field:'Asset_Type' },{ label:'Value', field:'Value', format:'currency' },{ label:'Owner', field:'Owner.name' }],
-    'liabilities':      [{ label:'Liability', field:'Name' },{ label:'Type', field:'Liability_Type' },{ label:'Balance', field:'Balance', format:'currency' },{ label:'Status', field:'Status' }],
-    'income':           [{ label:'Source', field:'Name' },{ label:'Type', field:'Income_Type' },{ label:'Amount', field:'Amount', format:'currency' },{ label:'Frequency', field:'Frequency' }],
-    'expenses':         [{ label:'Expense', field:'Name' },{ label:'Type', field:'Expense_Type' },{ label:'Amount', field:'Amount', format:'currency' },{ label:'Frequency', field:'Frequency' }],
-    'activities':       [{ label:'Subject', field:'Subject' },{ label:'Type', field:'Activity_Type' },{ label:'Due Date', field:'Due_Date', format:'date' },{ label:'Status', field:'Status' }],
-    'notes':            [{ label:'Title', field:'Note_Title' },{ label:'Date', field:'Created_Time', format:'date' },{ label:'Created By', field:'Owner.name' }],
-    'attachments':      [{ label:'File Name', field:'File_Name' },{ label:'Size', field:'File_Size' },{ label:'Date Added', field:'Created_Time', format:'date' }],
-    'claims':           [{ label:'Claim No.', field:'Name' },{ label:'Type', field:'Claim_Type' },{ label:'Date', field:'Claim_Date', format:'date' },{ label:'Status', field:'Status' }],
-    'complaints':       [{ label:'Subject', field:'Name' },{ label:'Date', field:'Created_Time', format:'date' },{ label:'Status', field:'Status' }],
-    'general_policies': [{ label:'Policy No.', field:'Name' },{ label:'Insurer', field:'Insurer' },{ label:'Type', field:'Policy_Type' },{ label:'Status', field:'Status' }],
-  };
-  return cols[id] || [{ label:'Name', field:'Name' }];
-}
+// getTableColumns defined above
+
 
 // ── Load tab data via API ──────────────────────────────────────────
 function loadTabData(id) {
