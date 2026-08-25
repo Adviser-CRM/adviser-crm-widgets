@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.1.8';
+      var CURRENT_VERSION = '2.2.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -91,15 +91,32 @@
       margin: var(--gap) var(--gap) var(--gap);
     }
     .header-left { display:flex;align-items:center;gap:14px; }
+    .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
     .avatar {
-      width: 44px; height: 44px;
-      border-radius: 12px;
+      width: 72px; height: 72px;
+      border-radius: 16px;
       background: var(--blue-lt);
       border: 2px solid var(--blue-mid);
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 700; color: var(--blue-dk);
-      flex-shrink: 0; overflow: hidden;
+      font-size: 24px; font-weight: 700; color: var(--blue-dk);
+      overflow: hidden;
+      cursor: pointer;
     }
+    .avatar img { width:100%; height:100%; object-fit:cover; border-radius:14px; }
+    .avatar-upload-btn {
+      position: absolute; bottom: -4px; right: -4px;
+      width: 24px; height: 24px;
+      border-radius: 50%; border: 2px solid #fff;
+      background: var(--blue); color: #fff;
+      font-size: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .avatar-wrap:hover .avatar-upload-btn { opacity: 1; }
     .header-info {}
     .header-name { font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1.2; }
     .header-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -193,6 +210,13 @@
       min-width: 18px; text-align: center;
     }
     .nav-badge.loading { background: transparent; color: var(--muted); }
+    .nav-drag-handle {
+      font-size: 11px; color: var(--muted); opacity: 0;
+      cursor: grab; margin-right: 4px; flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .nav-item:hover .nav-drag-handle { opacity: 1; }
+    .nav-item.drag-over { background: var(--blue-lt); border-left-color: var(--blue); }
     .nav-badge.zero { display: none; } /* Hide zero counts */
 
     /* Nav owner */
@@ -429,7 +453,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.1.8</div>
+<div id="vbadge">v2.2.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -479,7 +503,11 @@
       <div class="header">
 
         <div class="header-left">
-          <div class="avatar" id="hero-avatar">?</div>
+          <div class="avatar-wrap">
+        <div class="avatar" id="hero-avatar">?</div>
+        <button class="avatar-upload-btn" onclick="triggerPhotoUpload()" title="Upload photo">📷</button>
+        <input type="file" id="photo-upload-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(this)">
+      </div>
           <div>
             <div class="header-name" id="hero-name">Loading…</div>
             <div class="header-role" id="hero-role"></div>
@@ -862,25 +890,60 @@ var CURRENT_TAB_ID = null;
 
 // All 18 related lists
 var ALL_TABS = [
+  { id:'notes',            label:'Notes',             icon:'🗒',  entity:'Notes',             newLabel:'New Note' },
+  { id:'open_activities',  label:'Open Activities',   icon:'📅',  entity:'Activities',        newLabel:'New Activity' },
   { id:'life_policies',    label:'Life Policies',     icon:'🛡',  entity:'Life_Policies',     newLabel:'New Policy' },
+  { id:'general_policies', label:'General Policies',  icon:'📑',  entity:'General_Policies',  newLabel:'New Policy' },
   { id:'loans',            label:'Loans',             icon:'🏠',  entity:'Loans',             newLabel:'New Loan' },
   { id:'investments',      label:'Investments',       icon:'📈',  entity:'Investments',       newLabel:'New Investment' },
   { id:'advice_records',   label:'Advice Records',    icon:'📋',  entity:'Advice_Records',    newLabel:'New Advice Record' },
   { id:'memos',            label:'Memos',             icon:'📝',  entity:'Memos',             newLabel:'New Memo' },
-  { id:'trauma',           label:'Trauma Cover',      icon:'💊',  entity:'Trauma_Cover',      newLabel:'New Trauma' },
-  { id:'income_prot',      label:'Income Protection', icon:'💵',  entity:'Income_Protection', newLabel:'New IP' },
-  { id:'medical',          label:'Medical Cover',     icon:'🏥',  entity:'Medical_Cover',     newLabel:'New Medical' },
-  { id:'assets',           label:'Assets',            icon:'🏡',  entity:'Assets',            newLabel:'New Asset' },
-  { id:'liabilities',      label:'Liabilities',       icon:'💳',  entity:'Liabilities',       newLabel:'New Liability' },
-  { id:'income',           label:'Income',            icon:'💰',  entity:'Income',            newLabel:'New Income' },
-  { id:'expenses',         label:'Expenses',          icon:'🧾',  entity:'Expenses',          newLabel:'New Expense' },
-  { id:'activities',       label:'Activities',        icon:'📅',  entity:'Activities',        newLabel:'New Activity' },
-  { id:'notes',            label:'Notes',             icon:'🗒',  entity:'Notes',             newLabel:'New Note' },
-  { id:'attachments',      label:'Attachments',       icon:'📎',  entity:'Attachments',       newLabel:'New Attachment' },
   { id:'claims',           label:'Claims',            icon:'⚠️',  entity:'Claims',            newLabel:'New Claim' },
   { id:'complaints',       label:'Complaints',        icon:'📣',  entity:'Complaints',        newLabel:'New Complaint' },
-  { id:'general_policies', label:'General Policies',  icon:'📑',  entity:'General_Policies',  newLabel:'New Policy' },
+  { id:'income',           label:'Incomes',           icon:'💰',  entity:'Income',            newLabel:'New Income' },
+  { id:'assets',           label:'Assets',            icon:'🏡',  entity:'Assets',            newLabel:'New Asset' },
+  { id:'liabilities',      label:'Liabilities',       icon:'💳',  entity:'Liabilities',       newLabel:'New Liability' },
+  { id:'expenses',         label:'Expenses',          icon:'🧾',  entity:'Expenses',          newLabel:'New Expense' },
+  { id:'attachments',      label:'Attachments',       icon:'📎',  entity:'Attachments',       newLabel:'New Attachment' },
 ];
+
+// ── Load related list order from Zoho settings API ─────────────────
+function loadRelatedListOrder() {
+  if (typeof ZOHO === 'undefined') return Promise.resolve();
+  return ZOHO.CRM.META.getRelatedLists({ Entity: 'Contacts' })
+    .then(function(resp) {
+      if (!resp || !resp.related_lists) return;
+      // Sort by sequence_number from Zoho settings
+      var zohoLists = resp.related_lists
+        .filter(function(l) { return l.visible !== false; })
+        .sort(function(a, b) { return (a.sequence_number||999) - (b.sequence_number||999); });
+
+      // Reorder ALL_TABS to match Zoho's order
+      var zohoOrder = zohoLists.map(function(l) { return l.api_name || l.name; });
+      var reordered = [];
+      var remaining = ALL_TABS.slice();
+
+      zohoOrder.forEach(function(apiName) {
+        var match = remaining.find(function(t) {
+          return t.entity === apiName ||
+                 t.entity.toLowerCase() === apiName.toLowerCase();
+        });
+        if (match) {
+          reordered.push(match);
+          remaining = remaining.filter(function(t) { return t.id !== match.id; });
+        }
+      });
+      // Add any tabs not found in Zoho order at the end
+      ALL_TABS.length = 0;
+      reordered.concat(remaining).forEach(function(t) { ALL_TABS.push(t); });
+      renderNavItems();
+      console.log('[ACRM] Related list order loaded from Zoho settings');
+    })
+    .catch(function(err) {
+      console.log('[ACRM] Could not load related list order from Zoho:', err);
+      // Falls back to default order defined above
+    });
+}
 
 var TAB_COUNTS = {};
 var TAB_DATA   = {};
@@ -894,29 +957,104 @@ function getTab(id) {
 // ── Render nav items ───────────────────────────────────────────────
 function renderNavItems() {
   var container = document.getElementById('nav-related-items');
-  if (!container) { console.log('[ACRM] nav-related-items not found'); return; }
+  if (!container) return;
 
-  var markup = ALL_TABS.map(function(tab) {
+  container.innerHTML = ALL_TABS.map(function(tab) {
     var count    = TAB_COUNTS[tab.id];
     var isActive = CURRENT_TAB_ID === tab.id;
-    // Badge: show count if > 0, show … if not loaded yet, hide if 0
-    var badgeHtml = '';
-    if (count === undefined) {
-      badgeHtml = '<span class="nav-badge loading">…</span>';
-    } else if (count > 0) {
-      badgeHtml = '<span class="nav-badge">' + count + '</span>';
-    }
-    // else count === 0, no badge shown
+    var badgeHtml = count === undefined
+      ? '<span class="nav-badge loading">…</span>'
+      : count > 0 ? '<span class="nav-badge">' + count + '</span>'
+      : '';
     return '<div class="nav-item' + (isActive ? ' active' : '') +
       '" id="nav-' + tab.id +
       '" data-id="' + tab.id +
+      '" draggable="true"' +
       '" onclick="showRelatedList(this.dataset.id)">' +
+      '<span class="nav-drag-handle" title="Drag to reorder">⠿</span>' +
       '<span class="nav-item-label">' + tab.label + '</span>' +
       badgeHtml +
     '</div>';
   }).join('');
 
-  container.innerHTML = markup;
+  // Wire up drag-and-drop
+  setupNavDragDrop(container);
+}
+
+var _dragSrcId = null;
+
+function setupNavDragDrop(container) {
+  container.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('dragstart', function(e) {
+      _dragSrcId = this.dataset.id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function() { item.style.opacity = '0.4'; }, 0);
+    });
+    item.addEventListener('dragend', function() {
+      item.style.opacity = '';
+      container.querySelectorAll('.nav-item').forEach(function(i) {
+        i.classList.remove('drag-over');
+      });
+    });
+    item.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      container.querySelectorAll('.nav-item').forEach(function(i) { i.classList.remove('drag-over'); });
+      this.classList.add('drag-over');
+    });
+    item.addEventListener('drop', function(e) {
+      e.preventDefault();
+      var destId = this.dataset.id;
+      if (_dragSrcId && _dragSrcId !== destId) {
+        var srcIdx  = ALL_TABS.findIndex(function(t) { return t.id === _dragSrcId; });
+        var destIdx = ALL_TABS.findIndex(function(t) { return t.id === destId; });
+        if (srcIdx !== -1 && destIdx !== -1) {
+          var moved = ALL_TABS.splice(srcIdx, 1)[0];
+          ALL_TABS.splice(destIdx, 0, moved);
+          renderNavItems();
+          saveNavOrder();
+        }
+      }
+      _dragSrcId = null;
+    });
+  });
+}
+
+function saveNavOrder() {
+  // Save to Zoho user field so it roams across devices/browsers
+  if (typeof ZOHO === 'undefined') return;
+  var order = ALL_TABS.map(function(t) { return t.id; }).join(',');
+  ZOHO.CRM.CONFIG.getCurrentUser()
+    .then(function(resp) {
+      var user = resp && resp.users && resp.users[0];
+      if (!user) return;
+      var data = { id: user.id };
+      data[PREF_FIELD] = order;
+      ZOHO.CRM.API.updateRecord({ Entity:'users', RecordID:user.id, APIData:data });
+    })
+    .catch(function() {});
+}
+
+function loadNavOrder() {
+  if (typeof ZOHO === 'undefined') return Promise.resolve();
+  return ZOHO.CRM.CONFIG.getCurrentUser()
+    .then(function(resp) {
+      var user = resp && resp.users && resp.users[0];
+      if (!user || !user[PREF_FIELD]) return;
+      var savedIds = user[PREF_FIELD].split(',');
+      var reordered = [];
+      savedIds.forEach(function(id) {
+        var tab = ALL_TABS.find(function(t) { return t.id === id; });
+        if (tab) reordered.push(tab);
+      });
+      // Add any new tabs not in saved order
+      ALL_TABS.forEach(function(t) {
+        if (!reordered.find(function(r) { return r.id === t.id; })) reordered.push(t);
+      });
+      ALL_TABS.length = 0;
+      reordered.forEach(function(t) { ALL_TABS.push(t); });
+      renderNavItems();
+    })
+    .catch(function() {});
 }
 
 // ── Show overview ──────────────────────────────────────────────────
@@ -1140,8 +1278,15 @@ function loadAllCounts() {
 
 // Override initRelatedLists to use new nav system
 function initRelatedLists() {
-  renderNavItems();
-  setTimeout(loadAllCounts, 300);
+  renderNavItems(); // Render immediately with default order
+  // Try user's saved order first, then Zoho system order
+  loadNavOrder().then(function() {
+    return loadRelatedListOrder();
+  }).then(function() {
+    setTimeout(loadAllCounts, 300);
+  }).catch(function() {
+    setTimeout(loadAllCounts, 300);
+  });
 }
 
 // ── Update sidebar owner info ──────────────────────────────────────
@@ -1230,24 +1375,27 @@ var _resizeTimer = null;
 function scheduleResize() {
   if (_resizeTimer) clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(function() {
-    // Use the larger of content height or viewport height
-    // This fills the canvas frame completely, no blank space
     var contentH = Math.max(
       document.body.scrollHeight,
       document.body.offsetHeight,
       document.documentElement.scrollHeight,
       document.documentElement.offsetHeight
     );
-    var viewportH = window.innerHeight || 800;
-    var h = Math.max(contentH, viewportH) + 20;
-    if (h === _lastHeight) return;
+    // Only use content height — don't pad with viewport
+    // to avoid the infinite scroll loop
+    var h = contentH;
+
+    // Only resize if height has INCREASED by more than 10px
+    // This prevents ResizeObserver → Resize → ResizeObserver loop
+    if (h <= _lastHeight + 10 && _lastHeight > 0) return;
     _lastHeight = h;
+
     try {
       if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
         ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' });
       }
     } catch(e) {}
-  }, 150);
+  }, 300); // Longer debounce to let DOM settle
 }
 
 function startResizeObserver() {
@@ -2668,6 +2816,31 @@ function initRelatedLists() {
     // Load all counts in background
     setTimeout(loadAllTabCounts, 500);
   });
+}
+
+// ── Contact photo upload ──────────────────────────────────────────
+function triggerPhotoUpload() {
+  var input = document.getElementById('photo-upload-input');
+  if (input) input.click();
+}
+
+function handlePhotoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+
+  // Preview immediately
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var avatarEl = document.getElementById('hero-avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = '<img src="' + e.target.result + '" alt="Contact photo" />';
+    }
+  };
+  reader.readAsDataURL(file);
+
+  // Note: Uploading to Zoho Record_Image requires the REST API with multipart form
+  // For now show a toast directing user to use the native Zoho upload
+  showToast('Photo preview updated. To save permanently use the Zoho record image upload.', 'saving');
 }
 
 // ── Navigation actions ────────────────────────────────────────────
