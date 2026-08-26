@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.3.2';
+      var CURRENT_VERSION = '2.3.3';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -573,7 +573,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.3.2</div>
+<div id="vbadge">v2.3.3</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -3077,24 +3077,53 @@ function loadActivities(contactId) {
     renderActivityMock();
     return;
   }
+
   // Load Tasks and Calls in parallel
+  // Note: Calls in Zoho CRM may use 'Calls' or 'Open_Activities' as RelatedList
   Promise.all([
     ZOHO.CRM.API.getRelatedRecords({
       Entity: 'Contacts', RecordID: contactId,
       RelatedList: 'Tasks', page: 1, per_page: 50,
-    }).catch(function() { return { data: [] }; }),
+    }).catch(function(e) {
+      console.log('[ACRM] Tasks fetch failed:', e);
+      return { data: [] };
+    }),
     ZOHO.CRM.API.getRelatedRecords({
       Entity: 'Contacts', RecordID: contactId,
       RelatedList: 'Calls', page: 1, per_page: 50,
-    }).catch(function() { return { data: [] }; }),
-
+    }).catch(function(e) {
+      console.log('[ACRM] Calls fetch failed:', e);
+      // Fallback: try Open_Activities
+      return ZOHO.CRM.API.getRelatedRecords({
+        Entity: 'Contacts', RecordID: contactId,
+        RelatedList: 'Open_Activities', page: 1, per_page: 50,
+      }).catch(function(e2) {
+        console.log('[ACRM] Open_Activities fetch also failed:', e2);
+        return { data: [] };
+      });
+    }),
   ]).then(function(results) {
     var tasks = (results[0].data || []).filter(function(t) {
       return t.Status !== 'Completed' && t.Status !== 'Deferred';
     });
-    var calls = (results[1].data || []).filter(function(c) {
-      return c.Call_Status === 'Scheduled' || c.Status === 'Scheduled';
+
+    // Log raw call data so we can see what fields are returned
+    var allCallData = results[1].data || [];
+    console.log('[ACRM] Raw calls data:', JSON.stringify(allCallData.slice(0,3)));
+
+    // Filter: show Scheduled calls OR all calls if none match Scheduled
+    var calls = allCallData.filter(function(c) {
+      var status = c.Call_Status || c.Status || c.Activity_Type || '';
+      return status === 'Scheduled' ||
+             status === 'Planned'   ||
+             c.Activity_Type === 'Call';
     });
+
+    // If still empty, show all calls (so adviser sees something)
+    if (!calls.length && allCallData.length) {
+      console.log('[ACRM] No Scheduled calls found, showing all:', allCallData.length);
+      calls = allCallData;
+    }
     renderTaskList(tasks);
     renderCallList(calls);
 
@@ -3182,8 +3211,8 @@ function renderCallList(calls) {
 
   // Sort by scheduled date ascending
   calls.sort(function(a,b) {
-    var da = new Date(a.Call_Start_Time || a.Scheduled_Date_Time || 0);
-    var db = new Date(b.Call_Start_Time || b.Scheduled_Date_Time || 0);
+    var da = new Date(a.Call_Start_Time || a.Scheduled_Date_Time || a.Created_Time || 0);
+    var db = new Date(b.Call_Start_Time || b.Scheduled_Date_Time || b.Created_Time || 0);
     return da - db;
   });
 
@@ -3191,7 +3220,8 @@ function renderCallList(calls) {
   var todayEnd   = new Date(); todayEnd.setHours(23,59,59,999);
 
   container.innerHTML = calls.map(function(c) {
-    var startRaw = c.Call_Start_Time || c.Scheduled_Date_Time || c.Created_Time;
+    var startRaw = c.Call_Start_Time || c.Scheduled_Date_Time ||
+                   c.Call_Start_Date || c.Date_Time || c.Created_Time;
     var startDt  = startRaw ? new Date(startRaw) : null;
     var timeStr  = startDt
       ? fmtDate(startRaw) + ' ' + fmtTime(startRaw)
@@ -3215,7 +3245,7 @@ function renderCallList(calls) {
 
     return '<div class="activity-item ' + cls + '" ' +
       'data-id="' + (c.id||'') + '" data-entity="Calls" onclick="openActivityRecord(this.dataset.entity,this.dataset.id)">' +
-      '<div class="activity-item-subject">' + escHtml(c.Subject||c.Call_Purpose||'Scheduled Call') + '</div>' +
+      '<div class="activity-item-subject">' + escHtml(c.Subject||c.Call_Purpose||c.Description||'Scheduled Call') + '</div>' +
       '<div class="activity-item-meta">' +
         '<span class="activity-item-date' + (cls==='overdue' ? ' overdue-date' : '') + '">📅 ' + timeStr + '</span>' +
         badge +
