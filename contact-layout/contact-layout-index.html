@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.3.3';
+      var CURRENT_VERSION = '2.3.4';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -406,8 +406,8 @@
     .activity-item.overdue:hover  { background: #fecaca; }
     .activity-item.today    { border-left-color: #d97706; background: #fef9c3; }
     .activity-item.today:hover    { background: #fef08a; }
-    .activity-item.upcoming { border-left-color: var(--blue); background: var(--blue-lt); }
-    .activity-item.upcoming:hover { background: #bae6fd; }
+    .activity-item.upcoming { border-left-color: var(--green); background: var(--green-lt); }
+    .activity-item.upcoming:hover { background: #bbf7d0; }
     .activity-item-subject {
       font-size: 12px; font-weight: 600;
       color: var(--blue); margin-bottom: 5px;
@@ -415,7 +415,7 @@
     }
     .activity-item.overdue  .activity-item-subject { color: var(--red); }
     .activity-item.today    .activity-item-subject { color: #92400e; }
-    .activity-item.upcoming .activity-item-subject { color: var(--blue-dk); }
+    .activity-item.upcoming .activity-item-subject { color: var(--green); }
     .activity-item-meta {
       display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
     }
@@ -573,7 +573,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.3.3</div>
+<div id="vbadge">v2.3.4</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -3107,23 +3107,13 @@ function loadActivities(contactId) {
       return t.Status !== 'Completed' && t.Status !== 'Deferred';
     });
 
-    // Log raw call data so we can see what fields are returned
     var allCallData = results[1].data || [];
-    console.log('[ACRM] Raw calls data:', JSON.stringify(allCallData.slice(0,3)));
 
-    // Filter: show Scheduled calls OR all calls if none match Scheduled
+    // Filter out Completed calls (Outgoing_Call_Status === 'Completed')
     var calls = allCallData.filter(function(c) {
-      var status = c.Call_Status || c.Status || c.Activity_Type || '';
-      return status === 'Scheduled' ||
-             status === 'Planned'   ||
-             c.Activity_Type === 'Call';
+      var outStatus = c.Outgoing_Call_Status || c.Call_Status || c.Status || '';
+      return outStatus !== 'Completed';
     });
-
-    // If still empty, show all calls (so adviser sees something)
-    if (!calls.length && allCallData.length) {
-      console.log('[ACRM] No Scheduled calls found, showing all:', allCallData.length);
-      calls = allCallData;
-    }
     renderTaskList(tasks);
     renderCallList(calls);
 
@@ -3148,14 +3138,17 @@ function renderActivityMock() {
   ];
   var mockCalls = [
     { id:'c1', Subject:'Overdue follow-up call',
-      Call_Start_Time:'2024-03-10T10:00:00', Call_Status:'Scheduled',
+      Call_Start_Time:'2024-03-10T10:00:00', Outgoing_Call_Status:'',
       Owner:{ name:'Steven Strange' } },
     { id:'c2', Subject:'Annual review call',
-      Call_Start_Time: today + 'T14:00:00', Call_Status:'Scheduled',
+      Call_Start_Time: today + 'T14:00:00', Outgoing_Call_Status:'',
       Owner:{ name:'Sean Davis' } },
     { id:'c3', Subject:'Policy renewal discussion',
-      Call_Start_Time: futureStr + 'T11:00:00', Call_Status:'Scheduled',
+      Call_Start_Time: futureStr + 'T11:00:00', Outgoing_Call_Status:'',
       Owner:{ name:'Steven Strange' } },
+    { id:'c4', Subject:'Completed call — should not show',
+      Call_Start_Time: today + 'T09:00:00', Outgoing_Call_Status:'Completed',
+      Owner:{ name:'Sean Davis' } },
   ];
   renderTaskList(mockTasks);
   renderCallList(mockCalls);
@@ -3228,18 +3221,20 @@ function renderCallList(calls) {
       : '—';
     var owner = c.Owner ? (c.Owner.name || '') : '';
 
-    // Determine colour state
+    // Determine colour state:
+    // red = before today (overdue), yellow = today, green = tomorrow+
     var cls   = '';
     var badge = '';
     if (startDt) {
-      if (startDt < todayStart) {
+      var callDay = new Date(startDt); callDay.setHours(0,0,0,0);
+      if (callDay < todayStart) {
         cls   = 'overdue';
         badge = '<span class="act-pill" style="background:var(--red-lt);color:var(--red);">OVERDUE</span>';
-      } else if (startDt <= todayEnd) {
+      } else if (callDay.getTime() === todayStart.getTime()) {
         cls   = 'today';
         badge = '<span class="act-pill" style="background:#fef9c3;color:#92400e;border:1px solid #fcd34d;">TODAY</span>';
       } else {
-        cls   = 'upcoming';
+        cls   = 'upcoming'; // green — tomorrow onwards
       }
     }
 
