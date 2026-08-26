@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.2.6';
+      var CURRENT_VERSION = '2.3.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -348,6 +348,96 @@
     .pill-red    { background:var(--red-lt);color:var(--red); }
     .pill-grey   { background:var(--bg);color:var(--muted); }
 
+    /* ══ ACTIVITY CARD ══ */
+    .activity-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 180px;
+    }
+    .activity-col {
+      padding: 14px 18px;
+    }
+    .activity-col:first-child {
+      border-right: 1px solid var(--divider);
+    }
+    .activity-col-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .activity-col-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--ink-mid);
+    }
+    .activity-col-title .act-icon { font-size: 14px; }
+    .activity-count {
+      font-size: 10px; font-weight: 700;
+      background: var(--blue-lt); color: var(--blue-dk);
+      padding: 2px 7px; border-radius: 20px;
+    }
+    .activity-count.has-overdue {
+      background: var(--red-lt); color: var(--red);
+    }
+    .btn-act-new {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px;
+      background: var(--bg); color: var(--ink-mid);
+      border: 1.5px solid var(--divider);
+      border-radius: 8px;
+      font-family: var(--sans); font-size: 10px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-act-new:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+
+    /* Activity items */
+    .activity-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+      position: relative;
+    }
+    .activity-item:hover { background: var(--blue-lt); border-left-color: var(--blue); }
+    .activity-item.overdue { border-left-color: var(--red); background: var(--red-lt); }
+    .activity-item.overdue:hover { background: #fecaca; }
+    .activity-item-subject {
+      font-size: 12px; font-weight: 600;
+      color: var(--blue); margin-bottom: 5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .activity-item.overdue .activity-item-subject { color: var(--red); }
+    .activity-item-meta {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+    }
+    .activity-item-date {
+      font-size: 10px; color: var(--muted);
+      display: flex; align-items: center; gap: 3px;
+    }
+    .activity-item-date.overdue-date { color: var(--red); font-weight: 700; }
+    .act-pill {
+      font-size: 9px; font-weight: 700;
+      padding: 1px 6px; border-radius: 20px;
+    }
+    .act-pill-priority-high   { background: var(--red-lt);   color: var(--red); }
+    .act-pill-priority-medium { background: var(--amber-lt); color: var(--amber); }
+    .act-pill-priority-normal { background: var(--bg-alt);   color: var(--muted); }
+    .act-pill-status {
+      background: var(--bg-alt); color: var(--ink-mid);
+    }
+    .activity-empty {
+      text-align: center; padding: 24px 10px;
+      color: var(--muted); font-size: 11px;
+    }
+    .activity-empty-icon { font-size: 24px; margin-bottom: 6px; opacity: 0.4; }
+    .activity-loading {
+      text-align: center; padding: 24px 10px;
+      color: var(--muted); font-size: 11px;
+    }
+
     /* ══ COVER STRIP ══ */
     .cover-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); }
     .cover-item { padding:16px 18px;border-right:1px solid var(--divider);text-align:center; }
@@ -477,7 +567,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.2.6</div>
+<div id="vbadge">v2.3.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -713,6 +803,55 @@
               <div class="field">
                 <div class="field-label">ID Expiry Date</div>
                 <div class="field-wrap"><div class="field-value editable" id="f-id-expiry">—</div><button class="pencil-btn" onclick="enterInlineEdit('f-id-expiry')">✎</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Open Activities -->
+        <div class="card" id="activity-card">
+          <div class="card-head card-head-split">
+            <div class="card-head-left">
+              <div class="card-icon">📅</div>
+              <div>
+                <div class="card-title">Open Activities</div>
+                <div class="card-sub" id="activity-card-sub">Tasks and scheduled calls</div>
+              </div>
+            </div>
+          </div>
+          <div class="activity-split">
+            <!-- Tasks column -->
+            <div class="activity-col">
+              <div class="activity-col-header">
+                <div class="activity-col-title">
+                  <span class="act-icon">☑</span>
+                  Open Tasks
+                  <span class="activity-count" id="task-count">…</span>
+                </div>
+                <button class="btn-act-new" onclick="newActivity('Tasks')">＋ Task</button>
+              </div>
+              <div id="task-list">
+                <div class="activity-loading">
+                  <div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0 auto 6px;"></div>
+                  Loading tasks…
+                </div>
+              </div>
+            </div>
+            <!-- Calls column -->
+            <div class="activity-col">
+              <div class="activity-col-header">
+                <div class="activity-col-title">
+                  <span class="act-icon">📞</span>
+                  Scheduled Calls
+                  <span class="activity-count" id="call-count">…</span>
+                </div>
+                <button class="btn-act-new" onclick="newActivity('Calls')">＋ Call</button>
+              </div>
+              <div id="call-list">
+                <div class="activity-loading">
+                  <div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0 auto 6px;"></div>
+                  Loading calls…
+                </div>
               </div>
             </div>
           </div>
@@ -2923,6 +3062,144 @@ function loadSessionPhoto() {
   } catch(e) {}
 }
 
+// ══ OPEN ACTIVITIES ═══════════════════════════════════════════════
+
+function loadActivities(contactId) {
+  if (!contactId || typeof ZOHO === 'undefined') {
+    renderActivityMock();
+    return;
+  }
+  // Load Tasks and Calls in parallel
+  Promise.all([
+    ZOHO.CRM.API.getRelatedRecords({
+      Entity: 'Contacts', RecordID: contactId,
+      RelatedList: 'Tasks', page: 1, per_page: 50,
+    }).catch(function() { return { data: [] }; }),
+    ZOHO.CRM.API.getRelatedRecords({
+      Entity: 'Contacts', RecordID: contactId,
+      RelatedList: 'Calls', page: 1, per_page: 50,
+    }).catch(function() { return { data: [] }; }),
+  ]).then(function(results) {
+    var tasks = (results[0].data || []).filter(function(t) {
+      return t.Status !== 'Completed' && t.Status !== 'Deferred';
+    });
+    var calls = (results[1].data || []).filter(function(c) {
+      return c.Call_Status === 'Scheduled' || c.Status === 'Scheduled';
+    });
+    renderTaskList(tasks);
+    renderCallList(calls);
+    // Update sub label
+    var total = tasks.length + calls.length;
+    var sub = document.getElementById('activity-card-sub');
+    if (sub) sub.textContent = total + ' open item' + (total !== 1 ? 's' : '');
+    setTimeout(scheduleResize, 300);
+  });
+}
+
+function renderActivityMock() {
+  var mockTasks = [
+    { id:'t1', Subject:'Arrange PMAR', Due_Date:'2024-03-12',
+      Status:'Not Started', Priority:'High' },
+    { id:'t2', Subject:'Get New DD Form', Due_Date:'2024-07-18',
+      Status:'Not Started', Priority:'High' },
+  ];
+  var mockCalls = [
+    { id:'c1', Subject:'Call scheduled with Mr. Jonathan Milton Smith',
+      Call_Start_Time:'2024-07-17T12:30:00', Call_Status:'Scheduled',
+      Owner: { name:'Steven Strange' } },
+  ];
+  renderTaskList(mockTasks);
+  renderCallList(mockCalls);
+}
+
+function renderTaskList(tasks) {
+  var container = document.getElementById('task-list');
+  var countEl   = document.getElementById('task-count');
+  if (!container) return;
+
+  if (countEl) {
+    var overdue = tasks.filter(function(t) { return isOverdue(t.Due_Date); }).length;
+    countEl.textContent = tasks.length;
+    countEl.className = 'activity-count' + (overdue > 0 ? ' has-overdue' : '');
+  }
+
+  if (!tasks.length) {
+    container.innerHTML = '<div class="activity-empty"><div class="activity-empty-icon">☑</div>No open tasks</div>';
+    return;
+  }
+
+  container.innerHTML = tasks.map(function(t) {
+    var od       = isOverdue(t.Due_Date);
+    var dateStr  = t.Due_Date ? fmtDate(t.Due_Date) : '—';
+    var priority = t.Priority || 'Normal';
+    var priCls   = 'act-pill act-pill-priority-' + priority.toLowerCase().replace(' ','');
+    return '<div class="activity-item' + (od ? ' overdue' : '') + '" ' +
+      'data-id="' + (t.id||'') + '" data-entity="Tasks" onclick="openActivityRecord(this.dataset.entity,this.dataset.id)">' +
+      '<div class="activity-item-subject">' + escHtml(t.Subject||'—') + '</div>' +
+      '<div class="activity-item-meta">' +
+        '<span class="activity-item-date' + (od ? ' overdue-date' : '') + '">' +
+          (od ? '⚠ ' : '📅 ') + dateStr +
+        '</span>' +
+        (od ? '<span class="act-pill" style="background:var(--red-lt);color:var(--red);">OVERDUE</span>' : '') +
+        '<span class="' + priCls + '">' + escHtml(priority) + '</span>' +
+        '<span class="act-pill act-pill-status">' + escHtml(t.Status||'') + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderCallList(calls) {
+  var container = document.getElementById('call-list');
+  var countEl   = document.getElementById('call-count');
+  if (!container) return;
+
+  if (countEl) countEl.textContent = calls.length;
+
+  if (!calls.length) {
+    container.innerHTML = '<div class="activity-empty"><div class="activity-empty-icon">📞</div>No scheduled calls</div>';
+    return;
+  }
+
+  container.innerHTML = calls.map(function(c) {
+    var timeStr = c.Call_Start_Time
+      ? fmtDate(c.Call_Start_Time) + ' ' + fmtTime(c.Call_Start_Time)
+      : (c.Created_Time ? fmtDate(c.Created_Time) : '—');
+    var owner = c.Owner ? (c.Owner.name || '') : '';
+    return '<div class="activity-item" ' +
+      'data-id="' + (c.id||'') + '" data-entity="Calls" onclick="openActivityRecord(this.dataset.entity,this.dataset.id)">' +
+      '<div class="activity-item-subject">' + escHtml(c.Subject||c.Call_Purpose||'Scheduled Call') + '</div>' +
+      '<div class="activity-item-meta">' +
+        '<span class="activity-item-date">📅 ' + timeStr + '</span>' +
+        (owner ? '<span class="act-pill act-pill-status">' + escHtml(owner) + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  return new Date(dateStr) < new Date();
+}
+
+function fmtTime(dtStr) {
+  if (!dtStr) return '';
+  try {
+    var d = new Date(dtStr);
+    return d.toLocaleTimeString('en-NZ', { hour:'2-digit', minute:'2-digit', hour12:true });
+  } catch(e) { return ''; }
+}
+
+function openActivityRecord(entity, id) {
+  if (!id || typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.UI.Record.open({ Entity: entity, RecordID: id });
+}
+
+function newActivity(entity) {
+  if (typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.UI.Record.create({ Entity: entity });
+}
+
 // ── Navigation actions ────────────────────────────────────────────
 function managePolicies() {
   // Open the Life Policies related list for the current contact's account
@@ -3108,6 +3385,7 @@ function startApp() {
       // Load investment summary in background
       loadInvestmentSummary(ENTITY_ID);
       loadLifePolicies(ENTITY_ID);
+      loadActivities(ENTITY_ID);
     })
     .catch(function(err){
       dbg('ERROR fetching contact: ' + JSON.stringify(err));
