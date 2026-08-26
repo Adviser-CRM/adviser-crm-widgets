@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.3.0';
+      var CURRENT_VERSION = '2.3.2';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -402,14 +402,20 @@
       position: relative;
     }
     .activity-item:hover { background: var(--blue-lt); border-left-color: var(--blue); }
-    .activity-item.overdue { border-left-color: var(--red); background: var(--red-lt); }
-    .activity-item.overdue:hover { background: #fecaca; }
+    .activity-item.overdue  { border-left-color: var(--red);   background: var(--red-lt); }
+    .activity-item.overdue:hover  { background: #fecaca; }
+    .activity-item.today    { border-left-color: #d97706; background: #fef9c3; }
+    .activity-item.today:hover    { background: #fef08a; }
+    .activity-item.upcoming { border-left-color: var(--blue); background: var(--blue-lt); }
+    .activity-item.upcoming:hover { background: #bae6fd; }
     .activity-item-subject {
       font-size: 12px; font-weight: 600;
       color: var(--blue); margin-bottom: 5px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .activity-item.overdue .activity-item-subject { color: var(--red); }
+    .activity-item.overdue  .activity-item-subject { color: var(--red); }
+    .activity-item.today    .activity-item-subject { color: #92400e; }
+    .activity-item.upcoming .activity-item-subject { color: var(--blue-dk); }
     .activity-item-meta {
       display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
     }
@@ -567,7 +573,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.3.0</div>
+<div id="vbadge">v2.3.2</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -854,6 +860,8 @@
                 </div>
               </div>
             </div>
+            </div>
+
           </div>
         </div>
 
@@ -3079,6 +3087,7 @@ function loadActivities(contactId) {
       Entity: 'Contacts', RecordID: contactId,
       RelatedList: 'Calls', page: 1, per_page: 50,
     }).catch(function() { return { data: [] }; }),
+
   ]).then(function(results) {
     var tasks = (results[0].data || []).filter(function(t) {
       return t.Status !== 'Completed' && t.Status !== 'Deferred';
@@ -3088,7 +3097,7 @@ function loadActivities(contactId) {
     });
     renderTaskList(tasks);
     renderCallList(calls);
-    // Update sub label
+
     var total = tasks.length + calls.length;
     var sub = document.getElementById('activity-card-sub');
     if (sub) sub.textContent = total + ' open item' + (total !== 1 ? 's' : '');
@@ -3097,16 +3106,27 @@ function loadActivities(contactId) {
 }
 
 function renderActivityMock() {
+  var now       = new Date();
+  var today     = now.toISOString().split('T')[0];
+  var future    = new Date(now); future.setDate(future.getDate()+4);
+  var futureStr = future.toISOString().split('T')[0];
+
   var mockTasks = [
     { id:'t1', Subject:'Arrange PMAR', Due_Date:'2024-03-12',
       Status:'Not Started', Priority:'High' },
-    { id:'t2', Subject:'Get New DD Form', Due_Date:'2024-07-18',
-      Status:'Not Started', Priority:'High' },
+    { id:'t2', Subject:'Request updated policy schedule',
+      Due_Date: today + 'T09:00:00', Status:'Not Started', Priority:'Normal' },
   ];
   var mockCalls = [
-    { id:'c1', Subject:'Call scheduled with Mr. Jonathan Milton Smith',
-      Call_Start_Time:'2024-07-17T12:30:00', Call_Status:'Scheduled',
-      Owner: { name:'Steven Strange' } },
+    { id:'c1', Subject:'Overdue follow-up call',
+      Call_Start_Time:'2024-03-10T10:00:00', Call_Status:'Scheduled',
+      Owner:{ name:'Steven Strange' } },
+    { id:'c2', Subject:'Annual review call',
+      Call_Start_Time: today + 'T14:00:00', Call_Status:'Scheduled',
+      Owner:{ name:'Sean Davis' } },
+    { id:'c3', Subject:'Policy renewal discussion',
+      Call_Start_Time: futureStr + 'T11:00:00', Call_Status:'Scheduled',
+      Owner:{ name:'Steven Strange' } },
   ];
   renderTaskList(mockTasks);
   renderCallList(mockCalls);
@@ -3160,17 +3180,99 @@ function renderCallList(calls) {
     return;
   }
 
+  // Sort by scheduled date ascending
+  calls.sort(function(a,b) {
+    var da = new Date(a.Call_Start_Time || a.Scheduled_Date_Time || 0);
+    var db = new Date(b.Call_Start_Time || b.Scheduled_Date_Time || 0);
+    return da - db;
+  });
+
+  var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  var todayEnd   = new Date(); todayEnd.setHours(23,59,59,999);
+
   container.innerHTML = calls.map(function(c) {
-    var timeStr = c.Call_Start_Time
-      ? fmtDate(c.Call_Start_Time) + ' ' + fmtTime(c.Call_Start_Time)
-      : (c.Created_Time ? fmtDate(c.Created_Time) : '—');
+    var startRaw = c.Call_Start_Time || c.Scheduled_Date_Time || c.Created_Time;
+    var startDt  = startRaw ? new Date(startRaw) : null;
+    var timeStr  = startDt
+      ? fmtDate(startRaw) + ' ' + fmtTime(startRaw)
+      : '—';
     var owner = c.Owner ? (c.Owner.name || '') : '';
-    return '<div class="activity-item" ' +
+
+    // Determine colour state
+    var cls   = '';
+    var badge = '';
+    if (startDt) {
+      if (startDt < todayStart) {
+        cls   = 'overdue';
+        badge = '<span class="act-pill" style="background:var(--red-lt);color:var(--red);">OVERDUE</span>';
+      } else if (startDt <= todayEnd) {
+        cls   = 'today';
+        badge = '<span class="act-pill" style="background:#fef9c3;color:#92400e;border:1px solid #fcd34d;">TODAY</span>';
+      } else {
+        cls   = 'upcoming';
+      }
+    }
+
+    return '<div class="activity-item ' + cls + '" ' +
       'data-id="' + (c.id||'') + '" data-entity="Calls" onclick="openActivityRecord(this.dataset.entity,this.dataset.id)">' +
       '<div class="activity-item-subject">' + escHtml(c.Subject||c.Call_Purpose||'Scheduled Call') + '</div>' +
       '<div class="activity-item-meta">' +
-        '<span class="activity-item-date">📅 ' + timeStr + '</span>' +
+        '<span class="activity-item-date' + (cls==='overdue' ? ' overdue-date' : '') + '">📅 ' + timeStr + '</span>' +
+        badge +
         (owner ? '<span class="act-pill act-pill-status">' + escHtml(owner) + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderMeetingList(events) {
+  var container = document.getElementById('meeting-list');
+  var countEl   = document.getElementById('meeting-count');
+  if (!container) return;
+
+  if (countEl) countEl.textContent = events.length;
+
+  if (!events.length) {
+    container.innerHTML = '<div class="activity-empty"><div class="activity-empty-icon">🗓</div>No upcoming meetings</div>';
+    return;
+  }
+
+  var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  var todayEnd   = new Date(); todayEnd.setHours(23,59,59,999);
+
+  // Sort by date ascending
+  events.sort(function(a,b) {
+    var da = new Date(a.Start_DateTime || a.Event_Start_Date_Time || a.Start_Date || 0);
+    var db = new Date(b.Start_DateTime || b.Event_Start_Date_Time || b.Start_Date || 0);
+    return da - db;
+  });
+
+  container.innerHTML = events.map(function(e) {
+    var startRaw = e.Start_DateTime || e.Event_Start_Date_Time || e.Start_Date;
+    var startDt  = startRaw ? new Date(startRaw) : null;
+    var dateStr  = startDt ? fmtDate(startRaw) + (e.Start_DateTime ? ' ' + fmtTime(startRaw) : '') : '—';
+
+    // Determine colour state
+    var cls = 'upcoming';
+    var badge = '';
+    if (startDt) {
+      var d = new Date(startDt); d.setHours(0,0,0,0);
+      if (d <= todayEnd && d >= todayStart) {
+        cls   = 'today';
+        badge = '<span class="act-pill" style="background:var(--blue-lt);color:var(--blue-dk);">TODAY</span>';
+      }
+    }
+
+    var title    = e.Event_Title || e.Subject || e.Title || 'Meeting';
+    var location = e.Venue || e.Location || '';
+
+    return '<div class="activity-item ' + cls + '" ' +
+      'data-id="' + (e.id||'') + '" data-entity="Events" onclick="openActivityRecord(this.dataset.entity,this.dataset.id)">' +
+      '<div class="activity-item-subject">' + escHtml(title) + '</div>' +
+      '<div class="activity-item-meta">' +
+        '<span class="activity-item-date">📅 ' + dateStr + '</span>' +
+        badge +
+        (location ? '<span class="act-pill act-pill-status">📍 ' + escHtml(location) + '</span>' : '') +
       '</div>' +
     '</div>';
   }).join('');
