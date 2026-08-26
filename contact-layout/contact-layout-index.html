@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0" />
   <script>
     (function() {
-      var CURRENT_VERSION = '2.2.5';
+      var CURRENT_VERSION = '2.2.6';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -477,7 +477,7 @@
 </head>
 <body>
 
-<div id="vbadge">v2.2.5</div>
+<div id="vbadge">v2.2.6</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading client profile…</div>
@@ -1124,9 +1124,15 @@ function showRelatedList(tabId) {
 function loadRelatedList(tabId) {
   var tab = getTab(tabId);
   if (!tab || !ENTITY_ID || typeof ZOHO === 'undefined') {
-    TAB_DATA[tabId]   = [];
+    TAB_DATA[tabId] = [];
     TAB_COUNTS[tabId] = 0;
     renderRelatedPanel(tabId, []);
+    return;
+  }
+
+  // Use cached data from loadAllCounts if available — instant response
+  if (TAB_DATA[tabId] !== undefined) {
+    renderRelatedPanel(tabId, TAB_DATA[tabId]);
     return;
   }
 
@@ -1135,11 +1141,12 @@ function loadRelatedList(tabId) {
     RecordID:    ENTITY_ID,
     RelatedList: tab.entity,
     page:        1,
-    per_page:    25,
+    per_page:    200,
   })
   .then(function(resp) {
-    var data  = resp.data  || [];
-    var count = resp.info ? resp.info.count : data.length;
+    var data  = resp.data || [];
+    var count = (resp.info && resp.info.count > data.length)
+      ? resp.info.count : data.length;
     TAB_DATA[tabId]   = data;
     TAB_COUNTS[tabId] = count;
     renderNavItems();
@@ -1246,41 +1253,37 @@ function newRelatedRecord() {
 
 // ── Load all counts in background ─────────────────────────────────
 function loadAllCounts() {
-  if (!ENTITY_ID || typeof ZOHO === 'undefined') {
-    // Mock mode — use mock data
-    ALL_TABS.forEach(function(tab) {
+  // Fetch with per_page:200 to get accurate total counts
+  // info.count is unreliable with per_page:1 in some Zoho versions
+  function fetchCount(tab, delay) {
+    setTimeout(function() {
       ZOHO.CRM.API.getRelatedRecords({
-        Entity:'Contacts', RecordID:ENTITY_ID || 'mock',
-        RelatedList:tab.entity, page:1, per_page:1,
+        Entity:      'Contacts',
+        RecordID:    ENTITY_ID || 'mock',
+        RelatedList: tab.entity,
+        page:        1,
+        per_page:    200,
       })
       .then(function(resp) {
-        TAB_COUNTS[tab.id] = resp.info ? resp.info.count : (resp.data||[]).length;
+        var data  = resp.data || [];
+        // Prefer info.count if it differs from data.length (means more pages)
+        var count = (resp.info && resp.info.count > data.length)
+          ? resp.info.count
+          : data.length;
+        TAB_COUNTS[tab.id] = count;
+        // Cache the data too so clicking is instant
+        if (!TAB_DATA[tab.id]) TAB_DATA[tab.id] = data;
         renderNavItems();
       })
       .catch(function() {
         TAB_COUNTS[tab.id] = 0;
         renderNavItems();
       });
-    });
-    return;
+    }, delay);
   }
-  // Real Zoho — fetch counts one by one
-  // Stagger requests to avoid rate limits
+
   ALL_TABS.forEach(function(tab, idx) {
-    setTimeout(function() {
-      ZOHO.CRM.API.getRelatedRecords({
-        Entity:'Contacts', RecordID:ENTITY_ID,
-        RelatedList:tab.entity, page:1, per_page:1,
-      })
-      .then(function(resp) {
-        TAB_COUNTS[tab.id] = resp.info ? resp.info.count : (resp.data||[]).length;
-        renderNavItems();
-      })
-      .catch(function(err) {
-        // Don't show 0 on error — just leave as undefined (shows …)
-        console.log('[ACRM] Count failed for', tab.entity, err);
-      });
-    }, idx * 100); // Stagger by 100ms each
+    fetchCount(tab, idx * 150); // Stagger 150ms to avoid rate limits
   });
 }
 
@@ -1487,6 +1490,8 @@ function populateContact(c) {
 
   // Update nav owner panel
   updateNavOwner(c);
+  // Restore session photo if uploaded this session
+  setTimeout(loadSessionPhoto, 100);
 
   // ── Hero ──
   const fullName = [c.First_Name, c.Last_Name].filter(Boolean).join(' ');
@@ -2881,27 +2886,41 @@ function triggerPhotoUpload() {
 
 function handlePhotoUpload(input) {
   if (!input.files || !input.files[0]) return;
-  var file  = input.files[0];
+  var file   = input.files[0];
   var reader = new FileReader();
   reader.onload = function(e) {
+    var dataUrl  = e.target.result;
     var avatarEl = document.getElementById('hero-avatar');
     if (avatarEl) {
-      avatarEl.innerHTML = '<img src="' + e.target.result + '" alt="Contact photo" style="width:100%;height:100%;object-fit:cover;" />';
+      avatarEl.innerHTML = '<img src="' + dataUrl + '" alt="Contact photo" style="width:100%;height:100%;object-fit:cover;" />';
     }
-    // Upload to Zoho via SDK if available
-    if (typeof ZOHO !== 'undefined' && ENTITY_ID) {
-      ZOHO.CRM.API.attachFile({
-        Entity:   'Contacts',
-        RecordID: ENTITY_ID,
-        File: { Name: file.name, Content: file }
-      })
-      .then(function() { showToast('Photo saved successfully', 'success'); })
-      .catch(function() {
-        // Silent — photo still shows locally
-      });
+    // Store in sessionStorage keyed by contact ID so it persists within the session
+    // Note: Zoho Record_Image requires a server-side REST API call with multipart/form-data
+    // which cannot be done from an iframe widget. The photo will persist for this session.
+    if (ENTITY_ID) {
+      try {
+        sessionStorage.setItem('acrm_photo_' + ENTITY_ID, dataUrl);
+        showToast('Photo updated for this session', 'success');
+      } catch(e) {
+        // sessionStorage may be blocked in some iframe contexts
+      }
     }
   };
   reader.readAsDataURL(file);
+}
+
+// ── Load stored session photo on page load ─────────────────────────
+function loadSessionPhoto() {
+  if (!ENTITY_ID) return;
+  try {
+    var stored = sessionStorage.getItem('acrm_photo_' + ENTITY_ID);
+    if (stored) {
+      var avatarEl = document.getElementById('hero-avatar');
+      if (avatarEl) {
+        avatarEl.innerHTML = '<img src="' + stored + '" alt="Contact photo" style="width:100%;height:100%;object-fit:cover;" />';
+      }
+    }
+  } catch(e) {}
 }
 
 // ── Navigation actions ────────────────────────────────────────────
