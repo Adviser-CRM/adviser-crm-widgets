@@ -1,858 +1,1312 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Deal — Adviser CRM</title>
-<script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
-<style>
-  :root {
-    --blue:      #00abe6;
-    --blue-dk:   #0087b8;
-    --blue-lt:   #d0eefa;
-    --blue-xlt:  #ebf7fd;
-    --ink:       #00364d;
-    --ink-mid:   #005a7a;
-    --muted:     #5a9ab5;
-    --divider:   #c0e4f5;
-    --bg:        #f0faff;
-    --bg-alt:    #dff3fc;
-    --white:     #ffffff;
-    --green:     #0d7f5f;
-    --green-lt:  #d4f0e8;
-    --amber:     #b86b00;
-    --amber-lt:  #fef0d6;
-    --red:       #c0392b;
-    --red-lt:    #fde8e6;
-    --purple:    #6c3fcf;
-    --purple-lt: #ede8fb;
-    --teal:      #0d7f7f;
-    --teal-lt:   #d4f0f0;
-    --sans:      Verdana, Geneva, sans-serif;
-    --radius:    10px;
-    --radius-lg: 14px;
-    --shadow:    0 2px 10px rgba(0,171,230,0.10);
-    --shadow-md: 0 6px 24px rgba(0,171,230,0.14);
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deal — Adviser CRM</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <script>
+    (function() {
+      var CURRENT_VERSION = '1.3.0';
+      var params = new URLSearchParams(window.location.search);
+      if (!params.has('nocache')) {
+        fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.version && d.version !== CURRENT_VERSION) {
+              window.location.href = window.location.pathname + '?nocache=' + Date.now();
+            }
+          }).catch(function(){});
+      }
+      var s = document.createElement('script');
+      s.src = './ZohoEmbededAppSDK.min.js' + (params.has('nocache') ? '?t=' + Date.now() : '');
+      document.head.appendChild(s);
+    })();
+  </script>
+  <style>
+    :root {
+      --blue:      #00ABE6;
+      --blue-dk:   #0089b8;
+      --blue-lt:   #e8f7fd;
+      --blue-mid:  #b8e4f5;
+      --navy:      #07385D;
+      --ink:       #1a1a2e;
+      --ink-mid:   #4a4a6a;
+      --muted:     #9090b0;
+      --divider:   #f0f0f8;
+      --bg:        #f5f6fa;
+      --bg-card:   #ffffff;
+      --green:     #059669;
+      --green-lt:  #d1fae5;
+      --amber:     #d97706;
+      --amber-lt:  #fef3c7;
+      --red:       #dc2626;
+      --red-lt:    #fee2e2;
+      --purple:    #7c3aed;
+      --purple-lt: #ede9fe;
+      --sans:      -apple-system, BlinkMacSystemFont, "Segoe UI", Verdana, sans-serif;
+      --radius:    12px;
+      --radius-lg: 16px;
+      --shadow:    0 2px 12px rgba(0,0,0,0.07);
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+      --nav-width: 220px;
+      --gap:       20px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    #vbadge { position:fixed;top:8px;right:14px;font-size:10px;color:var(--ink-mid);opacity:0.85;pointer-events:none;z-index:999;font-family:monospace;background:var(--bg);padding:2px 6px;border-radius:4px;border:1px solid var(--divider); }
+    #loading { position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:998;transition:opacity 0.3s; }
+    #loading.hidden { opacity:0;pointer-events:none; }
+    .spinner { width:36px;height:36px;border:3px solid var(--divider);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .page { display:none; }
+    .page.visible { display:block; }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--ink);
-    font-size: 13px;
-    line-height: 1.6;
-    min-height: 100vh;
-  }
+    /* ── Layout ── */
+    .layout { display:grid; grid-template-columns:var(--nav-width) 1fr; min-height:100vh; }
 
-  /* ── Loading ── */
-  #loading {
-    position: fixed; inset: 0; background: var(--bg);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 14px; z-index: 999;
-    transition: opacity 0.3s ease;
-  }
-  #loading.hidden { opacity: 0; pointer-events: none; }
-  .spinner {
-    width: 38px; height: 38px;
-    border: 3px solid var(--divider);
-    border-top-color: var(--blue);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { font-size: 12px; color: var(--muted); }
+    /* ── Left Nav ── */
+    .left-nav { background:var(--bg-card);min-height:100vh;padding:20px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:2px;box-shadow:2px 0 12px rgba(0,0,0,0.06); }
+    .nav-logo { padding:4px 8px 16px;border-bottom:1px solid var(--divider);margin-bottom:8px; }
+    .nav-logo img { width:100%;max-width:180px;height:auto;display:block; }
+    .nav-section-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);padding:12px 14px 6px; }
+    .nav-item { display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-radius:0;font-size:12px;font-weight:400;color:var(--ink-mid);cursor:pointer;transition:all 0.15s;border-left:3px solid transparent; }
+    .nav-item:hover { background:var(--blue-lt);color:var(--blue);border-left-color:var(--blue-mid); }
+    .nav-item.active { background:var(--blue-lt);color:var(--blue);font-weight:600;border-left:3px solid var(--blue); }
+    .nav-badge { font-size:10px;font-weight:700;background:var(--blue-lt);color:var(--blue-dk);padding:1px 6px;border-radius:10px; }
+    .nav-owner { margin-top:auto;padding:14px;background:var(--bg);border-radius:14px;margin-top:12px; }
+    .nav-owner-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px; }
+    .nav-owner-row { display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px; }
+    .nav-owner-row span:last-child { color:var(--ink);font-weight:600;text-align:right;max-width:60%; }
 
-  #mock-badge {
-    display: none; position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--ink); color: var(--blue);
-    font-family: monospace; font-size: 11px;
-    padding: 5px 14px; text-align: center; z-index: 998;
-  }
+    /* ── Right Content ── */
+    .right-content { padding:0 0 60px;min-width:0;min-height:100vh;background:var(--bg); }
+    #panel-overview, #panel-related { padding:0 var(--gap) var(--gap); }
 
-  .page { display: none; }
-  .page.visible { display: block; }
+    /* ── Header Card ── */
+    .header { background:var(--bg-card);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-radius:var(--radius-lg);box-shadow:var(--shadow);margin:var(--gap) var(--gap) var(--gap); }
+    .header-left { display:flex;align-items:center;gap:14px; }
+    .deal-icon { width:52px;height:52px;border-radius:14px;background:var(--blue-lt);border:2px solid var(--blue-mid);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0; }
+    .header-name { font-size:18px;font-weight:700;color:var(--ink);line-height:1.2; }
+    .header-sub { font-size:12px;color:var(--muted);margin-top:3px; }
+    .header-tags { display:flex;flex-wrap:wrap;gap:6px;margin-top:6px; }
+    .tag { display:inline-flex;align-items:center;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:600; }
+    .tag-blue   { background:var(--blue-lt);color:var(--blue-dk); }
+    .tag-green  { background:var(--green-lt);color:var(--green); }
+    .tag-amber  { background:var(--amber-lt);color:var(--amber); }
+    .tag-red    { background:var(--red-lt);color:var(--red); }
+    .tag-purple { background:var(--purple-lt);color:var(--purple); }
+    .tag-grey   { background:var(--divider);color:var(--ink-mid); }
+    .header-actions { display:flex;gap:10px;flex-shrink:0; }
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;white-space:nowrap; }
+    .btn-primary { background:var(--blue);color:#fff; }
+    .btn-primary:hover { background:var(--blue-dk); }
+    .btn-ghost { background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider); }
+    .btn-ghost:hover { border-color:var(--blue);color:var(--blue); }
+    .btn-edit { background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider);padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s; }
+    .btn-edit:hover { border-color:var(--blue);color:var(--blue); }
+    .btn-save-header { background:var(--green);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer; }
+    .btn-cancel-header { background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider);padding:9px 18px;border-radius:10px;font-family:var(--sans);font-size:12px;cursor:pointer; }
+    .btn-cancel-header:hover { border-color:var(--red);color:var(--red); }
 
-  /* ── Hero ── */
-  .hero {
-    background: linear-gradient(135deg, var(--ink) 0%, var(--ink-mid) 100%);
-    padding: 22px 28px 0;
-    position: sticky; top: 0; z-index: 100;
-    box-shadow: 0 4px 20px rgba(0,54,77,0.25);
-  }
-  .hero-top {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    gap: 16px; padding-bottom: 18px; flex-wrap: wrap;
-  }
-  .hero-left { min-width: 0; }
-  .deal-badges { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-  .pill {
-    font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    padding: 3px 10px; border-radius: 20px;
-    border: 1px solid rgba(0,171,230,0.3);
-    color: var(--blue); background: rgba(0,171,230,0.15);
-    white-space: nowrap;
-  }
-  .pill-lost { color: #ff9c8f; background: rgba(192,57,43,0.22); border-color: rgba(255,140,120,0.4); }
-  .pill-won  { color: #7be0bc; background: rgba(13,127,95,0.25); border-color: rgba(123,224,188,0.4); }
-  .deal-name { font-size: 20px; font-weight: 700; color: var(--white); letter-spacing: -0.01em; word-break: break-word; }
-  .deal-meta { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 3px; }
-  .deal-meta a { color: rgba(255,255,255,0.85); text-decoration: none; cursor: pointer; }
-  .deal-meta a:hover { text-decoration: underline; }
+    /* ── Stage Progress Bar — Chevron style ── */
+    .stage-bar-card { background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;margin-bottom:var(--gap); }
+    .stage-bar-inner { padding:14px 20px 16px; }
+    .stage-bar-meta { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px; }
+    .stage-bar-meta-start,.stage-bar-meta-end { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted); }
+    .stage-bar-meta-date { font-size:12px;font-weight:700;color:var(--ink);margin-top:2px; }
+    .stage-bar-meta-end { text-align:right; }
+    .stage-bar-meta-end .stage-bar-meta-date { color:var(--navy); }
 
-  .hero-actions { display: flex; gap: 8px; flex-shrink: 0; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 7px 14px; border-radius: var(--radius);
-    font-family: var(--sans); font-size: 11px; font-weight: 700;
-    cursor: pointer; border: none; transition: all 0.18s ease;
-    white-space: nowrap; text-decoration: none;
-  }
-  .btn-blue { background: var(--blue); color: var(--white); }
-  .btn-blue:hover { background: var(--blue-dk); }
-  .btn-ghost-white {
-    background: rgba(255,255,255,0.1); color: var(--white);
-    border: 1px solid rgba(255,255,255,0.2);
-  }
-  .btn-ghost-white:hover { background: rgba(255,255,255,0.2); }
+    /* Scrollable chevron strip */
+    .stage-steps-wrap { position:relative; display:flex; align-items:center; gap:6px; }
+    .stage-scroll-btn {
+      flex-shrink:0; width:28px; height:32px;
+      border:1.5px solid var(--divider); border-radius:8px;
+      background:var(--bg); color:var(--ink-mid);
+      font-size:13px; cursor:pointer; display:flex;
+      align-items:center; justify-content:center;
+      transition:all 0.15s;
+    }
+    .stage-scroll-btn:hover { border-color:var(--blue); color:var(--blue); }
+    .stage-steps-scroll { flex:1; overflow:hidden; }
+    .stage-steps { display:flex; align-items:center; gap:0; transition:transform 0.3s; }
 
-  .hero-amount-row { display: flex; align-items: baseline; gap: 22px; padding-bottom: 16px; flex-wrap: wrap; }
-  .amount-figure .amount-value { font-size: 26px; font-weight: 700; color: var(--white); line-height: 1; }
-  .amount-figure .amount-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); margin-top: 4px; }
-  .hero-stat { display: flex; flex-direction: column; gap: 4px; }
-  .hero-stat .v { font-size: 14px; font-weight: 700; color: var(--white); }
-  .hero-stat .l { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); }
+    /* Each chevron step */
+    .stage-step {
+      position: relative;
+      flex-shrink: 0;
+      min-width: 110px;
+      padding: 8px 20px 8px 28px;
+      font-size: 11px; font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+      background: var(--bg);
+      color: var(--muted);
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+      margin-right: -1px;
+      user-select: none;
+    }
+    /* First step has no left indent */
+    .stage-step:first-child {
+      padding-left: 14px;
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+    }
+    .stage-step:hover { filter: brightness(0.96); color: var(--ink); z-index:1; }
+    .stage-step.done {
+      background: #e6f9ee;
+      color: var(--green);
+    }
+    .stage-step.current {
+      color: #fff;
+      font-weight: 700;
+      z-index: 2;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+    }
+    .stage-step.current::after {
+      content: ' ▾';
+      font-size: 9px;
+    }
 
-  /* ── Stage tracker ── */
-  .stage-tracker {
-    display: grid; grid-template-columns: repeat(6, 1fr);
-    border-top: 1px solid rgba(255,255,255,0.1);
-  }
-  .stage-step {
-    padding: 12px 14px 14px; position: relative;
-    border-right: 1px solid rgba(255,255,255,0.08);
-  }
-  .stage-step:last-child { border-right: none; }
-  .stage-step-bar { height: 4px; border-radius: 3px; background: rgba(255,255,255,0.14); margin-bottom: 8px; }
-  .stage-step.done .stage-step-bar { background: var(--blue); }
-  .stage-step.current .stage-step-bar { background: linear-gradient(90deg, var(--blue) 0%, rgba(0,171,230,0.35) 100%); }
-  .stage-step-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.45); }
-  .stage-step.done .stage-step-name, .stage-step.current .stage-step-name { color: rgba(255,255,255,0.9); }
-  .stage-step-sub { font-size: 10.5px; color: rgba(255,255,255,0.5); margin-top: 2px; min-height: 14px; }
-  .stage-step.current .stage-step-sub { color: var(--blue); font-weight: 700; }
-  .stage-step.current::after {
-    content: ''; position: absolute; left: 14px; bottom: -1px; height: 2px; width: 34px;
-    background: var(--blue); border-radius: 2px;
-  }
-  .lost-banner {
-    margin: 0 28px; padding: 10px 16px; border-radius: var(--radius) var(--radius) 0 0;
-    background: rgba(192,57,43,0.18); border: 1px solid rgba(255,140,120,0.35); border-bottom: none;
-    color: #ffcfc7; font-size: 11.5px; font-weight: 700; display: none;
-    align-items: center; gap: 8px; transform: translateY(1px);
-  }
-  .lost-banner.visible { display: flex; }
+    /* ── Cards ── */
+    .card { background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;margin-bottom:var(--gap); }
+    .card-head { display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--divider); }
+    .card-head-split { justify-content:space-between; }
+    .card-head-left { display:flex;align-items:center;gap:12px; }
+    .card-icon { width:34px;height:34px;border-radius:10px;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
+    .card-title { font-size:13px;font-weight:700;color:var(--ink); }
+    .card-sub { font-size:11px;color:var(--muted);margin-top:2px; }
+    .card-body { padding:16px 20px; }
 
-  /* ── Layout ── */
-  .content { max-width: 1680px; margin: 0 auto; padding: 18px 28px 48px; }
-  .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; align-items: start; }
-  @media (max-width: 980px) { .grid-2 { grid-template-columns: 1fr; } }
-  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    /* ── Field Grid ── */
+    .field-grid { display:grid;grid-template-columns:repeat(var(--cols,2),1fr);gap:12px 16px; }
+    .cols-2{--cols:2}.cols-3{--cols:3}.cols-4{--cols:4}
+    .span-2{grid-column:span 2}.span-full{grid-column:1/-1}
+    .field { display:flex;flex-direction:column;gap:5px; }
+    .field-label { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted); }
+    .field-value { font-size:13px;font-weight:500;color:var(--ink);padding:9px 12px;background:var(--bg);border-radius:10px;min-height:38px;display:flex;align-items:center;border:1.5px solid transparent;transition:all 0.15s; }
+    .field-value.empty { color:var(--muted);font-style:italic; }
+    .field-value.multiline { align-items:flex-start;min-height:90px; }
+    .field-value a { color:var(--blue);text-decoration:none;font-weight:600; }
 
-  .card {
-    background: var(--white); border-radius: var(--radius-lg);
-    box-shadow: var(--shadow); border: 1px solid var(--divider);
-    overflow: hidden;
-  }
-  .card-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 11px 16px; border-bottom: 1px solid var(--divider);
-  }
-  .card-title { font-size: 12.5px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; }
-  .card-title .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); }
-  .card-link { font-size: 11px; font-weight: 700; color: var(--blue); cursor: pointer; text-decoration: none; }
-  .card-link:hover { text-decoration: underline; }
-  .card-body { padding: 14px 16px; }
+    /* ── Inline Edit ── */
+    .field-wrap { position:relative;display:flex;align-items:flex-start;gap:6px; }
+    .field-wrap .field-value { flex:1; }
+    .pencil-btn { opacity:0;flex-shrink:0;width:30px;height:30px;border:none;border-radius:9px;background:var(--blue);color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:4px;transition:all 0.18s;box-shadow:0 3px 10px rgba(0,171,230,0.35); }
+    .pencil-btn:hover { background:var(--navy);transform:scale(1.08); }
+    .field-wrap:hover .pencil-btn { opacity:1; }
+    .field-wrap:hover .field-value { border-color:var(--blue-mid)!important;background:#fff!important; }
+    .field-value.editing { border:1.5px solid var(--blue)!important;background:#fff!important;padding:0!important; }
+    .inline-edit-wrap { display:flex;align-items:center;gap:4px;width:100%; }
+    .inline-edit-wrap input,.inline-edit-wrap select,.inline-edit-wrap textarea { flex:1;border:none;background:transparent;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink);outline:none;padding:8px 12px; }
+    .inline-edit-actions { display:flex;gap:4px;padding:0 4px;flex-shrink:0;align-items:center; }
+    .inline-tick,.inline-cross { width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all 0.15s; }
+    .inline-tick { background:var(--green);color:#fff; }
+    .inline-tick:hover { background:#047857;transform:scale(1.1); }
+    .inline-cross { background:var(--red-lt);color:var(--red);border:1px solid #fca5a5; }
+    .inline-cross:hover { background:var(--red);color:#fff; }
+    .field-value.changed { border-color:var(--amber)!important;background:#fffbeb!important; }
 
-  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
-  .field-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-  @media (max-width: 560px) { .field-grid, .field-grid.cols-3 { grid-template-columns: 1fr 1fr; } }
-  .field .fl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 3px; }
-  .field .fv { font-size: 13px; color: var(--ink); font-weight: 600; }
-  .field .fv.empty {
-    color: var(--amber); font-weight: 700; font-style: normal;
-  }
-  /* Lighter amber variant for the dark hero background, kept readable there. */
-  .hero-stat .v.empty, .amount-figure .amount-value.empty {
-    color: #ffc670; font-weight: 700;
-  }
-  .field .fv.mono { font-family: 'SF Mono', Menlo, monospace; font-size: 12px; }
+    /* ── Full Edit Mode ── */
+    .edit-mode-active .field-value.editable { background:#fff!important;border:1.5px solid var(--blue)!important;padding:0!important; }
+    .edit-mode-active .field-value.editable input,
+    .edit-mode-active .field-value.editable select,
+    .edit-mode-active .field-value.editable textarea { width:100%;padding:8px 12px;border:none;background:transparent;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink);outline:none;box-sizing:border-box;min-height:36px; }
+    .edit-mode-active .field-value.editable select { height:38px;cursor:pointer;-webkit-appearance:auto; }
 
-  .desc-block { font-size: 12.5px; color: var(--ink-mid); margin-top: 4px; white-space: pre-wrap; }
+    /* ── Related List Panel ── */
+    .rl-panel-header { background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--gap); }
+    .rl-panel-title { display:flex;align-items:center;gap:12px; }
+    .rl-panel-icon { font-size:26px; }
+    .rl-panel-name { font-size:17px;font-weight:700;color:var(--ink); }
+    .rl-panel-count { font-size:12px;color:var(--muted);margin-top:2px; }
+    .rl-panel-actions { display:flex;gap:10px; }
+    .btn-rl-new { display:inline-flex;align-items:center;gap:5px;padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer; }
+    .btn-back { display:inline-flex;align-items:center;gap:5px;padding:9px 18px;background:var(--bg);color:var(--ink-mid);border:1.5px solid var(--divider);border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer; }
+    .btn-back:hover { border-color:var(--blue);color:var(--blue); }
+    .rl-table-wrap { background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden; }
+    .rl-table { width:100%;border-collapse:collapse; }
+    .rl-table th { padding:11px 20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);text-align:left;border-bottom:1px solid var(--divider);background:var(--bg);white-space:nowrap; }
+    .rl-table td { padding:13px 20px;font-size:13px;color:var(--ink-mid);border-bottom:1px solid var(--divider);vertical-align:middle; }
+    .rl-table tr:last-child td { border-bottom:none; }
+    .rl-table tr:hover td { background:var(--blue-lt);cursor:pointer; }
+    .rl-table .td-primary { font-weight:700;color:var(--ink); }
+    .rl-empty { text-align:center;padding:48px 20px;color:var(--muted);font-size:13px; }
+    .rl-empty-icon { font-size:36px;margin-bottom:12px;opacity:0.5; }
+    .rl-loading { display:flex;align-items:center;gap:12px;padding:32px 20px;color:var(--muted);font-size:12px;justify-content:center; }
 
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700; }
-  .badge-green  { background: var(--green-lt); color: var(--green); }
-  .badge-amber  { background: var(--amber-lt); color: var(--amber); }
-  .badge-red    { background: var(--red-lt); color: var(--red); }
-  .badge-blue   { background: var(--blue-xlt); color: var(--blue-dk); }
-  .badge-purple { background: var(--purple-lt); color: var(--purple); }
-  .badge-muted  { background: var(--bg-alt); color: var(--muted); }
+    /* ── Toast ── */
+    .toast { position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-100px);background:var(--navy);color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:1000;transition:transform 0.3s;display:flex;align-items:center;gap:10px; }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.success { border-left:4px solid var(--green); }
+    .toast.error   { border-left:4px solid var(--red); }
+    .toast.saving  { border-left:4px solid var(--blue); }
 
-  /* ── Trial progress ── */
-  .trial-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .trial-days { font-size: 22px; font-weight: 700; color: var(--ink); }
-  .trial-days.empty { color: var(--amber); }
-  .trial-days-label { font-size: 10.5px; color: var(--muted); }
-  .progress-track { height: 8px; border-radius: 6px; background: var(--bg-alt); overflow: hidden; margin-bottom: 4px; }
-  .progress-fill { height: 100%; border-radius: 6px; background: var(--blue); transition: width 0.4s ease; }
-  .progress-fill.warn { background: var(--amber); }
-  .progress-fill.danger { background: var(--red); }
-  .progress-endpoints { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); }
+    /* ── Edit Toolbar ── */
+    .edit-toolbar { display:none;position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--navy);border-radius:14px;padding:10px 18px;box-shadow:0 8px 32px rgba(7,56,93,0.3);z-index:500;align-items:center;gap:12px;white-space:nowrap;cursor:grab;user-select:none; }
+    .edit-toolbar.visible { display:flex; }
+    .edit-toolbar-drag-hint { font-size:14px;color:rgba(255,255,255,0.3);margin-right:4px; }
+    .edit-toolbar-label { font-size:12px;color:rgba(255,255,255,0.6); }
+    .changes-count { font-size:12px;color:var(--blue);font-weight:700; }
+    .btn-save { background:var(--green);color:#fff;border:none;padding:9px 20px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer; }
+    .btn-cancel-edit { background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.2);padding:9px 16px;border-radius:10px;font-family:var(--sans);font-size:12px;cursor:pointer; }
 
-  /* ── Arrears ── */
-  .arrears-figure { text-align: center; padding: 6px 0 4px; }
-  .arrears-figure .av { font-size: 30px; font-weight: 700; }
-  .arrears-figure .av.clear { color: var(--green); }
-  .arrears-figure .av.due { color: var(--red); }
-  .arrears-figure .al { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
-  .arrears-sub { text-align: center; margin-top: 8px; }
+    /* ── Amount Display ── */
+    .amount-display { font-size:28px;font-weight:700;color:var(--navy);margin-bottom:4px; }
+    .amount-sub { font-size:12px;color:var(--muted); }
+    .closing-alert { display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-top:6px; }
+    .closing-urgent { background:var(--red-lt);color:var(--red); }
+    .closing-soon   { background:var(--amber-lt);color:var(--amber); }
+    .closing-ok     { background:var(--green-lt);color:var(--green); }
 
-  /* ── License stats ── */
-  .license-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
-  .license-stat { background: var(--bg-alt); border-radius: var(--radius); padding: 10px 12px; }
-  .license-stat .lv { font-size: 19px; font-weight: 700; color: var(--ink); line-height: 1; }
-  .license-stat .ll { font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-  .license-total-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--blue-xlt); border-radius: var(--radius); margin-bottom: 14px; }
-  .license-total-row .lt-v { font-size: 15px; font-weight: 700; color: var(--ink); }
-  .license-total-row .lt-l { font-size: 10.5px; color: var(--ink-mid); font-weight: 700; }
-
-  .license-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 0; border-top: 1px solid var(--divider);
-  }
-  .license-row:first-of-type { border-top: none; }
-  .license-holder { font-size: 12.5px; font-weight: 600; color: var(--ink); }
-  .license-holder-email { font-size: 10.5px; color: var(--muted); }
-  .license-tags { display: flex; gap: 6px; align-items: center; }
-
-  .picklist-note {
-    margin-top: 12px; padding: 9px 11px; background: var(--amber-lt);
-    border-radius: var(--radius); font-size: 11px; color: var(--amber); line-height: 1.5;
-  }
-  .empty-state { padding: 18px 0; text-align: center; color: var(--muted); font-size: 12px; }
-
-  /* ── Stage history timeline ── */
-  .timeline-row { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--divider); }
-  .timeline-row:first-of-type { border-top: none; }
-  .timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); margin-top: 5px; flex-shrink: 0; }
-  .timeline-stage { font-size: 12px; font-weight: 700; color: var(--ink); }
-  .timeline-date { font-size: 10.5px; color: var(--muted); }
-
-  .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .qa-btn {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px; border-radius: var(--radius); background: var(--blue-xlt);
-    color: var(--ink-mid); font-size: 11.5px; font-weight: 700; cursor: pointer;
-    border: 1px solid var(--divider); transition: all 0.15s ease;
-  }
-  .qa-btn:hover { background: var(--blue-lt); border-color: var(--blue); }
-
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-thumb { background: var(--divider); border-radius: 6px; }
-</style>
+    @media (max-width:900px) { .layout { grid-template-columns:1fr; } .left-nav { min-height:auto;position:static;height:auto; } }
+  </style>
 </head>
 <body>
 
-  <div id="loading">
-    <div class="spinner"></div>
-    <div class="loading-text">Loading deal…</div>
-  </div>
-  <div id="mock-badge">MOCK MODE — running outside Zoho CRM (sample data shown)</div>
+<div id="vbadge">v1.3.0</div>
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
+</div>
 
-  <div class="page" id="page">
+<div class="page" id="main-page">
+  <div class="layout">
 
-    <div class="hero">
-      <div class="hero-top">
-        <div class="hero-left">
-          <div class="deal-badges">
-            <span class="pill" id="pipeline-pill">Pipeline</span>
-            <span class="pill" id="type-pill" style="display:none;">Type</span>
-          </div>
-          <div class="deal-name" id="deal-name">Deal</div>
-          <div class="deal-meta" id="deal-meta">—</div>
-        </div>
-        <div class="hero-actions">
-          <button class="btn btn-ghost-white" onclick="sendEmail()">✉ Email</button>
-          <button class="btn btn-ghost-white" onclick="editDeal()">✎ Edit</button>
-          <button class="btn btn-blue" onclick="openThisRecord()">Open in Zoho ↗</button>
-        </div>
+    <!-- ══ LEFT NAV ══ -->
+    <div class="left-nav" id="left-nav">
+
+      <!-- Logo -->
+      <div class="nav-logo">
+        <img src="https://adviser-crm.github.io/adviser-crm-widgets/assets/branding/adviser-crm-logo.webp"
+             alt="Adviser CRM"
+             onerror="this.parentElement.innerHTML='<div style=\'font-size:13px;font-weight:700;color:var(--ink);padding:4px 8px;\'>Adviser CRM</div>'" />
       </div>
 
-      <div class="hero-amount-row">
-        <div class="amount-figure">
-          <div class="amount-value" id="hero-amount">$0</div>
-          <div class="amount-label">Deal Amount</div>
-        </div>
-        <div class="hero-stat"><div class="v" id="hero-probability">—</div><div class="l">Probability</div></div>
-        <div class="hero-stat"><div class="v" id="hero-closing">—</div><div class="l">Closing Date</div></div>
-        <div class="hero-stat"><div class="v" id="hero-owner">—</div><div class="l">Owner</div></div>
+      <!-- Overview -->
+      <div class="nav-section-label" style="margin-top:0;">Overview</div>
+      <div class="nav-item active" id="nav-overview" onclick="showOverview()">
+        💼 Deal Details
       </div>
 
-      <div class="lost-banner" id="lost-banner">⚠ <span id="lost-banner-text">This deal is closed/lost.</span></div>
+      <!-- Related Lists -->
+      <div class="nav-section-label">Related Lists</div>
+      <div id="nav-related-items"></div>
 
-      <div class="stage-tracker" id="stage-tracker">
-        <!-- 6 stage-step nodes injected here -->
+      <!-- Owner info -->
+      <div class="nav-owner" id="nav-owner">
+        <div class="nav-owner-label">Deal Owner</div>
+        <div class="nav-owner-row"><span>Owner</span><span id="nav-owner-name">—</span></div>
+        <div class="nav-owner-row"><span>Pipeline</span><span id="nav-pipeline">—</span></div>
+        <div class="nav-owner-row"><span>Modified</span><span id="nav-modified">—</span></div>
       </div>
     </div>
 
-    <div class="content">
-      <div class="grid-2">
+    <!-- ══ RIGHT CONTENT ══ -->
+    <div class="right-content" id="right-content">
 
-        <!-- ── LEFT COLUMN ── -->
-        <div class="col">
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Opportunity Overview</div>
-            </div>
-            <div class="card-body">
-              <div class="field-grid cols-3">
-                <div class="field"><div class="fl">Type</div><div class="fv" id="f-type">—</div></div>
-                <div class="field"><div class="fl">Lead Source</div><div class="fv" id="f-source">—</div></div>
-                <div class="field"><div class="fl">Group Size</div><div class="fv" id="f-groupsize">—</div></div>
-                <div class="field"><div class="fl">Payment Frequency</div><div class="fv" id="f-pmtfreq">—</div></div>
-                <div class="field"><div class="fl">Expected Revenue</div><div class="fv" id="f-exprev">—</div></div>
-                <div class="field"><div class="fl">Next Step</div><div class="fv" id="f-nextstep">—</div></div>
-              </div>
-              <div class="desc-block" id="f-description"></div>
-            </div>
+      <!-- Header Card -->
+      <div class="header">
+        <div class="header-left">
+          <div class="deal-icon">💼</div>
+          <div>
+            <div class="header-name" id="header-name">Loading…</div>
+            <div class="header-sub" id="header-sub"></div>
+            <div class="header-tags" id="header-tags"></div>
           </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="sendEmail()">✉ Email</button>
+          <button class="btn-edit" id="edit-toggle-btn" onclick="enterEditMode()">✎ Edit</button>
+          <button class="btn-save-header" id="btn-save-header" onclick="saveRecord()" style="display:none;">💾 Save</button>
+          <button class="btn-cancel-header" id="btn-cancel-header" onclick="cancelEdit()" style="display:none;">✕ Cancel</button>
+        </div>
+      </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Free Trial</div>
-              <span class="badge" id="trial-badge">—</span>
-            </div>
-            <div class="card-body">
-              <div class="trial-status-row">
-                <div>
-                  <div class="trial-days" id="trial-days">—</div>
-                  <div class="trial-days-label" id="trial-days-label">days remaining</div>
+      <!-- ── OVERVIEW PANEL ── -->
+      <div id="panel-overview">
+
+        <!-- Stage Progress -->
+        <div class="stage-bar-card">
+          <div class="stage-bar-inner">
+            <div class="stage-bar-meta">
+              <div class="stage-bar-meta-start">
+                <div>START</div>
+                <div class="stage-bar-meta-date" id="stage-bar-start">—</div>
+              </div>
+              <div class="stage-bar-meta-end">
+                <div>CLOSING</div>
+                <div class="stage-bar-meta-date" id="stage-bar-close">
+                  <span style="font-size:14px;">⏱</span> <span id="stage-bar-close-date">—</span>
                 </div>
               </div>
-              <div class="progress-track"><div class="progress-fill" id="trial-progress" style="width:0%"></div></div>
-              <div class="progress-endpoints">
-                <span id="trial-start-lbl">Start —</span>
-                <span id="trial-end-lbl">Expiry —</span>
+            </div>
+            <div class="stage-steps-wrap">
+              <button class="stage-scroll-btn" id="stage-scroll-left"  onclick="scrollStages(-1)">‹</button>
+              <div class="stage-steps-scroll" id="stage-steps-scroll">
+                <div class="stage-steps" id="stage-steps"><!-- Rendered by JS --></div>
               </div>
+              <button class="stage-scroll-btn" id="stage-scroll-right" onclick="scrollStages(1)">›</button>
             </div>
           </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Subscription Lifecycle</div>
-            </div>
-            <div class="card-body">
-              <div class="field-grid cols-3">
-                <div class="field"><div class="fl">Subscription ID</div><div class="fv mono" id="f-subid">—</div></div>
-                <div class="field"><div class="fl">Start Date</div><div class="fv" id="f-startdate">—</div></div>
-                <div class="field"><div class="fl">End Date</div><div class="fv" id="f-enddate">—</div></div>
-                <div class="field"><div class="fl">Renewal Date</div><div class="fv" id="f-renewal">—</div></div>
-                <div class="field"><div class="fl">Notice Date</div><div class="fv" id="f-notice">—</div></div>
-                <div class="field"><div class="fl">Months as Client</div><div class="fv" id="f-months">—</div></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" id="onboarding-card" style="display:none;">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Onboarding &amp; Data Migration</div>
-            </div>
-            <div class="card-body">
-              <div class="field-grid">
-                <div class="field"><div class="fl">Migrating Data</div><div class="fv" id="f-migrating">—</div></div>
-                <div class="field"><div class="fl">Previous CRM</div><div class="fv" id="f-prevcrm">—</div></div>
-              </div>
-              <div class="desc-block" id="f-migration-summary"></div>
-            </div>
-          </div>
-
-          <div class="card" id="loss-card" style="display:none;">
-            <div class="card-header">
-              <div class="card-title"><span class="dot" style="background:var(--red);"></span>Lost / Cancellation Detail</div>
-            </div>
-            <div class="card-body">
-              <div class="field-grid">
-                <div class="field"><div class="fl">Reason</div><div class="fv" id="f-lossreason">—</div></div>
-                <div class="field"><div class="fl">Lost To</div><div class="fv" id="f-lostto">—</div></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" id="history-card" style="display:none;">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Stage History</div>
-            </div>
-            <div class="card-body" id="history-body"></div>
-          </div>
-
         </div>
 
-        <!-- ── RIGHT COLUMN ── -->
-        <div class="col">
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title"><span class="dot" style="background:var(--red);"></span>Arrears</div>
-              <span class="badge" id="arrears-badge">—</span>
-            </div>
-            <div class="card-body">
-              <div class="arrears-figure">
-                <div class="av" id="arrears-amount">$0</div>
-                <div class="al">Amount Overdue</div>
-              </div>
-              <div class="arrears-sub" id="arrears-days">—</div>
+        <!-- Deal Summary -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">📊</div>
+            <div>
+              <div class="card-title">Deal Summary</div>
+              <div class="card-sub">Value, closing date and pipeline</div>
             </div>
           </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Licenses</div>
-              <span class="card-link" onclick="newLicense()">+ New License</span>
-            </div>
-            <div class="card-body">
-              <div class="license-total-row">
-                <span class="lt-l">Total Active Licenses</span>
-                <span class="lt-v" id="license-total">0</span>
+          <div class="card-body">
+            <div class="field-grid cols-3">
+              <div class="field">
+                <div class="field-label">Deal Value</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-amount">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-amount')">✎</button>
+                </div>
               </div>
-              <div class="license-stat-grid" id="license-stat-grid"></div>
-              <div id="license-list"></div>
-              <div class="picklist-note" id="pa-note" style="display:none;">
-                ⚠ "Personal Assistant License" isn't a License Type option in Zoho yet. Add it under
-                Setup → Customization → Modules → Licenses → License Type to have it appear here automatically.
+              <div class="field">
+                <div class="field-label">Closing Date</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-closing-date">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-closing-date')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Stage</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-stage">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-stage')">✎</button>
+                </div>
+              </div>
+            </div>
+            <div id="closing-alert-wrap" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- Deal Information -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">📋</div>
+            <div>
+              <div class="card-title">Deal Information</div>
+              <div class="card-sub">Account, contact and source details</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid cols-2" style="margin-bottom:12px;">
+              <div class="field span-2">
+                <div class="field-label">Deal Name</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-deal-name">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-deal-name')">✎</button>
+                </div>
+              </div>
+            </div>
+            <div class="field-grid cols-2" style="margin-bottom:12px;">
+              <div class="field">
+                <div class="field-label">Account Name</div>
+                <div class="field-value" id="f-account">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Contact Name</div>
+                <div class="field-value" id="f-contact">—</div>
+              </div>
+            </div>
+            <div class="field-grid cols-2">
+              <div class="field">
+                <div class="field-label">Pipeline</div>
+                <div class="field-value" id="f-pipeline">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Lead Source</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-lead-source">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-lead-source')">✎</button>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Key Contacts</div>
+        <!-- Subscription Details -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">🔄</div>
+            <div>
+              <div class="card-title">Subscription Details</div>
+              <div class="card-sub">Billing, dates and subscription information</div>
             </div>
-            <div class="card-body">
-              <div class="field-grid">
-                <div class="field"><div class="fl">Account</div><div class="fv" id="f-account">—</div></div>
-                <div class="field"><div class="fl">Primary Contact</div><div class="fv" id="f-contact">—</div></div>
-                <div class="field"><div class="fl">Owner</div><div class="fv" id="f-owner">—</div></div>
-                <div class="field"><div class="fl">Created</div><div class="fv" id="f-created">—</div></div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid cols-2">
+              <div class="field">
+                <div class="field-label">Start Date</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-start-date">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-start-date')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Days Overdue</div>
+                <div class="field-value" id="f-days-overdue">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">End Date</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-end-date">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-end-date')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Arrears Amount</div>
+                <div class="field-value" id="f-arrears-amount">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Months as Client</div>
+                <div class="field-value" id="f-months-as-client">—</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Subscription ID</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-subscription-id">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-subscription-id')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Pmt Frequency</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-pmt-frequency">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-pmt-frequency')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Profile ID</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-profile-id">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-profile-id')">✎</button>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title"><span class="dot"></span>Quick Actions</div>
+        <!-- Cancellations -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">🚫</div>
+            <div>
+              <div class="card-title">Cancellations</div>
+              <div class="card-sub">Cancellation and loss details</div>
             </div>
-            <div class="card-body">
-              <div class="quick-actions">
-                <div class="qa-btn" onclick="newLicense()">+ Add License</div>
-                <div class="qa-btn" onclick="openAccount()">View Account</div>
-                <div class="qa-btn" onclick="editDeal()">Edit Deal</div>
-                <div class="qa-btn" onclick="openThisRecord()">Open in Zoho</div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid cols-2">
+              <div class="field">
+                <div class="field-label">Notice Date</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-notice-date">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-notice-date')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Subscription Cancelled</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-subscription-cancelled">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-subscription-cancelled')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Cancel Date</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-cancel-date">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-cancel-date')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Wholesale Sub Cancelled</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-wholesale-sub-cancelled">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-wholesale-sub-cancelled')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Loss Reason</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-loss-reason">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-loss-reason')">✎</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">Lost To</div>
+                <div class="field-wrap">
+                  <div class="field-value editable" id="f-lost-to">—</div>
+                  <button class="pencil-btn" onclick="enterInlineEdit('f-lost-to')">✎</button>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
+        <!-- Description -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon">📝</div>
+            <div><div class="card-title">Description</div></div>
+          </div>
+          <div class="card-body">
+            <div class="field-wrap">
+              <div class="field-value editable multiline" id="f-description">—</div>
+              <button class="pencil-btn" onclick="enterInlineEdit('f-description')" style="margin-top:4px;">✎</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-overview -->
+
+      <!-- ── RELATED LIST PANEL ── -->
+      <div id="panel-related" style="display:none;">
+        <div class="rl-panel-header">
+          <div class="rl-panel-title">
+            <div class="rl-panel-icon" id="rl-panel-icon">📋</div>
+            <div>
+              <div class="rl-panel-name" id="rl-panel-name">Related List</div>
+              <div class="rl-panel-count" id="rl-panel-count"></div>
+            </div>
+          </div>
+          <div class="rl-panel-actions">
+            <button class="btn-back" onclick="showOverview()">← Back to Deal</button>
+            <button class="btn-rl-new" id="rl-new-btn">＋ New</button>
+          </div>
+        </div>
+        <div class="rl-table-wrap">
+          <div id="rl-panel-body">
+            <div class="rl-loading"><div class="spinner" style="width:20px;height:20px;border-width:2px;"></div>Loading…</div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
+
+    </div><!-- /right-content -->
+  </div><!-- /layout -->
+</div><!-- /page -->
+
+<!-- Edit Toolbar -->
+<div class="edit-toolbar" id="edit-toolbar">
+  <span class="edit-toolbar-drag-hint">⠿⠿</span>
+  <span class="edit-toolbar-label">Editing</span>
+  <span class="changes-count" id="changes-count"></span>
+  <button class="btn-cancel-edit" onclick="cancelEdit()">✕ Cancel</button>
+  <button class="btn-save" onclick="saveRecord()">💾 Save</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
 <script>
-// ── Constants ─────────────────────────────────────────────────────
-var ENTITY_ID = null;
-var DEAL = null;
-var LICENSES = [];
+// ── Core helpers ───────────────────────────────────────────────────
+var ENTITY_ID  = null;
+var DEAL       = {};
+var EDIT_MODE  = false;
+var CHANGED    = {};
+var ORIGINAL   = {};
+var CURRENT_NAV     = 'overview';
+var CURRENT_TAB_ID  = null;
+var TAB_COUNTS = {};
+var TAB_DATA   = {};
 
-// Bucket order shown in the stage tracker, and which real Stage values fall into each.
-var STAGE_BUCKETS = [
-  { key:'demos',     label:'Demos',       stages:['Identified','Discovery','Proposal','Proposal/Price Quote','Demo Scheduled','Demo Completed'] },
-  { key:'trial',      label:'Free Trials', stages:['Trial','Trial Activated','Trial Expired'] },
-  { key:'legal',      label:'Legal',       stages:['Awaiting Approval','Agreement Sent','Agreement Signed','Agreement Executed','Accepted in Process'] },
-  { key:'payments',   label:'Payments',    stages:['Subscription Sent','Subscription Completed','In Process'] },
-  { key:'onboarding', label:'Onboarding',  stages:['Data Migration','Migrating Data','User Profiles','Content','In Development','Go Live'] },
-  { key:'closedwon',  label:'Closed/Won',  stages:['Active Subscription','Closed Won'] },
-];
-var LOST_STAGES = ['Closed Lost','Not Converted','Cancellation Pending'];
-
-// Canonical display order + colours for known license types.
-var LICENSE_TYPE_ORDER = ['Adviser License','Admin License','Auditor License','Personal Assistant License'];
-
-// ── Helpers ───────────────────────────────────────────────────────
 function el(id) { return document.getElementById(id); }
-function setEl(id, val) {
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmt(v) { return v || '—'; }
+function fmtCurr(v) {
+  if (!v && v !== 0) return '—';
+  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+function fmtDate(v) {
+  if (!v) return '—';
+  try {
+    return new Date(v).toLocaleDateString('en-NZ', { day:'numeric', month:'short', year:'numeric' });
+  } catch(e) { return v; }
+}
+function setFv(id, val) {
   var e = el(id);
   if (!e) return;
-  var isEmpty = (val === null || val === undefined || val === '');
-  e.textContent = isEmpty ? 'Not set' : val;
-  e.classList.toggle('empty', isEmpty);
-}
-function fmtCurr(n) {
-  if (n === null || n === undefined || n === '') return '$0';
-  return 'NZ$' + Number(n).toLocaleString('en-NZ', { maximumFractionDigits: 0 });
-}
-function fmtDate(d) {
-  if (!d) return null;
-  var dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString('en-NZ', { day:'2-digit', month:'short', year:'numeric' });
-}
-function daysBetween(a, b) {
-  var MS = 1000 * 60 * 60 * 24;
-  return Math.round((b.setHours(0,0,0,0) - a.setHours(0,0,0,0)) / MS);
-}
-function lookupName(field) {
-  if (!field) return null;
-  if (typeof field === 'string') return field;
-  return field.name || field.Name || null;
+  if (!val || val === '—') { e.textContent = '—'; e.classList.add('empty'); }
+  else { e.textContent = val; e.classList.remove('empty'); }
 }
 
-// ── Stage tracker ────────────────────────────────────────────────
-function renderStageTracker(stage) {
-  var isLost = LOST_STAGES.indexOf(stage) !== -1;
-  el('lost-banner').className = 'lost-banner' + (isLost ? ' visible' : '');
-  if (isLost) setEl('lost-banner-text', 'This deal is ' + stage.toLowerCase() + '.');
-
-  var currentBucketIdx = -1;
-  STAGE_BUCKETS.forEach(function(b, i) { if (b.stages.indexOf(stage) !== -1) currentBucketIdx = i; });
-  // Deals sitting in a "won" style stage not explicitly mapped default to the final bucket.
-  if (currentBucketIdx === -1 && !isLost && stage) currentBucketIdx = 0;
-
-  var html = '';
-  STAGE_BUCKETS.forEach(function(b, i) {
-    var cls = 'stage-step';
-    if (!isLost) {
-      if (i < currentBucketIdx) cls += ' done';
-      else if (i === currentBucketIdx) cls += ' current';
-    }
-    var sub = (i === currentBucketIdx && !isLost) ? stage : '';
-    html += '<div class="' + cls + '">' +
-              '<div class="stage-step-bar"></div>' +
-              '<div class="stage-step-name">' + b.label + '</div>' +
-              '<div class="stage-step-sub">' + sub + '</div>' +
-            '</div>';
-  });
-  el('stage-tracker').innerHTML = html;
+// ── Toast ──────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  var t = el('toast');
+  if (!t) return;
+  t.textContent = (type==='success' ? '✅ ' : type==='error' ? '❌ ' : '⏳ ') + msg;
+  t.className = 'toast ' + (type||'saving');
+  t.classList.add('show');
+  if (type !== 'saving') setTimeout(function() { t.classList.remove('show'); }, 3000);
 }
 
-// ── Trial card ────────────────────────────────────────────────────
-function renderTrial(startStr, expiryStr) {
-  var badge = el('trial-badge');
-  if (!startStr && !expiryStr) {
-    badge.textContent = 'Not Started'; badge.className = 'badge badge-muted';
-    setEl('trial-days', null); setEl('trial-days-label', 'no trial dates set');
-    el('trial-progress').style.width = '0%';
-    setEl('trial-start-lbl', 'Start —'); setEl('trial-end-lbl', 'Expiry —');
-    return;
-  }
-  var today = new Date();
-  var start = startStr ? new Date(startStr) : null;
-  var expiry = expiryStr ? new Date(expiryStr) : null;
-  setEl('trial-start-lbl', 'Start ' + (fmtDate(startStr) || '—'));
-  setEl('trial-end-lbl', 'Expiry ' + (fmtDate(expiryStr) || '—'));
+// ── Stage pipeline ─────────────────────────────────────────────────
+var STAGES = [
+  'Discovery', 'Demo Scheduled', 'Demo Completed', 'Proposal/Price Quote', 'Accepted in Process', 'Agreement Sent', 'Agreement Signed', 'Closed Won', 'Closed Lost'
+];
 
-  if (expiry && today > expiry) {
-    badge.textContent = 'Expired'; badge.className = 'badge badge-red';
-    var overdue = daysBetween(new Date(expiry), new Date(today));
-    setEl('trial-days', overdue); setEl('trial-days-label', 'days since expiry');
-    el('trial-progress').style.width = '100%';
-    el('trial-progress').className = 'progress-fill danger';
-    return;
-  }
-  if (start && today < start) {
-    badge.textContent = 'Not Started'; badge.className = 'badge badge-muted';
-    setEl('trial-days', daysBetween(new Date(today), new Date(start)));
-    setEl('trial-days-label', 'days until start');
-    el('trial-progress').style.width = '0%';
-    return;
-  }
-  badge.textContent = 'Active'; badge.className = 'badge badge-green';
-  if (start && expiry) {
-    var total = daysBetween(new Date(start), new Date(expiry)) || 1;
-    var elapsed = daysBetween(new Date(start), new Date(today));
-    var remaining = daysBetween(new Date(today), new Date(expiry));
-    var pct = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
-    setEl('trial-days', Math.max(0, remaining)); setEl('trial-days-label', 'days remaining');
-    var fill = el('trial-progress');
-    fill.style.width = pct + '%';
-    fill.className = 'progress-fill' + (remaining <= 3 ? ' danger' : remaining <= 7 ? ' warn' : '');
+var STAGE_COLOR_MAP = {
+  'Discovery': { bg:'#add9ff', text:'#1a1a2e' },
+  'Proposal/Price Quote': { bg:'#5cb3fd', text:'#1a1a2e' },
+  'Demo Scheduled': { bg:'#168aef', text:'#fff' },
+  'Demo Completed': { bg:'#177ba0', text:'#fff' },
+  'Trial': { bg:'#ffc6c6', text:'#1a1a2e' },
+  'Trial Activated': { bg:'#fea36a', text:'#1a1a2e' },
+  'Trial Expired': { bg:'#f27e22', text:'#1a1a2e' },
+  'Accepted in Process': { bg:'#c4f0b3', text:'#1a1a2e' },
+  'Agreement Sent': { bg:'#98d681', text:'#1a1a2e' },
+  'Data Migration': { bg:'#25b52a', text:'#fff' },
+  'Agreement Signed': { bg:'#25b52a', text:'#fff' },
+  'Active Subscription': { bg:'#25b52a', text:'#fff' },
+  'Subscription Sent': { bg:'#f6c1ff', text:'#1a1a2e' },
+  'Subscription Completed': { bg:'#af38fa', text:'#fff' },
+  'Agreement Executed': { bg:'#177ba0', text:'#fff' },
+  'User Profiles': { bg:'#25b52a', text:'#fff' },
+  'Closed Won': { bg:'#f5c72f', text:'#1a1a2e' },
+  'Pending Cancellation': { bg:'#F00A24', text:'#fff' },
+  'Cancellation Pending': { bg:'#f27e22', text:'#1a1a2e' },
+  'Content': { bg:'#5cb3fd', text:'#1a1a2e' },
+  'Not Converted': { bg:'#177ba0', text:'#fff' },
+  'Identified': { bg:'#f8e199', text:'#1a1a2e' },
+  'Closed Lost': { bg:'#E81313', text:'#fff' },
+  'Migrating Data': { bg:'#ffda62', text:'#1a1a2e' },
+  'Awaiting Approval': { bg:'#f27e22', text:'#1a1a2e' },
+  'In Process': { bg:'#af38fa', text:'#fff' },
+  'Proposal': { bg:'#f27e22', text:'#1a1a2e' },
+  'Go Live': { bg:'#25b52a', text:'#fff' },
+  'In Development': { bg:'#ced9ff', text:'#1a1a2e' },
+};
+
+var _stageScrollIdx = 0;
+var _stageVisible   = 5; // roughly how many fit at once
+
+function renderStageBar(currentStage) {
+  var stepsEl = el('stage-steps');
+  if (!stepsEl) return;
+  var currentIdx = STAGES.indexOf(currentStage);
+
+  stepsEl.innerHTML = STAGES.map(function(s, i) {
+    var c         = STAGE_COLOR_MAP[s] || { bg:'#e8f7fd', text:'#0089b8' };
+    var isCurrent = (i === currentIdx);
+    var isDone    = (currentIdx !== -1 && i < currentIdx);
+    var cls       = isCurrent ? 'current' : isDone ? 'done' : '';
+    var style     = isCurrent
+      ? 'background:' + c.bg + ';color:' + c.text + ';'
+      : '';
+
+    return '<div class="stage-step ' + cls + '" style="' + style + '" ' +
+      'data-stage="' + escHtml(s) + '" ' +
+      'onclick="setStage(this.dataset.stage)" ' +
+      'title="' + escHtml(s) + '">' +
+      escHtml(s) +
+    '</div>';
+  }).join('');
+
+  // Auto-scroll to show current stage
+  if (currentIdx !== -1) {
+    _stageScrollIdx = Math.max(0, currentIdx - 1);
+    applyStageScroll();
   }
 }
 
-// ── Arrears card ──────────────────────────────────────────────────
-function renderArrears(amount, days) {
-  var amt = Number(amount) || 0;
-  var amtEl = el('arrears-amount');
-  amtEl.textContent = fmtCurr(amt);
-  amtEl.className = 'av ' + (amt > 0 ? 'due' : 'clear');
-
-  var badge = el('arrears-badge');
-  if (amt <= 0) {
-    badge.textContent = 'Current'; badge.className = 'badge badge-green';
-    setEl('arrears-days', 'No overdue balance');
-  } else if (Number(days) >= 30) {
-    badge.textContent = 'Critical'; badge.className = 'badge badge-red';
-    setEl('arrears-days', days + ' days overdue');
-  } else {
-    badge.textContent = 'Overdue'; badge.className = 'badge badge-amber';
-    setEl('arrears-days', (days || 0) + ' days overdue');
-  }
+function scrollStages(dir) {
+  _stageScrollIdx = Math.max(0, Math.min(STAGES.length - _stageVisible, _stageScrollIdx + dir));
+  applyStageScroll();
 }
 
-// ── Licenses ──────────────────────────────────────────────────────
-function renderLicenses(licenses) {
-  LICENSES = licenses || [];
-  var active = LICENSES.filter(function(l) { return l.Status === 'Active'; });
-  setEl('license-total', active.length);
-
-  var counts = {};
-  active.forEach(function(l) {
-    var t = l.License_Type || 'Unassigned';
-    counts[t] = (counts[t] || 0) + 1;
-  });
-  var seenTypes = Object.keys(counts);
-  var order = LICENSE_TYPE_ORDER.filter(function(t) { return seenTypes.indexOf(t) !== -1; })
-                .concat(seenTypes.filter(function(t) { return LICENSE_TYPE_ORDER.indexOf(t) === -1; }));
-
-  var gridHtml = '';
-  order.forEach(function(t) {
-    gridHtml += '<div class="license-stat"><div class="lv">' + counts[t] + '</div><div class="ll">' + t.replace(' License','') + '</div></div>';
-  });
-  el('license-stat-grid').innerHTML = gridHtml || '<div class="empty-state" style="grid-column:1/-1;">No active licenses yet</div>';
-
-  el('pa-note').style.display = (seenTypes.indexOf('Personal Assistant License') === -1) ? 'block' : 'none';
-
-  var listHtml = '';
-  LICENSES.slice(0, 8).forEach(function(l) {
-    var statusClass = l.Status === 'Active' ? 'badge-green' : l.Status === 'Pending' ? 'badge-blue' : l.Status === 'Suspended' ? 'badge-amber' : 'badge-red';
-    var holderName = lookupName(l.License_Holder) || l.Email || 'Unassigned';
-    listHtml += '<div class="license-row">' +
-                  '<div><div class="license-holder">' + holderName + '</div>' +
-                  (l.Holder_Email ? '<div class="license-holder-email">' + l.Holder_Email + '</div>' : '') + '</div>' +
-                  '<div class="license-tags">' +
-                    '<span class="badge badge-muted">' + (l.License_Type || '—').replace(' License','') + '</span>' +
-                    '<span class="badge ' + statusClass + '">' + (l.Status || '—') + '</span>' +
-                  '</div>' +
-                '</div>';
-  });
-  if (LICENSES.length > 8) listHtml += '<div class="empty-state">+' + (LICENSES.length - 8) + ' more — view all on the Licensing related list</div>';
-  el('license-list').innerHTML = listHtml || '<div class="empty-state">No license records linked to this deal yet</div>';
+function applyStageScroll() {
+  var stepsEl = el('stage-steps');
+  if (!stepsEl) return;
+  // Each step is approx 124px wide (min-width:110px + margin)
+  var stepW = stepsEl.firstElementChild
+    ? stepsEl.firstElementChild.offsetWidth || 124
+    : 124;
+  stepsEl.style.transform = 'translateX(-' + (_stageScrollIdx * stepW) + 'px)';
 }
 
-// ── Stage history ─────────────────────────────────────────────────
-function renderHistory(history) {
-  if (!history || !history.length) return;
-  el('history-card').style.display = 'block';
-  var html = '';
-  history.forEach(function(h) {
-    html += '<div class="timeline-row"><div class="timeline-dot"></div><div>' +
-              '<div class="timeline-stage">' + (h.Stage || h.stage || '—') + '</div>' +
-              '<div class="timeline-date">' + (fmtDate(h.Modified_Time || h.date) || '') + '</div>' +
-            '</div></div>';
-  });
-  el('history-body').innerHTML = html;
+function setStage(stage) {
+  if (!ENTITY_ID || typeof ZOHO === 'undefined') return;
+  showToast('Updating stage…', 'saving');
+  ZOHO.CRM.API.updateRecord({
+    Entity: 'Deals', RecordID: ENTITY_ID,
+    APIData: { id: ENTITY_ID, Stage: stage }
+  }).then(function() {
+    DEAL.Stage = stage;
+    renderStageBar(stage);
+    setFv('f-stage', stage);
+    renderStageTag(stage);
+    showToast('Stage updated', 'success');
+  }).catch(function() { showToast('Update failed', 'error'); });
 }
 
-// ── Main populate ─────────────────────────────────────────────────
+// ── Closing date alert ─────────────────────────────────────────────
+function renderClosingAlert(dateStr) {
+  var wrap = el('closing-alert-wrap');
+  if (!wrap || !dateStr) return;
+  var d    = new Date(dateStr);
+  var now  = new Date();
+  var days = Math.ceil((d - now) / (1000*60*60*24));
+  var cls, msg;
+  if (days < 0)      { cls = 'closing-urgent'; msg = '⚠ Overdue by ' + Math.abs(days) + ' day' + (Math.abs(days)!==1?'s':''); }
+  else if (days <= 7){ cls = 'closing-soon';   msg = '⏰ Closing in ' + days + ' day' + (days!==1?'s':''); }
+  else if (days <=30){ cls = 'closing-soon';   msg = '📅 Closing in ' + days + ' days'; }
+  else               { cls = 'closing-ok';     msg = '✓ Closing ' + fmtDate(dateStr); }
+  wrap.innerHTML = '<div class="closing-alert ' + cls + '">' + msg + '</div>';
+}
+
+// ── Stage tag colour ───────────────────────────────────────────────
+function stageStyle(stage) {
+  var c = STAGE_COLOR_MAP[stage];
+  if (c) return 'background:' + c.bg + ';color:' + c.text + ';';
+  // Fallback for unknown stages
+  return 'background:#e8f7fd;color:#0089b8;';
+}
+
+function renderStageTag(stage) {
+  var tagsEl = el('header-tags');
+  if (!tagsEl) return;
+  var style   = stageStyle(stage);
+  var html    = '<span class="tag stage-tag" style="' + style + '">' + escHtml(stage||'—') + '</span>';
+  var existing = tagsEl.querySelector('.stage-tag');
+  if (existing) existing.outerHTML = html;
+  else tagsEl.innerHTML = html + (tagsEl.innerHTML || '');
+}
+
+// ── Populate from record ───────────────────────────────────────────
 function populateDeal(d) {
   DEAL = d;
-  setEl('deal-name', d.Deal_Name || 'Deal');
-  var accountName = lookupName(d.Account_Name);
-  var ownerName = lookupName(d.Owner);
-  setEl('deal-meta', [accountName, ownerName ? 'Owner: ' + ownerName : ''].filter(Boolean).join(' · '));
 
-  if (d.Pipeline && d.Pipeline !== '-None-') { el('pipeline-pill').textContent = d.Pipeline; }
-  else { el('pipeline-pill').style.display = 'none'; }
-  if (d.Type && d.Type !== '-None-') { el('type-pill').textContent = d.Type; el('type-pill').style.display = 'inline-flex'; }
+  // Header
+  el('header-name').textContent = d.Deal_Name || '—';
+  var account = d.Account_Name ? d.Account_Name.name : '';
+  el('header-sub').textContent  = account ? account : '';
+  el('header-tags').innerHTML   = '<span class="tag stage-tag" style="' + stageStyle(d.Stage) + '">' + escHtml(d.Stage||'—') + '</span>';
 
-  setEl('hero-amount', (d.Amount === null || d.Amount === undefined || d.Amount === '') ? null : fmtCurr(d.Amount));
-  setEl('hero-probability', (d.Probability !== undefined && d.Probability !== null && d.Probability !== '') ? d.Probability + '%' : null);
-  setEl('hero-closing', fmtDate(d.Closing_Date));
-  setEl('hero-owner', ownerName);
+  // Stage bar
+  renderStageBar(d.Stage || '');
+  // Start and closing dates
+  var startEl = el('stage-bar-start');
+  var closeEl = el('stage-bar-close-date');
+  if (startEl) startEl.textContent = d.Created_Time ? fmtDate(d.Created_Time) : '—';
+  if (closeEl) closeEl.textContent = d.Closing_Date ? fmtDate(d.Closing_Date) : '—';
 
-  renderStageTracker(d.Stage);
+  // Summary
+  setFv('f-amount',       fmtCurr(d.Amount));
+  setFv('f-closing-date', fmtDate(d.Closing_Date));
+  setFv('f-stage',        fmt(d.Stage));
+  renderClosingAlert(d.Closing_Date);
 
-  setEl('f-type', d.Type);
-  setEl('f-source', d.Lead_Source);
-  setEl('f-groupsize', d.Group_Size);
-  setEl('f-pmtfreq', d.Pmt_Frequency);
-  setEl('f-exprev', d.Expected_Revenue ? fmtCurr(d.Expected_Revenue) : null);
-  setEl('f-nextstep', d.Next_Step);
-  el('f-description').textContent = d.Description || '';
+  // Deal info
+  el('f-deal-name').textContent = d.Deal_Name || '—';
+  el('f-account').innerHTML     = d.Account_Name
+    ? '<a href="#">' + escHtml(d.Account_Name.name) + '</a>' : '<span class="empty">—</span>';
+  el('f-contact').innerHTML     = d.Contact_Name
+    ? '<a href="#">' + escHtml(d.Contact_Name.name) + '</a>' : '<span class="empty">—</span>';
+  setFv('f-pipeline',    fmt(d.Pipeline));
+  setFv('f-lead-source', fmt(d.Lead_Source));
+  setFv('f-description', fmt(d.Description));
 
-  renderTrial(d.Trial_Start, d.Trial_Expiry);
+  // Subscription Details
+  setFv('f-start-date',    fmtDate(d.Start_Date));
+  setFv('f-end-date',      fmtDate(d.End_Date));
+  setFv('f-days-overdue',  d.Days_Overdue != null ? String(d.Days_Overdue) + ' days' : '—');
+  setFv('f-arrears-amount',d.Arrears_Amount != null ? fmtCurr(d.Arrears_Amount) : '—');
+  setFv('f-months-as-client', d.Months_as_Client != null ? String(d.Months_as_Client) + ' months' : '—');
+  setFv('f-subscription-id',  fmt(d.Subscription_ID));
+  setFv('f-pmt-frequency',    fmt(d.Pmt_Frequency));
+  setFv('f-profile-id',       fmt(d.Profile_ID));
 
-  setEl('f-subid', d.Subscription_ID);
-  setEl('f-startdate', fmtDate(d.Start_Date));
-  setEl('f-enddate', fmtDate(d.End_Date));
-  setEl('f-renewal', fmtDate(d.Renewal_Date));
-  setEl('f-notice', fmtDate(d.Notice_Date));
-  setEl('f-months', (d.Months_as_Client !== undefined && d.Months_as_Client !== null) ? d.Months_as_Client : null);
+  // Cancellations
+  setFv('f-notice-date',              fmtDate(d.Notice_Date));
+  setFv('f-cancel-date',              fmtDate(d.Cancel_Date));
+  setFv('f-loss-reason',              fmt(d.Loss_Reason));
+  setFv('f-lost-to',                  fmt(d.Lost_to));
+  setFv('f-subscription-cancelled',   d.Subscription_Cancelled   != null ? (d.Subscription_Cancelled   ? 'Yes' : 'No') : '—');
+  setFv('f-wholesale-sub-cancelled',  d.Wholesale_Sub_Cancelled  != null ? (d.Wholesale_Sub_Cancelled  ? 'Yes' : 'No') : '—');
 
-  if (d.Migrating === 'Yes' || d.Current_CRM1 || d.Migration_Summary) {
-    el('onboarding-card').style.display = 'block';
-    setEl('f-migrating', d.Migrating);
-    setEl('f-prevcrm', d.Current_CRM1);
-    el('f-migration-summary').textContent = d.Migration_Summary || '';
-  }
-
-  if (LOST_STAGES.indexOf(d.Stage) !== -1) {
-    el('loss-card').style.display = 'block';
-    setEl('f-lossreason', d.Reason_For_Loss__s || d.Loss_Reason);
-    setEl('f-lostto', d.Lost_to);
-  }
-
-  renderArrears(d.Arrears_Amount, d.Days_Overdue);
-
-  setEl('f-account', accountName);
-  setEl('f-contact', lookupName(d.Contact_Name));
-  setEl('f-owner', ownerName);
-  setEl('f-created', fmtDate(d.Created_Time));
+  // Nav owner
+  el('nav-owner-name').textContent = d.Owner ? d.Owner.name : '—';
+  el('nav-pipeline').textContent   = d.Pipeline || '—';
+  el('nav-modified').textContent   = fmtDate(d.Modified_Time);
 }
 
-// ── CRM actions ───────────────────────────────────────────────────
-function openThisRecord() {
-  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity: 'Deals', RecordID: ENTITY_ID });
-  else alert('[Mock] Open Deals ' + ENTITY_ID);
-}
-function editDeal() {
-  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.edit({ Entity: 'Deals', RecordID: ENTITY_ID });
-  else alert('[Mock] Edit deal');
-}
-function sendEmail() {
-  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.sendMail({ Entity: 'Deals', RecordID: ENTITY_ID });
-  else alert('[Mock] Send email');
-}
-function newLicense() {
-  if (typeof ZOHO !== 'undefined') {
-    ZOHO.CRM.UI.Record.create({ Entity: 'Licenses', prefill: { 'Opportunity': { id: ENTITY_ID } } });
-  } else alert('[Mock] New License record, prefilled with this Deal');
-}
-function openAccount() {
-  if (!DEAL || !DEAL.Account_Name) return;
-  var id = DEAL.Account_Name.id || DEAL.Account_Name;
-  if (typeof ZOHO !== 'undefined') ZOHO.CRM.UI.Record.open({ Entity: 'Accounts', RecordID: id });
-  else alert('[Mock] Open Account ' + id);
-}
+// ── Field Map for editing ──────────────────────────────────────────
+var FIELD_MAP = {
+  'f-deal-name':    { api:'Deal_Name',    type:'text' },
+  'f-amount':       { api:'Amount',       type:'number' },
+  'f-closing-date': { api:'Closing_Date', type:'date' },
+  'f-stage':        { api:'Stage',        type:'select',
+    options:['Accepted in Process', 'Active Subscription', 'Agreement Executed', 'Agreement Sent', 'Agreement Signed', 'Awaiting Approval', 'Cancellation Pending', 'Closed Lost', 'Closed Won', 'Content', 'Data Migration', 'Demo Completed', 'Demo Scheduled', 'Discovery', 'Go Live', 'Identified', 'In Development', 'In Process', 'Migrating Data', 'Not Converted', 'Pending Cancellation', 'Proposal', 'Proposal/Price Quote', 'Subscription Completed', 'Subscription Sent', 'Trial', 'Trial Activated', 'Trial Expired', 'User Profiles'] },
+  'f-lead-source':  { api:'Lead_Source',  type:'select',
+    options:['','Advertisement','Cold Call','Employee Referral','External Referral',
+             'Online Store','Partner','Public Relations','Web Download','Web Research',
+             'Contact Us','Word of Mouth','Other'] },
+  'f-description':           { api:'Description',          type:'textarea' },
+  // Subscription Details
+  'f-start-date':            { api:'Start_Date',            type:'date' },
+  'f-end-date':              { api:'End_Date',              type:'date' },
+  'f-pmt-frequency':         { api:'Pmt_Frequency',         type:'select',
+    options:['','Monthly','Quarterly','Annually','Fortnightly','Weekly'] },
+  'f-subscription-id':       { api:'Subscription_ID',       type:'text' },
+  'f-profile-id':            { api:'Profile_ID',            type:'text' },
+  // Cancellations
+  'f-notice-date':           { api:'Notice_Date',           type:'date' },
+  'f-cancel-date':           { api:'Cancel_Date',           type:'date' },
+  'f-loss-reason':           { api:'Loss_Reason',           type:'text' },
+  'f-lost-to':               { api:'Lost_to',               type:'text' },
+  'f-subscription-cancelled':{ api:'Subscription_Cancelled',type:'select', options:['','true','false'] },
+  'f-wholesale-sub-cancelled':{ api:'Wholesale_Sub_Cancelled',type:'select', options:['','true','false'] },
+};
 
-// ── SDK bootstrap / mock mode ───────────────────────────────────────
-(function() {
-  var loaded = false;
-  function reveal() {
-    el('loading').classList.add('hidden');
-    el('page').classList.add('visible');
-  }
+// ── Inline Edit ────────────────────────────────────────────────────
+function enterInlineEdit(fid) {
+  if (EDIT_MODE) return;
+  var fieldEl = el(fid);
+  var def     = FIELD_MAP[fid];
+  if (!fieldEl || !def) return;
+  if (fieldEl.classList.contains('editing')) return;
 
-  function initMockIfNeeded() {
-    if (loaded) return;
-    loaded = true;
+  var currentVal = DEAL[def.api] || '';
+  ORIGINAL[fid]  = currentVal;
 
-    var MOCK_DEAL = {
-      id: 'deal-001',
-      Deal_Name: 'Bay Financial Group — 12 Adviser Licenses',
-      Account_Name: { id: 'acc-01', name: 'Bay Financial Group' },
-      Contact_Name: { id: 'c-01', name: 'Rachel Ngata' },
-      Owner: { id: 'u-01', name: 'Sean Davis' },
-      Amount: 14400,
-      Expected_Revenue: 14400,
-      Probability: 70,
-      Closing_Date: '2026-09-01',
-      Stage: 'Agreement Sent',
-      Pipeline: 'Sales Pipeline',
-      Type: 'Adviser CRM',
-      Lead_Source: 'Referral',
-      Group_Size: '10 to 20',
-      Pmt_Frequency: 'Monthly',
-      Next_Step: 'Follow up on signed agreement, confirm data migration start date',
-      Description: 'Moving from Xplan. 12 advisers, 2 admin, 1 auditor (external accountant). Wants trial extended by a week to finish testing loan calculators.',
-      Trial_Start: '2026-07-20',
-      Trial_Expiry: '2026-08-24',
-      Subscription_ID: 'SUB-10432',
-      Start_Date: '2026-09-01',
-      End_Date: null,
-      Renewal_Date: '2027-09-01',
-      Notice_Date: null,
-      Months_as_Client: 0,
-      Migrating: 'Yes',
-      Current_CRM1: 'Xplan',
-      Migration_Summary: 'Full client, policy and loan data export supplied 12 Aug. Migration slotted for onboarding stage.',
-      Arrears_Amount: 0,
-      Days_Overdue: 0,
-      Created_Time: '2026-06-02T10:00:00+12:00',
-    };
-    var MOCK_LICENSES = [
-      { id:'lic1', License_Type:'Adviser License', Status:'Active', License_Holder:{name:'Rachel Ngata'}, Holder_Email:'rachel@bayfinancial.co.nz' },
-      { id:'lic2', License_Type:'Adviser License', Status:'Active', License_Holder:{name:'Tom Marsh'}, Holder_Email:'tom@bayfinancial.co.nz' },
-      { id:'lic3', License_Type:'Adviser License', Status:'Pending', License_Holder:{name:'Priya Patel'}, Holder_Email:'priya@bayfinancial.co.nz' },
-      { id:'lic4', License_Type:'Admin License', Status:'Active', License_Holder:{name:'Grace Wilson'}, Holder_Email:'grace@bayfinancial.co.nz' },
-      { id:'lic5', License_Type:'Auditor License', Status:'Active', License_Holder:{name:'Chen & Associates'}, Holder_Email:'audit@chenassoc.co.nz' },
-    ];
-    var MOCK_HISTORY = [
-      { Stage:'Discovery', Modified_Time:'2026-06-02T10:00:00+12:00' },
-      { Stage:'Demo Completed', Modified_Time:'2026-06-18T10:00:00+12:00' },
-      { Stage:'Trial Activated', Modified_Time:'2026-07-20T10:00:00+12:00' },
-      { Stage:'Agreement Sent', Modified_Time:'2026-08-10T10:00:00+12:00' },
-    ];
-
-    ENTITY_ID = MOCK_DEAL.id;
-    populateDeal(MOCK_DEAL);
-    renderLicenses(MOCK_LICENSES);
-    renderHistory(MOCK_HISTORY);
-
-    el('mock-badge').style.display = 'block';
-    reveal();
-  }
-
-  if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) {
-    ZOHO.embeddedApp.on('PageLoad', function(data) {
-      loaded = true;
-      // EntityId comes through as an array in some Zoho contexts and a plain
-      // string in others (e.g. a Widget embedded via a Canvas Custom Page
-      // element) — handle both rather than assuming it's always an array.
-      var rawEntityId = data && data.EntityId;
-      ENTITY_ID = Array.isArray(rawEntityId) ? rawEntityId[0] : (rawEntityId || (data && data.RecordId) || null);
-
-      if (!ENTITY_ID) { reveal(); return; }
-
-      Promise.all([
-        ZOHO.CRM.API.getRecord({ Entity:'Deals', RecordID: ENTITY_ID }),
-        ZOHO.CRM.API.getRelatedRecords({ Entity:'Deals', RecordID: ENTITY_ID, RelatedList:'Opportunity1', page:1, per_page:200 }),
-        ZOHO.CRM.API.getRelatedRecords({ Entity:'Deals', RecordID: ENTITY_ID, RelatedList:'Stage_History', page:1, per_page:20 }),
-      ]).then(function(results) {
-        var dealResp = results[0];
-        var deal = dealResp && dealResp.data && dealResp.data[0];
-        if (deal) populateDeal(deal);
-
-        var licResp = results[1];
-        renderLicenses((licResp && licResp.data) || []);
-
-        var histResp = results[2];
-        renderHistory((histResp && histResp.data) || []);
-      }).catch(function(err) {
-        console.error('Deal page load error', err);
-      }).finally(reveal);
+  var input;
+  if (def.type === 'select') {
+    input = document.createElement('select');
+    (def.options||[]).forEach(function(opt) {
+      var o = document.createElement('option');
+      o.value = opt; o.textContent = opt || '— Select —';
+      if (opt === currentVal) o.selected = true;
+      input.appendChild(o);
     });
-    ZOHO.embeddedApp.init();
+  } else if (def.type === 'textarea') {
+    input = document.createElement('textarea');
+    input.value = currentVal; input.rows = 4;
+  } else {
+    input = document.createElement('input');
+    input.type = def.type || 'text';
+    input.value = def.type === 'date' && currentVal ? currentVal.substring(0,10) : currentVal;
   }
 
-  // If real Zoho PageLoad hasn't fired shortly (e.g. previewing standalone,
-  // not inside a Zoho Canvas View iframe), fall back to mock data.
-  setTimeout(initMockIfNeeded, 900);
+  var tickBtn  = document.createElement('button');
+  tickBtn.className = 'inline-tick'; tickBtn.innerHTML = '✓';
+  tickBtn.addEventListener('mousedown', function(e) { e.preventDefault(); confirmInlineEdit(fid); });
 
-  // Hard fallback: never leave the spinner up indefinitely.
-  setTimeout(function() { if (!loaded) reveal(); }, 4000);
-})();
+  var crossBtn = document.createElement('button');
+  crossBtn.className = 'inline-cross'; crossBtn.innerHTML = '✕';
+  crossBtn.addEventListener('mousedown', function(e) { e.preventDefault(); cancelSingleField(fid); });
+
+  var actions = document.createElement('div');
+  actions.className = 'inline-edit-actions';
+  actions.appendChild(tickBtn); actions.appendChild(crossBtn);
+
+  var wrap = document.createElement('div');
+  wrap.className = 'inline-edit-wrap';
+  wrap.appendChild(input); wrap.appendChild(actions);
+
+  if (def.type !== 'textarea') {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') confirmInlineEdit(fid);
+      if (e.key === 'Escape') cancelSingleField(fid);
+    });
+  }
+
+  fieldEl.innerHTML = '';
+  fieldEl.appendChild(wrap);
+  fieldEl.classList.add('editing');
+  var pencil = fieldEl.parentElement && fieldEl.parentElement.querySelector('.pencil-btn');
+  if (pencil) pencil.style.display = 'none';
+  input.focus();
+}
+
+function confirmInlineEdit(fid) {
+  var fieldEl = el(fid);
+  if (!fieldEl) return;
+  var input  = fieldEl.querySelector('input, select, textarea');
+  if (!input) return;
+  var newVal = input.value;
+  var def    = FIELD_MAP[fid];
+  if (String(newVal) !== String(ORIGINAL[fid]||'')) {
+    saveSingleField(fid, def.api, newVal);
+  } else {
+    cancelSingleField(fid);
+  }
+}
+
+function cancelSingleField(fid) {
+  var fieldEl = el(fid);
+  var def     = FIELD_MAP[fid];
+  if (!fieldEl || !def) return;
+  var val = DEAL[def.api];
+  fieldEl.classList.remove('editing');
+  var pencil = fieldEl.parentElement && fieldEl.parentElement.querySelector('.pencil-btn');
+  if (pencil) pencil.style.display = '';
+  if (def.type === 'number') setFv(fid, fmtCurr(val));
+  else if (def.type === 'date') setFv(fid, fmtDate(val));
+  else setFv(fid, fmt(val));
+}
+
+function saveSingleField(fid, apiName, value) {
+  showToast('Saving…', 'saving');
+  if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
+    DEAL[apiName] = value;
+    cancelSingleField(fid);
+    if (fid === 'f-stage') { renderStageBar(value); renderStageTag(value); }
+    if (fid === 'f-closing-date') renderClosingAlert(value);
+    showToast('Saved (mock)', 'success');
+    return;
+  }
+  var data = { id: ENTITY_ID };
+  data[apiName] = value || null;
+  ZOHO.CRM.API.updateRecord({ Entity:'Deals', RecordID:ENTITY_ID, APIData:data })
+    .then(function() {
+      DEAL[apiName] = value;
+      cancelSingleField(fid);
+      if (fid === 'f-stage') { renderStageBar(value); renderStageTag(value); }
+      if (fid === 'f-closing-date') renderClosingAlert(value);
+      showToast('Saved', 'success');
+    })
+    .catch(function() { showToast('Save failed', 'error'); cancelSingleField(fid); });
+}
+
+// ── Full Edit Mode ────────────────────────────────────────────────
+function enterEditMode() {
+  EDIT_MODE = true; CHANGED = {};
+  el('main-page').classList.add('edit-mode-active');
+  Object.keys(FIELD_MAP).forEach(function(fid) {
+    var fieldEl = el(fid);
+    var def     = FIELD_MAP[fid];
+    if (!fieldEl || !def) return;
+    var currentVal = DEAL[def.api] || '';
+    ORIGINAL[fid]  = currentVal;
+    var input;
+    if (def.type === 'select') {
+      input = document.createElement('select');
+      (def.options||[]).forEach(function(opt) {
+        var o = document.createElement('option');
+        o.value = opt; o.textContent = opt || '— Select —';
+        if (opt === currentVal) o.selected = true;
+        input.appendChild(o);
+      });
+    } else if (def.type === 'textarea') {
+      input = document.createElement('textarea');
+      input.value = currentVal; input.rows = 3;
+    } else {
+      input = document.createElement('input');
+      input.type = def.type || 'text';
+      input.value = def.type === 'date' && currentVal ? currentVal.substring(0,10) : currentVal;
+    }
+    input.style.width = '100%'; input.style.boxSizing = 'border-box';
+    input.addEventListener('input', function() { onFieldChange(fid, this.value); });
+    input.addEventListener('change', function() { onFieldChange(fid, this.value); });
+    fieldEl.innerHTML = '';
+    fieldEl.appendChild(input);
+  });
+  document.querySelectorAll('.pencil-btn').forEach(function(b) { b.style.display='none'; });
+  el('edit-toggle-btn').style.display = 'none';
+  el('btn-save-header').style.display = '';
+  el('btn-cancel-header').style.display = '';
+  var tb = el('edit-toolbar');
+  if (tb) { tb.classList.add('visible'); tb._posSet=false; tb.style.left=''; tb.style.top=''; tb.style.bottom='32px'; tb.style.transform='translateX(-50%)'; }
+}
+
+function onFieldChange(fid, value) {
+  if (String(value) !== String(ORIGINAL[fid]||'')) { CHANGED[fid]=value; el(fid).classList.add('changed'); }
+  else { delete CHANGED[fid]; el(fid).classList.remove('changed'); }
+  var cc = el('changes-count');
+  if (cc) { var n=Object.keys(CHANGED).length; cc.textContent = n>0 ? n+' change'+(n!==1?'s':'') : ''; }
+}
+
+function cancelEdit() {
+  EDIT_MODE = false; CHANGED = {};
+  el('main-page').classList.remove('edit-mode-active');
+  populateDeal(DEAL);
+  document.querySelectorAll('.pencil-btn').forEach(function(b) { b.style.display=''; });
+  el('edit-toggle-btn').style.display = '';
+  el('btn-save-header').style.display = 'none';
+  el('btn-cancel-header').style.display = 'none';
+  var tb = el('edit-toolbar');
+  if (tb) tb.classList.remove('visible');
+  el('toast').classList.remove('show');
+}
+
+function saveRecord() {
+  if (!Object.keys(CHANGED).length) { showToast('No changes to save', 'saving'); return; }
+  showToast('Saving…', 'saving');
+  var apiData = { id: ENTITY_ID };
+  Object.keys(CHANGED).forEach(function(fid) {
+    var def = FIELD_MAP[fid];
+    if (def) apiData[def.api] = CHANGED[fid] || null;
+  });
+  if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
+    Object.keys(CHANGED).forEach(function(fid) { var def=FIELD_MAP[fid]; if(def) DEAL[def.api]=CHANGED[fid]; });
+    cancelEdit(); populateDeal(DEAL); showToast('Saved (mock)', 'success'); return;
+  }
+  ZOHO.CRM.API.updateRecord({ Entity:'Deals', RecordID:ENTITY_ID, APIData:apiData })
+    .then(function(resp) {
+      var d = resp.data && resp.data[0];
+      if (d && d.status === 'error') { showToast('Save failed: ' + (d.message||''), 'error'); return; }
+      Object.keys(CHANGED).forEach(function(fid) { var def=FIELD_MAP[fid]; if(def) DEAL[def.api]=CHANGED[fid]; });
+      cancelEdit(); populateDeal(DEAL); showToast('Deal saved', 'success');
+    })
+    .catch(function() { showToast('Save failed', 'error'); });
+}
+
+// ── Related Lists Nav ──────────────────────────────────────────────
+var ALL_TABS = [
+  { id:'notes',         label:'Notes',          icon:'🗒',  entity:'Notes',         newLabel:'New Note' },
+  { id:'tasks',         label:'Open Tasks',      icon:'☑',   entity:'Tasks',         newLabel:'New Task' },
+  { id:'calls',         label:'Open Calls',      icon:'📞',  entity:'Calls',         newLabel:'New Call' },
+  { id:'events',        label:'Open Meetings',   icon:'📅',  entity:'Events',        newLabel:'New Meeting' },
+  { id:'contact_roles', label:'Contact Roles',   icon:'👥',  entity:'Contact_Roles', newLabel:'Add Contact' },
+  { id:'licensing',     label:'Licensing',       icon:'📄',  entity:'Opportunity1',  newLabel:'New License' },
+  { id:'attachments',   label:'Attachments',     icon:'📎',  entity:'Attachments',   newLabel:'Add File' },
+  { id:'stage_history', label:'Stage History',   icon:'📈',  entity:'Stage_History', newLabel:'' },
+];
+
+function getTab(id) { return ALL_TABS.find(function(t) { return t.id === id; }); }
+
+function renderNavItems() {
+  var container = el('nav-related-items');
+  if (!container) return;
+  container.innerHTML = ALL_TABS.map(function(tab) {
+    var count    = TAB_COUNTS[tab.id];
+    var isActive = CURRENT_TAB_ID === tab.id;
+    var badge    = count === undefined ? '<span class="nav-badge" style="background:transparent;color:var(--muted);">…</span>'
+                 : count > 0 ? '<span class="nav-badge">' + count + '</span>' : '';
+    return '<div class="nav-item' + (isActive?' active':'') + '" id="nav-' + tab.id + '" data-id="' + tab.id + '" onclick="showRelatedList(this.dataset.id)">' +
+      '<span>' + tab.label + '</span>' + badge + '</div>';
+  }).join('');
+}
+
+function showOverview() {
+  CURRENT_NAV = 'overview'; CURRENT_TAB_ID = null;
+  el('panel-overview').style.display = 'block';
+  el('panel-related').style.display  = 'none';
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  el('nav-overview').classList.add('active');
+  scheduleResize();
+}
+
+function showRelatedList(tabId) {
+  var tab = getTab(tabId);
+  if (!tab) return;
+  CURRENT_NAV = 'related'; CURRENT_TAB_ID = tabId;
+  el('panel-overview').style.display = 'none';
+  el('panel-related').style.display  = 'block';
+  el('rl-panel-icon').textContent = tab.icon;
+  el('rl-panel-name').textContent = tab.label;
+  var newBtn = el('rl-new-btn');
+  if (newBtn) {
+    newBtn.textContent = tab.newLabel ? '＋ ' + tab.newLabel : '';
+    newBtn.style.display = tab.newLabel ? '' : 'none';
+    newBtn.onclick = function() { newRelatedRecord(tabId); };
+  }
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var navItem = el('nav-' + tabId);
+  if (navItem) navItem.classList.add('active');
+  if (TAB_DATA[tabId] !== undefined) { renderRelatedPanel(tabId, TAB_DATA[tabId]); }
+  else {
+    el('rl-panel-body').innerHTML = '<div class="rl-loading"><div class="spinner" style="width:20px;height:20px;border-width:2px;"></div>Loading ' + tab.label + '…</div>';
+    loadRelatedList(tabId);
+  }
+  scheduleResize();
+}
+
+function loadRelatedList(tabId) {
+  var tab = getTab(tabId);
+  if (!tab || !ENTITY_ID || typeof ZOHO === 'undefined') { TAB_DATA[tabId]=[]; renderRelatedPanel(tabId,[]); return; }
+  ZOHO.CRM.API.getRelatedRecords({ Entity:'Deals', RecordID:ENTITY_ID, RelatedList:tab.entity, page:1, per_page:200 })
+    .then(function(resp) {
+      var data  = resp.data || [];
+      var count = (resp.info && resp.info.count > data.length) ? resp.info.count : data.length;
+      TAB_DATA[tabId] = data; TAB_COUNTS[tabId] = count;
+      renderNavItems();
+      if (CURRENT_TAB_ID === tabId) {
+        renderRelatedPanel(tabId, data);
+        var ce = el('rl-panel-count');
+        if (ce) ce.textContent = count + ' record' + (count!==1?'s':'');
+      }
+      setTimeout(scheduleResize, 200);
+    })
+    .catch(function() { TAB_DATA[tabId]=[]; TAB_COUNTS[tabId]=0; renderNavItems(); if(CURRENT_TAB_ID===tabId) renderRelatedPanel(tabId,[]); });
+}
+
+function loadAllCounts() {
+  ALL_TABS.forEach(function(tab, idx) {
+    setTimeout(function() {
+      if (!ENTITY_ID || typeof ZOHO === 'undefined') { TAB_COUNTS[tab.id]=0; renderNavItems(); return; }
+      ZOHO.CRM.API.getRelatedRecords({ Entity:'Deals', RecordID:ENTITY_ID, RelatedList:tab.entity, page:1, per_page:200 })
+        .then(function(resp) {
+          var data = resp.data||[];
+          TAB_COUNTS[tab.id] = (resp.info && resp.info.count > data.length) ? resp.info.count : data.length;
+          if (!TAB_DATA[tab.id]) TAB_DATA[tab.id] = data;
+          renderNavItems();
+        })
+        .catch(function() { TAB_COUNTS[tab.id]=0; renderNavItems(); });
+    }, idx * 150);
+  });
+}
+
+function renderRelatedPanel(tabId, records) {
+  var body = el('rl-panel-body');
+  if (!body) return;
+  var count = records.length;
+  var ce = el('rl-panel-count');
+  if (ce) ce.textContent = count + ' record' + (count!==1?'s':'');
+  if (!records.length) {
+    body.innerHTML = '<div class="rl-empty"><div class="rl-empty-icon">' + getTab(tabId).icon + '</div>No records found</div>';
+    return;
+  }
+  var cols = getTableColumns(tabId);
+  var html = '<table class="rl-table"><thead><tr>';
+  cols.forEach(function(c) { html += '<th>' + c.label + '</th>'; });
+  html += '<th></th></tr></thead><tbody>';
+  records.forEach(function(r) {
+    html += '<tr data-rid="' + (r.id||'') + '" onclick="openRelRecord(this.dataset.rid)">';
+    cols.forEach(function(c, i) {
+      var v = getNestedVal(r, c.field) || '—';
+      if (c.format==='date') v = v!=='—' ? fmtDate(v) : '—';
+      html += '<td class="' + (i===0?'td-primary':'') + '">' + escHtml(String(v)) + '</td>';
+    });
+    html += '<td style="text-align:right;color:var(--blue);font-size:11px;font-weight:700;">Open →</td></tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+  setTimeout(scheduleResize, 200);
+}
+
+function getTableColumns(id) {
+  var cols = {
+    'notes':         [{label:'Title',field:'Note_Title'},{label:'Content',field:'Note_Content'},{label:'Date',field:'Created_Time',format:'date'},{label:'Owner',field:'Owner.name'}],
+    'tasks':         [{label:'Subject',field:'Subject'},{label:'Due Date',field:'Due_Date',format:'date'},{label:'Status',field:'Status'},{label:'Priority',field:'Priority'}],
+    'calls':         [{label:'Subject',field:'Subject'},{label:'Date/Time',field:'Call_Start_Time',format:'date'},{label:'Status',field:'Call_Status'},{label:'Owner',field:'Owner.name'}],
+    'events':        [{label:'Title',field:'Event_Title'},{label:'Start',field:'Start_DateTime',format:'date'},{label:'Venue',field:'Venue'},{label:'Owner',field:'Owner.name'}],
+    'contact_roles': [{label:'Name',field:'Full_Name'},{label:'Email',field:'Email'},{label:'Phone',field:'Phone'}],
+    'licensing':     [{label:'Name',field:'Name'},{label:'Status',field:'Status'},{label:'Date',field:'Created_Time',format:'date'}],
+    'attachments':   [{label:'File Name',field:'File_Name'},{label:'Size',field:'File_Size'},{label:'Date',field:'Created_Time',format:'date'}],
+    'stage_history': [{label:'Stage',field:'Stage'},{label:'Amount',field:'Amount'},{label:'Modified',field:'Modified_Time',format:'date'}],
+  };
+  return cols[id] || [{label:'Name',field:'Name'}];
+}
+
+function getNestedVal(obj, field) {
+  var parts = field.split('.'); var v = obj;
+  parts.forEach(function(p) { v = v && v[p]; });
+  return v;
+}
+
+function openRelRecord(id) {
+  // Opens the record — entity depends on current tab
+  if (!id || typeof ZOHO === 'undefined') return;
+  var tab = getTab(CURRENT_TAB_ID);
+  if (tab) ZOHO.CRM.UI.Record.open({ Entity: tab.entity.replace('_History',''), RecordID: id });
+}
+
+function newRelatedRecord(tabId) {
+  var tab = getTab(tabId);
+  if (!tab || typeof ZOHO === 'undefined') return;
+  ZOHO.CRM.UI.Record.create({ Entity: tab.entity });
+}
+
+// ── Resize ────────────────────────────────────────────────────────
+var _lastHeight = 0, _resizeTimer = null;
+function scheduleResize() {
+  if (_resizeTimer) clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
+    var h = Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.scrollHeight) + 20;
+    if (h <= _lastHeight + 10 && _lastHeight > 0) return;
+    _lastHeight = h;
+    try { if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' }); } catch(e) {}
+  }, 300);
+}
+function startResizeObserver() {
+  if (typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(scheduleResize);
+    var p = el('main-page'); if (p) ro.observe(p);
+    ro.observe(document.body);
+  }
+}
+
+// ── Draggable toolbar ─────────────────────────────────────────────
+function setupDraggableToolbar() {
+  var tb = el('edit-toolbar');
+  if (!tb) return;
+  var isDragging=false, sx,sy,sl,st;
+  tb.addEventListener('mousedown', function(e) {
+    if (e.target.tagName==='BUTTON') return;
+    isDragging=true;
+    if (!tb._posSet) { var r=tb.getBoundingClientRect(); tb.style.left=r.left+'px'; tb.style.top=r.top+'px'; tb.style.bottom='auto'; tb.style.transform='none'; tb._posSet=true; }
+    sx=e.clientX; sy=e.clientY; sl=parseInt(tb.style.left); st=parseInt(tb.style.top); e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    tb.style.left=Math.max(0,Math.min(window.innerWidth-tb.offsetWidth,sl+e.clientX-sx))+'px';
+    tb.style.top=Math.max(0,Math.min(window.innerHeight-tb.offsetHeight,st+e.clientY-sy))+'px';
+  });
+  document.addEventListener('mouseup', function() { isDragging=false; });
+}
+
+// ── Email action ──────────────────────────────────────────────────
+function sendEmail() {
+  if (typeof ZOHO !== 'undefined' && ENTITY_ID) ZOHO.CRM.UI.Record.sendEmail({ Entity:'Deals', RecordID:ENTITY_ID });
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+function reveal() {
+  el('loading').classList.add('hidden');
+  el('main-page').classList.add('visible');
+  showOverview();
+  renderNavItems();
+  startResizeObserver();
+  scheduleResize();
+  setTimeout(setupDraggableToolbar, 100);
+  setTimeout(loadAllCounts, 500);
+}
+
+// ── Mock data ─────────────────────────────────────────────────────
+var MOCK_DEAL = {
+  id: 'mock-001',
+  Deal_Name: 'Brenda Nom Mortgages and Insurance',
+  Account_Name: { name:'Brenda Nom Mortgages and Insurance', id:'acc-001' },
+  Contact_Name: { name:'Brenda Nom', id:'con-001' },
+  Stage: 'Demo Scheduled',
+  Amount: 28000,
+  Closing_Date: new Date(Date.now() + 6*24*60*60*1000).toISOString().split('T')[0],
+  Pipeline: 'Sales Pipeline',
+  Lead_Source: 'Referral',
+  Description: null,
+  Owner: { name:'Sean Davis', email:'seand@advisercrm.co.nz' },
+  Modified_Time: new Date().toISOString(),
+};
+
+// ── Zoho SDK init ─────────────────────────────────────────────────
+if (typeof ZOHO !== 'undefined') {
+  ZOHO.embeddedApp.on('PageLoad', function(data) {
+    ENTITY_ID = data.EntityId || data.id;
+    ZOHO.CRM.API.getRecord({ Entity:'Deals', RecordID:ENTITY_ID,
+      fields:'Deal_Name,Account_Name,Stage,Amount,Closing_Date,Contact_Name,Owner,Pipeline,Lead_Source,Description,Created_Time,Modified_Time,Start_Date,End_Date,Pmt_Frequency,Subscription_ID,Profile_ID,Days_Overdue,Arrears_Amount,Months_as_Client,Notice_Date,Cancel_Date,Loss_Reason,Lost_to,Subscription_Cancelled,Wholesale_Sub_Cancelled' })
+      .then(function(resp) {
+        var d = resp.data && resp.data[0];
+        if (d) { populateDeal(d); reveal(); }
+      })
+      .catch(function() { populateDeal(MOCK_DEAL); reveal(); });
+  });
+  ZOHO.embeddedApp.init();
+} else {
+  // Mock mode
+  setTimeout(function() { ENTITY_ID = 'mock-001'; populateDeal(MOCK_DEAL); reveal(); }, 600);
+}
 </script>
 </body>
 </html>
