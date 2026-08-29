@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.12.0';
+      var CURRENT_VERSION = '1.13.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -288,7 +288,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.12.0</div>
+<div id="vbadge">v1.13.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -785,13 +785,22 @@ function setStage(stage) {
   ZOHO.CRM.API.updateRecord({
     Entity: 'Deals', RecordID: ENTITY_ID,
     APIData: { id: ENTITY_ID, Stage: stage }
-  }).then(function() {
+  }).then(function(resp) {
+    // Check for API-level errors
+    if (resp && resp.data && resp.data[0] && resp.data[0].status === 'error') {
+      console.log('[ACRM] Stage update error:', JSON.stringify(resp.data[0]));
+      showToast('Update failed: ' + (resp.data[0].message || 'unknown'), 'error');
+      return;
+    }
     DEAL.Stage = stage;
     renderStageBar(stage);
     setFv('f-stage', stage);
     renderStageTag(stage);
     showToast('Stage updated', 'success');
-  }).catch(function() { showToast('Update failed', 'error'); });
+  }).catch(function(err) {
+    console.log('[ACRM] Stage update catch:', JSON.stringify(err));
+    showToast('Update failed', 'error');
+  });
 }
 
 // ── Closing date alert ─────────────────────────────────────────────
@@ -1293,19 +1302,29 @@ function openRelRecord(id) {
   if (!id) return;
   var tab = getTab(CURRENT_TAB_ID);
   if (!tab) return;
-  if (!typeof ZOHO !== 'undefined') {
+  if (typeof ZOHO === 'undefined') {
     showToast('Connect to Zoho to open records', 'saving');
     return;
   }
   // Stage_History and similar are read-only; open the parent deal record
-  var entity = tab.entity.replace('Stage_History', 'Deals').replace('_History', '');
+  var entityMap = {
+    'Tasks':         'Tasks',
+    'Calls':         'Calls',
+    'Events':        'Events',
+    'Notes':         'Notes',
+    'Attachments':   'Attachments',
+    'Contact_Roles': 'Contacts',
+    'Opportunity1':  'Deals',
+    'Stage_History': 'Deals',
+  };
+  var entity = entityMap[tab.entity] || tab.entity;
   ZOHO.CRM.UI.Record.open({ Entity:entity, RecordID:id });
 }
 
 function newRelatedRecord(tabId) {
   var tab = getTab(tabId);
   if (!tab) return;
-  if (!typeof ZOHO !== 'undefined') {
+  if (typeof ZOHO === 'undefined') {
     showToast('Connect to Zoho to create records', 'saving');
     return;
   }
@@ -1367,16 +1386,19 @@ function setupDraggableToolbar() {
 
 // ── Email action ──────────────────────────────────────────────────
 function sendEmail() {
-  if (typeof ZOHO !== 'undefined' && ENTITY_ID) {
+  if (typeof ZOHO !== 'undefined' && ENTITY_ID && ZOHO.CRM && ZOHO.CRM.UI) {
     ZOHO.CRM.UI.Record.sendEmail({ Entity:'Deals', RecordID:ENTITY_ID });
+  } else if (typeof ZOHO !== 'undefined' && ENTITY_ID) {
+    // ZOHO.CRM.UI may not be available in all contexts
+    showToast('Email action not available in this context', 'saving');
   } else {
-    showToast('Email — connect to Zoho to use this feature', 'saving');
+    showToast('Email — not connected to Zoho', 'saving');
   }
 }
 
 function openLinkedRecord(entity, id) {
   if (!id) return;
-  if (typeof ZOHO !== 'undefined') {
+  if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
     ZOHO.CRM.UI.Record.open({ Entity:entity, RecordID:id });
   } else {
     showToast('Connect to Zoho to open linked records', 'saving');
