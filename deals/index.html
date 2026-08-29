@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.8.0';
+      var CURRENT_VERSION = '1.9.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -53,6 +53,7 @@
       --gap:       20px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { margin:0; padding:0; }
     body { font-family: var(--sans); background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
     #vbadge { position:fixed;top:8px;right:14px;font-size:10px;color:var(--ink-mid);opacity:0.85;pointer-events:none;z-index:999;font-family:monospace;background:var(--bg);padding:2px 6px;border-radius:4px;border:1px solid var(--divider); }
     #loading { position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:998;transition:opacity 0.3s; }
@@ -267,7 +268,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.8.0</div>
+<div id="vbadge">v1.9.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -743,7 +744,7 @@ function setStage(stage) {
   setFv('f-stage', stage);
   renderStageTag(stage);
 
-  if (!isZohoAvailable() || !ENTITY_ID) {
+  if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
     showToast('Stage updated (preview only)', 'saving');
     return;
   }
@@ -990,12 +991,12 @@ function cancelSingleField(fid) {
 
 function saveSingleField(fid, apiName, value) {
   showToast('Saving…', 'saving');
-  if (!isZohoAvailable() || !ENTITY_ID) {
+  if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
     DEAL[apiName] = value;
     cancelSingleField(fid);
     if (fid === 'f-stage') { renderStageBar(value); renderStageTag(value); }
     if (fid === 'f-closing-date') renderClosingAlert(value);
-    showToast('Saved locally (not connected to Zoho)', 'saving');
+    showToast('Saved locally (preview only)', 'saving');
     return;
   }
   var data = { id: ENTITY_ID };
@@ -1078,7 +1079,11 @@ function cancelEdit() {
 function saveRecord() {
   if (!Object.keys(CHANGED).length) { showToast('No changes to save', 'saving'); return; }
   showToast('Saving…', 'saving');
-  var apiData = { id: ENTITY_ID || 'mock' };
+  var apiData = { id: ENTITY_ID };
+  if (!ENTITY_ID) {
+    showToast('Cannot save — no record ID', 'error');
+    return;
+  }
   Object.keys(CHANGED).forEach(function(fid) {
     var def = FIELD_MAP[fid];
     if (!def) return;
@@ -1087,7 +1092,7 @@ function saveRecord() {
     else if (v === 'false') apiData[def.api] = false;
     else apiData[def.api] = v || null;
   });
-  if (!isZohoAvailable() || !ENTITY_ID) {
+  if (typeof ZOHO === 'undefined' || !ENTITY_ID) {
     Object.keys(CHANGED).forEach(function(fid) {
       var def = FIELD_MAP[fid];
       if (!def) return;
@@ -1095,7 +1100,7 @@ function saveRecord() {
       DEAL[def.api] = (v === 'true') ? true : (v === 'false') ? false : v;
     });
     cancelEdit(); populateDeal(DEAL);
-    showToast('Saved locally (not connected to Zoho)', 'saving'); return;
+    showToast('Saved locally (preview only)', 'saving'); return;
   }
   ZOHO.CRM.API.updateRecord({ Entity:'Deals', RecordID:ENTITY_ID, APIData:apiData })
     .then(function(resp) {
@@ -1255,7 +1260,7 @@ function openRelRecord(id) {
   if (!id) return;
   var tab = getTab(CURRENT_TAB_ID);
   if (!tab) return;
-  if (!isZohoAvailable()) {
+  if (!typeof ZOHO !== 'undefined') {
     showToast('Connect to Zoho to open records', 'saving');
     return;
   }
@@ -1267,7 +1272,7 @@ function openRelRecord(id) {
 function newRelatedRecord(tabId) {
   var tab = getTab(tabId);
   if (!tab) return;
-  if (!isZohoAvailable()) {
+  if (!typeof ZOHO !== 'undefined') {
     showToast('Connect to Zoho to create records', 'saving');
     return;
   }
@@ -1286,8 +1291,8 @@ function scheduleResize() {
       document.documentElement.offsetHeight
     );
     var h = contentH;
-    // Allow resize in both directions (up and down) to fill canvas correctly
-    if (Math.abs(h - _lastHeight) < 10 && _lastHeight > 0) return;
+    // Skip only if height is identical (not just similar)
+    if (h === _lastHeight) return;
     _lastHeight = h;
     try {
       if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
@@ -1328,7 +1333,7 @@ function setupDraggableToolbar() {
 
 // ── Email action ──────────────────────────────────────────────────
 function sendEmail() {
-  if (isZohoAvailable() && ENTITY_ID) {
+  if (typeof ZOHO !== 'undefined' && ENTITY_ID) {
     ZOHO.CRM.UI.Record.sendEmail({ Entity:'Deals', RecordID:ENTITY_ID });
   } else {
     showToast('Email — connect to Zoho to use this feature', 'saving');
@@ -1337,7 +1342,7 @@ function sendEmail() {
 
 function openLinkedRecord(entity, id) {
   if (!id) return;
-  if (isZohoAvailable()) {
+  if (typeof ZOHO !== 'undefined') {
     ZOHO.CRM.UI.Record.open({ Entity:entity, RecordID:id });
   } else {
     showToast('Connect to Zoho to open linked records', 'saving');
@@ -1408,12 +1413,11 @@ function startApp() {
         console.log('[ACRM] Deal loaded:', d && d.Deal_Name);
         if (d) populateDeal(d);
         else    populateDeal(MOCK_DEAL);
+        reveal();
       })
       .catch(function(err) {
         console.log('[ACRM] getRecord failed:', err);
         populateDeal(MOCK_DEAL);
-      })
-      .finally(function() {
         reveal();
       });
   });
