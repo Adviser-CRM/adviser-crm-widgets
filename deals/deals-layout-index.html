@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.13.0';
+      var CURRENT_VERSION = '1.14.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -259,6 +259,105 @@
     .rl-empty-icon { font-size:36px;margin-bottom:12px;opacity:0.5; }
     .rl-loading { display:flex;align-items:center;gap:12px;padding:32px 20px;color:var(--muted);font-size:12px;justify-content:center; }
 
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(7,56,93,0.18);
+      backdrop-filter: blur(2px);
+      z-index: 800;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-card);
+      border-radius: 20px;
+      box-shadow: 0 24px 64px rgba(7,56,93,0.18);
+      width: 560px;
+      max-width: 92vw;
+      max-height: 85vh;
+      overflow-y: auto;
+      animation: modalIn 0.2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform:scale(0.96) translateY(8px); }
+      to   { opacity:1; transform:scale(1)    translateY(0); }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--divider);
+    }
+    .modal-header-left { display:flex; align-items:center; gap:12px; }
+    .modal-icon {
+      width: 38px; height: 38px;
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .modal-icon-task   { background:var(--blue-lt); }
+    .modal-icon-call   { background:var(--green-lt); }
+    .modal-icon-note   { background:var(--amber-lt); }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .modal-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .modal-close {
+      width: 32px; height: 32px;
+      border-radius: 50%; border: none;
+      background: var(--bg); color: var(--muted);
+      font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .modal-close:hover { background: var(--red-lt); color: var(--red); }
+    .modal-body { padding: 18px 22px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin-bottom: 5px;
+    }
+    .modal-field-value {
+      font-size: 13px; font-weight: 500;
+      color: var(--ink); padding: 9px 12px;
+      background: var(--bg); border-radius: 10px;
+      min-height: 38px; display: flex; align-items: center;
+    }
+    .modal-field-value.multiline {
+      align-items: flex-start; min-height: 70px;
+      white-space: pre-wrap; line-height: 1.5;
+    }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer {
+      padding: 14px 22px 18px;
+      border-top: 1px solid var(--divider);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-pill {
+      display: inline-flex; align-items: center;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+    }
+    .pill-completed { background:var(--green-lt); color:var(--green); }
+    .pill-not-started { background:var(--blue-lt); color:var(--blue-dk); }
+    .pill-in-progress { background:var(--amber-lt); color:var(--amber); }
+    .pill-deferred  { background:var(--divider); color:var(--muted); }
+    .pill-high   { background:var(--red-lt);   color:var(--red); }
+    .pill-medium { background:var(--amber-lt); color:var(--amber); }
+    .pill-normal { background:var(--bg);        color:var(--muted); border:1px solid var(--divider); }
+    .btn-modal-open {
+      display: inline-flex; align-items: center; gap:6px;
+      padding: 8px 16px;
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: var(--sans); font-size: 12px; font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-modal-open:hover { background: var(--blue-dk); }
+
     /* ── Toast ── */
     .toast { position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-100px);background:var(--navy);color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:1000;transition:transform 0.3s;display:flex;align-items:center;gap:10px; }
     .toast.show { transform:translateX(-50%) translateY(0); }
@@ -288,7 +387,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.13.0</div>
+<div id="vbadge">v1.14.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -629,6 +728,31 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- Record Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon" id="modal-icon">📋</div>
+        <div>
+          <div class="modal-title" id="modal-title">Record</div>
+          <div class="modal-sub"  id="modal-sub"></div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer">
+      <div id="modal-status-wrap"></div>
+      <button class="btn-modal-open" id="modal-open-btn" onclick="openCurrentModalRecord()">
+        Open Full Record ↗
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- Debug panel — remove once stable -->
 <div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-family:monospace;font-size:10px;padding:6px 10px;z-index:9999;max-height:120px;overflow:auto;">
@@ -1298,28 +1422,167 @@ function getNestedVal(obj, field) {
   return v;
 }
 
+// ── Current modal record for "Open Full Record" button ────────────
+var _modalEntity = null;
+var _modalRecordId = null;
+
 function openRelRecord(id) {
   if (!id) return;
   var tab = getTab(CURRENT_TAB_ID);
   if (!tab) return;
-  if (typeof ZOHO === 'undefined') {
-    showToast('Connect to Zoho to open records', 'saving');
-    return;
+
+  // Find the record in cached data
+  var records = TAB_DATA[tab.id] || [];
+  var record  = records.find(function(r) { return r.id === id; });
+  if (!record) return;
+
+  // Decide which tabs get a modal vs full navigation
+  var modalTabs = ['tasks', 'calls', 'notes', 'events'];
+  if (modalTabs.indexOf(tab.id) !== -1) {
+    showRecordModal(tab, record);
+  } else {
+    // For attachments, contact roles, licensing, stage history — open in Zoho
+    openFullRecord(tab.entity, id);
   }
-  // Stage_History and similar are read-only; open the parent deal record
-  var entityMap = {
-    'Tasks':         'Tasks',
-    'Calls':         'Calls',
-    'Events':        'Events',
-    'Notes':         'Notes',
-    'Attachments':   'Attachments',
-    'Contact_Roles': 'Contacts',
-    'Opportunity1':  'Deals',
-    'Stage_History': 'Deals',
-  };
-  var entity = entityMap[tab.entity] || tab.entity;
-  ZOHO.CRM.UI.Record.open({ Entity:entity, RecordID:id });
 }
+
+function showRecordModal(tab, record) {
+  var overlay = document.getElementById('modal-overlay');
+  var body    = document.getElementById('modal-body');
+  var title   = document.getElementById('modal-title');
+  var sub     = document.getElementById('modal-sub');
+  var icon    = document.getElementById('modal-icon');
+  var statusW = document.getElementById('modal-status-wrap');
+  if (!overlay || !body) return;
+
+  _modalEntity   = tab.entity;
+  _modalRecordId = record.id;
+
+  var html = '';
+
+  if (tab.id === 'tasks') {
+    icon.textContent = '☑';
+    icon.className   = 'modal-icon modal-icon-task';
+    title.textContent = record.Subject || 'Task';
+    sub.textContent   = 'Task';
+    var status   = record.Status   || '—';
+    var priority = record.Priority || 'Normal';
+    var due      = record.Due_Date ? fmtDate(record.Due_Date) : '—';
+    var owner    = record.Owner ? record.Owner.name : '—';
+    var desc     = record.Description || '';
+    var overdue  = record.Due_Date && new Date(record.Due_Date) < new Date();
+
+    statusW.innerHTML =
+      '<span class="modal-pill ' + statusPillClass(status) + '">' + escHtml(status) + '</span>' +
+      '&nbsp;&nbsp;<span class="modal-pill ' + priorityPillClass(priority) + '">' + escHtml(priority) + '</span>';
+
+    html += '<div class="modal-grid">';
+    html += modalField('Due Date', due + (overdue ? ' <span style="color:var(--red);font-size:10px;font-weight:700;">⚠ OVERDUE</span>' : ''), false, true);
+    html += modalField('Owner', escHtml(owner));
+    html += '</div>';
+    if (desc) html += modalField('Description', escHtml(desc), true);
+
+  } else if (tab.id === 'calls') {
+    icon.textContent = '📞';
+    icon.className   = 'modal-icon modal-icon-call';
+    title.textContent = record.Subject || record.Call_Purpose || 'Scheduled Call';
+    sub.textContent   = 'Call';
+    var callStatus = record.Call_Status || record.Outgoing_Call_Status || '—';
+    var callTime   = record.Call_Start_Time ? fmtDate(record.Call_Start_Time) + ' ' + fmtTime(record.Call_Start_Time) : '—';
+    var callOwner  = record.Owner ? record.Owner.name : '—';
+    var callDesc   = record.Description || '';
+
+    statusW.innerHTML = '<span class="modal-pill ' + statusPillClass(callStatus) + '">' + escHtml(callStatus) + '</span>';
+
+    html += '<div class="modal-grid">';
+    html += modalField('Scheduled', callTime);
+    html += modalField('Owner', escHtml(callOwner));
+    html += '</div>';
+    if (callDesc) html += modalField('Description', escHtml(callDesc), true);
+
+  } else if (tab.id === 'notes') {
+    icon.textContent = '📝';
+    icon.className   = 'modal-icon modal-icon-note';
+    title.textContent = record.Note_Title || 'Note';
+    sub.textContent   = 'Note · ' + fmtDate(record.Created_Time);
+    statusW.innerHTML = '';
+    var noteOwner  = record.Owner ? record.Owner.name : '—';
+    var noteContent = record.Note_Content || '';
+    html += modalField('Author', escHtml(noteOwner));
+    if (noteContent) html += modalField('Content', escHtml(noteContent), true);
+
+  } else if (tab.id === 'events') {
+    icon.textContent = '🗓';
+    icon.className   = 'modal-icon modal-icon-task';
+    title.textContent = record.Event_Title || record.Subject || 'Meeting';
+    sub.textContent   = 'Meeting';
+    var evStart  = record.Start_DateTime ? fmtDate(record.Start_DateTime) + ' ' + fmtTime(record.Start_DateTime) : '—';
+    var evEnd    = record.End_DateTime   ? fmtDate(record.End_DateTime)   + ' ' + fmtTime(record.End_DateTime)   : '—';
+    var evVenue  = record.Venue || '';
+    var evOwner  = record.Owner ? record.Owner.name : '—';
+
+    statusW.innerHTML = '';
+    html += '<div class="modal-grid">';
+    html += modalField('Start', evStart);
+    html += modalField('End',   evEnd);
+    html += '</div>';
+    if (evVenue) html += modalField('Location', escHtml(evVenue));
+    html += modalField('Owner', escHtml(evOwner));
+  }
+
+  body.innerHTML = html;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function modalField(label, value, multiline, rawHtml) {
+  return '<div class="modal-field">' +
+    '<div class="modal-field-label">' + label + '</div>' +
+    '<div class="modal-field-value' + (multiline ? ' multiline' : '') + '">' +
+      (rawHtml ? value : value || '—') +
+    '</div></div>';
+}
+
+function statusPillClass(s) {
+  s = (s || '').toLowerCase().replace(/\s+/g, '-');
+  if (s.includes('complet')) return 'pill-completed';
+  if (s.includes('progress')) return 'pill-in-progress';
+  if (s.includes('defer'))    return 'pill-deferred';
+  return 'pill-not-started';
+}
+
+function priorityPillClass(p) {
+  p = (p || '').toLowerCase();
+  if (p === 'high')   return 'pill-high';
+  if (p === 'medium') return 'pill-medium';
+  return 'pill-normal';
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  var overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+function openCurrentModalRecord() {
+  if (_modalEntity && _modalRecordId) {
+    openFullRecord(_modalEntity, _modalRecordId);
+  }
+}
+function openFullRecord(entity, id) {
+  if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+    ZOHO.CRM.UI.Record.open({ Entity:entity, RecordID:id });
+  } else {
+    showToast('Cannot open record — not connected to Zoho', 'saving');
+  }
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModalDirect();
+});
 
 function newRelatedRecord(tabId) {
   var tab = getTab(tabId);
