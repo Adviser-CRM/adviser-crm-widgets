@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.9.0';
+      var CURRENT_VERSION = '1.10.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -268,7 +268,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.9.0</div>
+<div id="vbadge">v1.10.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -610,10 +610,23 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Debug panel — remove once stable -->
+<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-family:monospace;font-size:10px;padding:6px 10px;z-index:9999;max-height:120px;overflow:auto;">
+  <div id="debug-url" style="color:#ff0;margin-bottom:4px;"></div>
+  <div id="debug-log"></div>
+</div>
+
 <script>
 // ── Core helpers ───────────────────────────────────────────────────
 var ENTITY_ID  = null;
 var DEAL       = {};
+var DEBUG_MSGS = [];
+function dbg(msg) {
+  DEBUG_MSGS.push(new Date().toISOString().substr(11,8) + ' ' + msg);
+  console.log('[ACRM]', msg);
+  var dbgEl = el('debug-log');
+  if (dbgEl) dbgEl.innerHTML = DEBUG_MSGS.slice(-8).join('<br>');
+}
 var EDIT_MODE  = false;
 var CHANGED    = {};
 var ORIGINAL   = {};
@@ -1291,8 +1304,9 @@ function scheduleResize() {
       document.documentElement.offsetHeight
     );
     var h = contentH;
-    // Skip only if height is identical (not just similar)
-    if (h === _lastHeight) return;
+    // Only resize if height has INCREASED by more than 10px
+    // Prevents ResizeObserver → Resize → ResizeObserver loop
+    if (h <= _lastHeight + 10 && _lastHeight > 0) return;
     _lastHeight = h;
     try {
       if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
@@ -1351,6 +1365,7 @@ function openLinkedRecord(entity, id) {
 
 // ── Init ──────────────────────────────────────────────────────────
 function reveal() {
+  dbg('reveal() called');
   el('loading').classList.add('hidden');
   el('main-page').classList.add('visible');
   showOverview();
@@ -1359,9 +1374,8 @@ function reveal() {
   scheduleResize();
   setTimeout(scheduleResize, 500);
   setTimeout(scheduleResize, 1500);
-  setTimeout(scheduleResize, 3000);
   setTimeout(setupDraggableToolbar, 100);
-  setTimeout(loadAllCounts, 500);
+  setTimeout(function() { loadAllCounts(); }, 500);
 }
 
 // ── Mock data ─────────────────────────────────────────────────────
@@ -1388,45 +1402,51 @@ var FIELDS_TO_FETCH = 'Deal_Name,Account_Name,Stage,Amount,Closing_Date,Contact_
   'Loss_Reason,Lost_to,Subscription_Cancelled,Wholesale_Sub_Cancelled';
 
 function startApp() {
+  dbg('startApp() called');
+  dbg('ZOHO defined: ' + (typeof ZOHO !== 'undefined'));
+  dbg('embeddedApp: ' + (typeof ZOHO !== 'undefined' && typeof ZOHO.embeddedApp !== 'undefined'));
+
   if (typeof ZOHO === 'undefined') {
-    // SDK not loaded — show mock
-    console.log('[ACRM] ZOHO SDK not loaded — running in mock mode');
+    dbg('ZOHO SDK not loaded — running in mock mode');
     populateDeal(MOCK_DEAL);
     reveal();
     return;
   }
 
+  dbg('Registering PageLoad handler...');
   ZOHO.embeddedApp.on('PageLoad', function(data) {
-    console.log('[ACRM] PageLoad fired — EntityId:', data.EntityId, 'Entity:', data.Entity);
-    ENTITY_ID = data.EntityId || data.id;
+    dbg('PageLoad fired! EntityId: ' + data.EntityId + ' Entity: ' + data.Entity);
+    ENTITY_ID = data.EntityId;
 
     if (!ENTITY_ID) {
-      console.log('[ACRM] No EntityId — showing mock');
+      dbg('ERROR: No EntityId in PageLoad data');
       populateDeal(MOCK_DEAL);
       reveal();
       return;
     }
 
+    dbg('Fetching deal record...');
     ZOHO.CRM.API.getRecord({ Entity:'Deals', RecordID:ENTITY_ID, fields:FIELDS_TO_FETCH })
       .then(function(resp) {
-        var d = resp.data && resp.data[0];
-        console.log('[ACRM] Deal loaded:', d && d.Deal_Name);
+        var d = (resp.data && resp.data[0]) || null;
+        dbg('Deal loaded: ' + (d && d.Deal_Name));
         if (d) populateDeal(d);
         else    populateDeal(MOCK_DEAL);
         reveal();
       })
       .catch(function(err) {
-        console.log('[ACRM] getRecord failed:', err);
+        dbg('ERROR fetching deal: ' + JSON.stringify(err));
         populateDeal(MOCK_DEAL);
         reveal();
       });
   });
 
+  dbg('Calling ZOHO.embeddedApp.init()...');
   try {
     ZOHO.embeddedApp.init();
-    console.log('[ACRM] embeddedApp.init() called');
+    dbg('init() called successfully');
   } catch(e) {
-    console.log('[ACRM] embeddedApp.init() error:', e.message);
+    dbg('init() ERROR: ' + e.message);
     populateDeal(MOCK_DEAL);
     reveal();
   }
@@ -1438,6 +1458,14 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(startApp, 350);
 }
+
+// Show debug panel
+setTimeout(function() {
+  var dbgPanel = el('debug-panel');
+  if (dbgPanel) dbgPanel.style.display = 'block';
+  var du = el('debug-url');
+  if (du) du.textContent = window.location.href;
+}, 1000);
 
 // Hard fallback — force reveal after 8 seconds if PageLoad never fires
 setTimeout(function() {
