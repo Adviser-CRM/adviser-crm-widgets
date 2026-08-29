@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.7.0';
+      var CURRENT_VERSION = '1.8.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -267,7 +267,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.7.0</div>
+<div id="vbadge">v1.8.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -1382,36 +1382,21 @@ var FIELDS_TO_FETCH = 'Deal_Name,Account_Name,Stage,Amount,Closing_Date,Contact_
   'Days_Overdue,Arrears_Amount,Months_as_Client,Notice_Date,Cancel_Date,' +
   'Loss_Reason,Lost_to,Subscription_Cancelled,Wholesale_Sub_Cancelled';
 
-function isZohoAvailable() {
-  return typeof ZOHO !== 'undefined';
-}
-
-var _zohoCheckAttempts = 0;
-
-function waitForZoho() {
-  if (typeof ZOHO !== 'undefined' && ZOHO.embeddedApp) {
-    initZoho();
-  } else if (_zohoCheckAttempts < 20) {
-    _zohoCheckAttempts++;
-    setTimeout(waitForZoho, 200);
-  } else {
-    // SDK never loaded — run in preview/mock mode
-    console.log('[ACRM] ZOHO SDK not available — running in preview mode');
-    setTimeout(function() {
-      ENTITY_ID = null;
-      populateDeal(MOCK_DEAL);
-      reveal();
-    }, 400);
+function startApp() {
+  if (typeof ZOHO === 'undefined') {
+    // SDK not loaded — show mock
+    console.log('[ACRM] ZOHO SDK not loaded — running in mock mode');
+    populateDeal(MOCK_DEAL);
+    reveal();
+    return;
   }
-}
 
-function initZoho() {
   ZOHO.embeddedApp.on('PageLoad', function(data) {
-    ENTITY_ID = data.EntityId || data.id || data.EntityId;
-    console.log('[ACRM] PageLoad — EntityId:', ENTITY_ID);
+    console.log('[ACRM] PageLoad fired — EntityId:', data.EntityId, 'Entity:', data.Entity);
+    ENTITY_ID = data.EntityId || data.id;
 
     if (!ENTITY_ID) {
-      console.log('[ACRM] No EntityId — falling back to mock');
+      console.log('[ACRM] No EntityId — showing mock');
       populateDeal(MOCK_DEAL);
       reveal();
       return;
@@ -1420,31 +1405,53 @@ function initZoho() {
     ZOHO.CRM.API.getRecord({ Entity:'Deals', RecordID:ENTITY_ID, fields:FIELDS_TO_FETCH })
       .then(function(resp) {
         var d = resp.data && resp.data[0];
-        if (d) {
-          populateDeal(d);
-        } else {
-          populateDeal(MOCK_DEAL);
-        }
-        reveal();
+        console.log('[ACRM] Deal loaded:', d && d.Deal_Name);
+        if (d) populateDeal(d);
+        else    populateDeal(MOCK_DEAL);
       })
       .catch(function(err) {
         console.log('[ACRM] getRecord failed:', err);
         populateDeal(MOCK_DEAL);
+      })
+      .finally(function() {
         reveal();
       });
   });
 
-  ZOHO.embeddedApp.init().catch(function(){});
+  try {
+    ZOHO.embeddedApp.init();
+    console.log('[ACRM] embeddedApp.init() called');
+  } catch(e) {
+    console.log('[ACRM] embeddedApp.init() error:', e.message);
+    populateDeal(MOCK_DEAL);
+    reveal();
+  }
 }
 
-waitForZoho();
+// Wait for DOM then start — same pattern as Contact Layout
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(startApp, 350); });
+} else {
+  setTimeout(startApp, 350);
+}
 
-// Belt-and-suspenders: also fire resize when window fully loads
+// Hard fallback — force reveal after 8 seconds if PageLoad never fires
+setTimeout(function() {
+  var l = el('loading');
+  if (l && !l.classList.contains('hidden')) {
+    console.log('[ACRM] 8s fallback — PageLoad never fired');
+    populateDeal(MOCK_DEAL);
+    reveal();
+  }
+}, 8000);
+
+// Extra resize triggers on window load
 window.addEventListener('load', function() {
-  setTimeout(scheduleResize, 100);
-  setTimeout(scheduleResize, 800);
-  setTimeout(scheduleResize, 2000);
+  setTimeout(scheduleResize, 200);
+  setTimeout(scheduleResize, 1000);
+  setTimeout(scheduleResize, 2500);
 });
+
 </script>
 </body>
 </html>
