@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.14.0';
+      var CURRENT_VERSION = '1.16.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -263,101 +263,123 @@
     .modal-overlay {
       display: none;
       position: fixed;
-      inset: 0;
-      background: rgba(7,56,93,0.18);
-      backdrop-filter: blur(2px);
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(7,56,93,0.12);
       z-index: 800;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
+      padding-top: 80px;
+      overflow-y: auto;
     }
     .modal-overlay.open { display: flex; }
     .modal {
       background: var(--bg-card);
-      border-radius: 20px;
-      box-shadow: 0 24px 64px rgba(7,56,93,0.18);
-      width: 560px;
-      max-width: 92vw;
-      max-height: 85vh;
-      overflow-y: auto;
-      animation: modalIn 0.2s ease;
+      border-radius: 22px;
+      box-shadow: 0 8px 40px rgba(7,56,93,0.18);
+      width: 580px; max-width: 94%;
+      overflow: hidden; display: flex; flex-direction: column;
+      animation: modalIn 0.2s ease-out;
+      margin-bottom: 40px;
     }
     @keyframes modalIn {
-      from { opacity:0; transform:scale(0.96) translateY(8px); }
-      to   { opacity:1; transform:scale(1)    translateY(0); }
+      from { opacity:0; transform:translateY(-16px); }
+      to   { opacity:1; transform:translateY(0); }
     }
     .modal-header {
-      display: flex;
-      align-items: center;
+      display: flex; align-items: flex-start;
       justify-content: space-between;
-      padding: 18px 22px 14px;
-      border-bottom: 1px solid var(--divider);
+      padding: 20px 22px 16px;
+      background: linear-gradient(135deg, var(--navy) 0%, #0a4f82 100%);
     }
-    .modal-header-left { display:flex; align-items:center; gap:12px; }
+    .modal-header-left { display:flex; align-items:flex-start; gap:14px; flex:1; }
     .modal-icon {
-      width: 38px; height: 38px;
-      border-radius: 11px;
+      width: 44px; height: 44px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
+      font-size: 20px; flex-shrink: 0;
+      background: rgba(255,255,255,0.15);
     }
-    .modal-icon-task   { background:var(--blue-lt); }
-    .modal-icon-call   { background:var(--green-lt); }
-    .modal-icon-note   { background:var(--amber-lt); }
-    .modal-title { font-size: 15px; font-weight: 700; color: var(--ink); }
-    .modal-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .modal-title { font-size: 16px; font-weight: 700; color: #fff; line-height: 1.3; margin-bottom: 4px; }
+    .modal-sub { font-size: 11px; color: rgba(255,255,255,0.6); }
+    .modal-header-pills { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
     .modal-close {
-      width: 32px; height: 32px;
-      border-radius: 50%; border: none;
-      background: var(--bg); color: var(--muted);
-      font-size: 16px; cursor: pointer;
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7);
+      font-size: 15px; cursor: pointer; flex-shrink:0;
       display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
+      transition: all 0.15s; margin-left: 10px;
     }
-    .modal-close:hover { background: var(--red-lt); color: var(--red); }
-    .modal-body { padding: 18px 22px; }
-    .modal-field { margin-bottom: 14px; }
-    .modal-field-label {
+    .modal-close:hover { background: rgba(220,38,38,0.7); color: #fff; }
+    .modal-body { padding: 20px 22px; overflow-y: auto; flex: 1; }
+    .modal-section-label {
       font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); margin: 16px 0 10px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--divider);
+    }
+    .modal-section-label:first-child { margin-top: 0; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-field { margin-bottom: 0; }
+    .modal-field-label {
+      font-size: 10px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.08em;
       color: var(--muted); margin-bottom: 5px;
     }
     .modal-field-value {
-      font-size: 13px; font-weight: 500;
-      color: var(--ink); padding: 9px 12px;
-      background: var(--bg); border-radius: 10px;
+      font-size: 13px; font-weight: 500; color: var(--ink);
+      padding: 9px 12px; background: var(--bg); border-radius: 10px;
       min-height: 38px; display: flex; align-items: center;
+      border: 1.5px solid transparent; transition: all 0.15s; cursor: pointer;
     }
-    .modal-field-value.multiline {
-      align-items: flex-start; min-height: 70px;
-      white-space: pre-wrap; line-height: 1.5;
+    .modal-field-value:hover { border-color: var(--blue-mid); background: #fff; }
+    .modal-field-value.editing { background:#fff!important; border-color:var(--blue)!important; padding:0!important; }
+    .modal-field-value.multiline { align-items:flex-start; min-height:80px; white-space:pre-wrap; line-height:1.6; }
+    .modal-field-value.readonly { cursor:default; }
+    .modal-field-value.readonly:hover { border-color:transparent; background:var(--bg); }
+    .modal-overdue-banner {
+      background:var(--red-lt); border:1px solid #fca5a5; border-radius:12px;
+      padding:10px 14px; display:flex; align-items:center; gap:10px;
+      margin-bottom:16px; font-size:12px; font-weight:600; color:var(--red);
     }
-    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .modal-footer {
-      padding: 14px 22px 18px;
-      border-top: 1px solid var(--divider);
+      padding: 14px 22px; border-top: 1px solid var(--divider);
       display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; background: var(--bg);
     }
+    .modal-footer-left { display:flex; gap:8px; flex-wrap:wrap; }
+    .modal-footer-right { display:flex; gap:8px; flex-shrink:0; }
     .modal-pill {
       display: inline-flex; align-items: center;
-      padding: 4px 12px; border-radius: 20px;
-      font-size: 11px; font-weight: 700;
+      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
     }
-    .pill-completed { background:var(--green-lt); color:var(--green); }
-    .pill-not-started { background:var(--blue-lt); color:var(--blue-dk); }
-    .pill-in-progress { background:var(--amber-lt); color:var(--amber); }
-    .pill-deferred  { background:var(--divider); color:var(--muted); }
-    .pill-high   { background:var(--red-lt);   color:var(--red); }
-    .pill-medium { background:var(--amber-lt); color:var(--amber); }
-    .pill-normal { background:var(--bg);        color:var(--muted); border:1px solid var(--divider); }
+    .pill-completed   { background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.3); }
+    .pill-not-started { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.2); }
+    .pill-in-progress { background:#fef9c3; color:#92400e; }
+    .pill-deferred    { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5); }
+    .pill-high   { background:#fef2f2; color:#dc2626; border:1px solid #fca5a5; }
+    .pill-medium { background:#fffbeb; color:#d97706; }
+    .pill-normal { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); }
+    .btn-modal-complete {
+      display:inline-flex; align-items:center; gap:6px; padding:9px 18px;
+      background:var(--green); color:#fff; border:none; border-radius:10px;
+      font-family:var(--sans); font-size:12px; font-weight:700; cursor:pointer;
+      box-shadow:0 2px 8px rgba(5,150,105,0.3); transition:all 0.2s;
+    }
+    .btn-modal-complete:hover { background:#047857; transform:translateY(-1px); }
+    .btn-modal-complete:disabled { background:var(--muted); box-shadow:none; cursor:default; transform:none; }
     .btn-modal-open {
-      display: inline-flex; align-items: center; gap:6px;
-      padding: 8px 16px;
-      background: var(--blue); color: #fff;
-      border: none; border-radius: 10px;
-      font-family: var(--sans); font-size: 12px; font-weight: 600;
-      cursor: pointer;
+      display:inline-flex; align-items:center; gap:6px; padding:9px 16px;
+      background:var(--bg-card); color:var(--ink-mid);
+      border:1.5px solid var(--divider); border-radius:10px;
+      font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s;
     }
-    .btn-modal-open:hover { background: var(--blue-dk); }
-
+    .btn-modal-open:hover { border-color:var(--blue); color:var(--blue); }
+    .btn-modal-save {
+      display:none; align-items:center; gap:6px; padding:9px 18px;
+      background:var(--blue); color:#fff; border:none; border-radius:10px;
+      font-family:var(--sans); font-size:12px; font-weight:700; cursor:pointer;
+    }
+    .btn-modal-save.visible { display:inline-flex; }
+    .btn-modal-save:hover { background:var(--blue-dk); }
     /* ── Toast ── */
     .toast { position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-100px);background:var(--navy);color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:1000;transition:transform 0.3s;display:flex;align-items:center;gap:10px; }
     .toast.show { transform:translateX(-50%) translateY(0); }
@@ -387,7 +409,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.14.0</div>
+<div id="vbadge">v1.16.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -732,25 +754,42 @@
 <!-- Record Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
   <div class="modal" id="modal">
+
+    <!-- Header — navy gradient -->
     <div class="modal-header">
       <div class="modal-header-left">
         <div class="modal-icon" id="modal-icon">📋</div>
-        <div>
+        <div style="flex:1;">
           <div class="modal-title" id="modal-title">Record</div>
-          <div class="modal-sub"  id="modal-sub"></div>
+          <div class="modal-sub"   id="modal-sub"></div>
+          <div class="modal-header-pills" id="modal-pills"></div>
         </div>
       </div>
-      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+      <button class="modal-close" onclick="closeModalDirect()" title="Close (Esc)">✕</button>
     </div>
-    <div class="modal-body" id="modal-body">
-      <!-- Populated by JS -->
-    </div>
+
+    <!-- Body -->
+    <div class="modal-body" id="modal-body"></div>
+
+    <!-- Footer -->
     <div class="modal-footer">
-      <div id="modal-status-wrap"></div>
-      <button class="btn-modal-open" id="modal-open-btn" onclick="openCurrentModalRecord()">
-        Open Full Record ↗
-      </button>
+      <div class="modal-footer-left">
+        <button class="btn-modal-complete" id="modal-complete-btn"
+                onclick="markTaskComplete()" style="display:none;">
+          ✓ Mark Complete
+        </button>
+        <button class="btn-modal-save" id="modal-save-btn"
+                onclick="saveModalChanges()">
+          💾 Save Changes
+        </button>
+      </div>
+      <div class="modal-footer-right">
+        <button class="btn-modal-open" onclick="openCurrentModalRecord()">
+          Open in Zoho ↗
+        </button>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -1446,93 +1485,307 @@ function openRelRecord(id) {
   }
 }
 
+// Track modal edits
+var _modalRecord  = null;
+var _modalChanges = {};
+
 function showRecordModal(tab, record) {
-  var overlay = document.getElementById('modal-overlay');
-  var body    = document.getElementById('modal-body');
-  var title   = document.getElementById('modal-title');
-  var sub     = document.getElementById('modal-sub');
-  var icon    = document.getElementById('modal-icon');
-  var statusW = document.getElementById('modal-status-wrap');
+  var overlay  = document.getElementById('modal-overlay');
+  var body     = document.getElementById('modal-body');
+  var titleEl  = document.getElementById('modal-title');
+  var subEl    = document.getElementById('modal-sub');
+  var iconEl   = document.getElementById('modal-icon');
+  var pillsEl  = document.getElementById('modal-pills');
+  var complBtn = document.getElementById('modal-complete-btn');
+  var saveBtn  = document.getElementById('modal-save-btn');
   if (!overlay || !body) return;
 
   _modalEntity   = tab.entity;
   _modalRecordId = record.id;
+  _modalRecord   = record;
+  _modalChanges  = {};
 
-  var html = '';
+  // Reset footer buttons
+  if (saveBtn)  { saveBtn.classList.remove('visible'); }
 
+  var content = '';
+
+  // ── TASK ──────────────────────────────────────────────────────
   if (tab.id === 'tasks') {
-    icon.textContent = '☑';
-    icon.className   = 'modal-icon modal-icon-task';
-    title.textContent = record.Subject || 'Task';
-    sub.textContent   = 'Task';
-    var status   = record.Status   || '—';
+    iconEl.textContent = '☑';
+    iconEl.style.background = 'rgba(255,255,255,0.15)';
+    titleEl.textContent = record.Subject || 'Task';
+    subEl.textContent   = 'Task · Created ' + fmtDate(record.Created_Time);
+
+    var status   = record.Status   || 'Not Started';
     var priority = record.Priority || 'Normal';
-    var due      = record.Due_Date ? fmtDate(record.Due_Date) : '—';
+    var due      = record.Due_Date;
     var owner    = record.Owner ? record.Owner.name : '—';
     var desc     = record.Description || '';
-    var overdue  = record.Due_Date && new Date(record.Due_Date) < new Date();
+    var contact  = record.Who_Id ? record.Who_Id.name : '';
+    var isComplete = status === 'Completed';
+    var overdue    = due && new Date(due) < new Date() && !isComplete;
 
-    statusW.innerHTML =
+    pillsEl.innerHTML =
       '<span class="modal-pill ' + statusPillClass(status) + '">' + escHtml(status) + '</span>' +
-      '&nbsp;&nbsp;<span class="modal-pill ' + priorityPillClass(priority) + '">' + escHtml(priority) + '</span>';
+      '<span class="modal-pill ' + priorityPillClass(priority) + '">' + escHtml(priority) + '</span>';
 
-    html += '<div class="modal-grid">';
-    html += modalField('Due Date', due + (overdue ? ' <span style="color:var(--red);font-size:10px;font-weight:700;">⚠ OVERDUE</span>' : ''), false, true);
-    html += modalField('Owner', escHtml(owner));
-    html += '</div>';
-    if (desc) html += modalField('Description', escHtml(desc), true);
+    // Overdue banner
+    if (overdue) {
+      content += '<div class="modal-overdue-banner">⚠ This task is overdue — due ' + fmtDate(due) + '</div>';
+    }
 
+    content += '<div class="modal-section-label">Task Details</div>';
+    content += '<div class="modal-grid">';
+    content += modalEditField('modal-task-due',    'Due Date',    due ? due.substring(0,10) : '', 'date', !isComplete);
+    content += modalEditField('modal-task-status', 'Status',      status, 'select',
+      ['Not Started','In Progress','Completed','Waiting for Input','Deferred'], !isComplete);
+    content += modalEditField('modal-task-priority','Priority',   priority, 'select',
+      ['High','Medium','Normal','Low'], !isComplete);
+    content += modalReadField('Owner', escHtml(owner));
+    content += '</div>';
+
+    if (contact) {
+      content += '<div style="margin-top:12px;">';
+      content += modalReadField('Contact', escHtml(contact));
+      content += '</div>';
+    }
+
+    if (desc || !isComplete) {
+      content += '<div class="modal-section-label" style="margin-top:16px;">Notes</div>';
+      content += modalEditField('modal-task-desc', 'Description', desc, 'textarea', !isComplete);
+    }
+
+    // Show/hide complete button
+    if (complBtn) {
+      complBtn.style.display = isComplete ? 'none' : 'inline-flex';
+      complBtn.disabled = false;
+      complBtn.textContent = '✓ Mark Complete';
+    }
+
+  // ── CALL ──────────────────────────────────────────────────────
   } else if (tab.id === 'calls') {
-    icon.textContent = '📞';
-    icon.className   = 'modal-icon modal-icon-call';
-    title.textContent = record.Subject || record.Call_Purpose || 'Scheduled Call';
-    sub.textContent   = 'Call';
-    var callStatus = record.Call_Status || record.Outgoing_Call_Status || '—';
-    var callTime   = record.Call_Start_Time ? fmtDate(record.Call_Start_Time) + ' ' + fmtTime(record.Call_Start_Time) : '—';
-    var callOwner  = record.Owner ? record.Owner.name : '—';
-    var callDesc   = record.Description || '';
+    iconEl.textContent = '📞';
+    iconEl.style.background = 'rgba(5,150,105,0.3)';
+    titleEl.textContent = record.Subject || record.Call_Purpose || 'Scheduled Call';
+    subEl.textContent   = 'Scheduled Call';
 
-    statusW.innerHTML = '<span class="modal-pill ' + statusPillClass(callStatus) + '">' + escHtml(callStatus) + '</span>';
+    var cs    = record.Call_Status || record.Outgoing_Call_Status || 'Scheduled';
+    var ctime = record.Call_Start_Time
+      ? fmtDate(record.Call_Start_Time) + ' at ' + fmtTime(record.Call_Start_Time)
+      : '—';
+    var cowner = record.Owner ? record.Owner.name : '—';
+    var cdesc  = record.Description || '';
+    var cdur   = record.Duration_in_Minutes ? record.Duration_in_Minutes + ' min' : '—';
 
-    html += '<div class="modal-grid">';
-    html += modalField('Scheduled', callTime);
-    html += modalField('Owner', escHtml(callOwner));
-    html += '</div>';
-    if (callDesc) html += modalField('Description', escHtml(callDesc), true);
+    pillsEl.innerHTML = '<span class="modal-pill ' + statusPillClass(cs) + '">' + escHtml(cs) + '</span>';
 
+    if (complBtn) complBtn.style.display = 'none';
+
+    content += '<div class="modal-section-label">Call Details</div>';
+    content += '<div class="modal-grid">';
+    content += modalReadField('Scheduled', ctime);
+    content += modalReadField('Duration',  cdur);
+    content += modalReadField('Owner',     escHtml(cowner));
+    content += modalReadField('Status',    escHtml(cs));
+    content += '</div>';
+    if (cdesc) {
+      content += '<div style="margin-top:12px;">';
+      content += modalReadField('Description', escHtml(cdesc));
+      content += '</div>';
+    }
+
+  // ── NOTE ──────────────────────────────────────────────────────
   } else if (tab.id === 'notes') {
-    icon.textContent = '📝';
-    icon.className   = 'modal-icon modal-icon-note';
-    title.textContent = record.Note_Title || 'Note';
-    sub.textContent   = 'Note · ' + fmtDate(record.Created_Time);
-    statusW.innerHTML = '';
-    var noteOwner  = record.Owner ? record.Owner.name : '—';
-    var noteContent = record.Note_Content || '';
-    html += modalField('Author', escHtml(noteOwner));
-    if (noteContent) html += modalField('Content', escHtml(noteContent), true);
+    iconEl.textContent = '📝';
+    iconEl.style.background = 'rgba(217,119,6,0.25)';
+    titleEl.textContent = record.Note_Title || 'Note';
+    subEl.textContent   = 'Note · ' + fmtDate(record.Created_Time);
+    pillsEl.innerHTML   = '';
 
+    if (complBtn) complBtn.style.display = 'none';
+
+    var nowner = record.Owner ? record.Owner.name : '—';
+    content += '<div class="modal-section-label">Note Details</div>';
+    content += '<div class="modal-grid">';
+    content += modalReadField('Author',   escHtml(nowner));
+    content += modalReadField('Created',  fmtDate(record.Created_Time));
+    content += '</div>';
+    if (record.Note_Content) {
+      content += '<div style="margin-top:12px;">';
+      content += modalReadField('Content', escHtml(record.Note_Content), true);
+      content += '</div>';
+    }
+
+  // ── EVENT / MEETING ───────────────────────────────────────────
   } else if (tab.id === 'events') {
-    icon.textContent = '🗓';
-    icon.className   = 'modal-icon modal-icon-task';
-    title.textContent = record.Event_Title || record.Subject || 'Meeting';
-    sub.textContent   = 'Meeting';
-    var evStart  = record.Start_DateTime ? fmtDate(record.Start_DateTime) + ' ' + fmtTime(record.Start_DateTime) : '—';
-    var evEnd    = record.End_DateTime   ? fmtDate(record.End_DateTime)   + ' ' + fmtTime(record.End_DateTime)   : '—';
-    var evVenue  = record.Venue || '';
-    var evOwner  = record.Owner ? record.Owner.name : '—';
+    iconEl.textContent = '🗓';
+    iconEl.style.background = 'rgba(0,171,230,0.25)';
+    titleEl.textContent = record.Event_Title || record.Subject || 'Meeting';
+    subEl.textContent   = 'Meeting';
+    pillsEl.innerHTML   = '';
 
-    statusW.innerHTML = '';
-    html += '<div class="modal-grid">';
-    html += modalField('Start', evStart);
-    html += modalField('End',   evEnd);
-    html += '</div>';
-    if (evVenue) html += modalField('Location', escHtml(evVenue));
-    html += modalField('Owner', escHtml(evOwner));
+    if (complBtn) complBtn.style.display = 'none';
+
+    var evStart = record.Start_DateTime ? fmtDate(record.Start_DateTime) + ' ' + fmtTime(record.Start_DateTime) : '—';
+    var evEnd   = record.End_DateTime   ? fmtDate(record.End_DateTime)   + ' ' + fmtTime(record.End_DateTime)   : '—';
+
+    content += '<div class="modal-section-label">Meeting Details</div>';
+    content += '<div class="modal-grid">';
+    content += modalReadField('Start',    evStart);
+    content += modalReadField('End',      evEnd);
+    content += modalReadField('Location', record.Venue || '—');
+    content += modalReadField('Owner',    record.Owner ? record.Owner.name : '—');
+    content += '</div>';
   }
 
-  body.innerHTML = html;
+  body.innerHTML = content;
+
+  // Wire up change tracking on editable fields
+  body.querySelectorAll('input,select,textarea').forEach(function(inp) {
+    inp.addEventListener('change', function() { onModalFieldChange(inp.id, inp.value); });
+    inp.addEventListener('input',  function() { onModalFieldChange(inp.id, inp.value); });
+  });
+
   overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  // Don't lock body scroll in iframe — causes positioning issues
+}
+
+// ── Modal field helpers ────────────────────────────────────────────
+function modalReadField(label, value, multiline) {
+  return '<div class="modal-field">' +
+    '<div class="modal-field-label">' + label + '</div>' +
+    '<div class="modal-field-value readonly' + (multiline ? ' multiline' : '') + '">' +
+      (value || '—') +
+    '</div></div>';
+}
+
+function modalEditField(id, label, value, type, options_or_editable, editable2) {
+  // Detect call signature: (id, label, value, type, editable) OR (id, label, value, type, options[], editable)
+  var options  = Array.isArray(options_or_editable) ? options_or_editable : null;
+  var editable = options ? editable2 : options_or_editable;
+
+  if (!editable) return modalReadField(label, type === 'date' ? fmtDate(value) : escHtml(value));
+
+  var input = '';
+  if (type === 'date') {
+    input = '<input type="date" id="' + id + '" value="' + escHtml(value||'') + '" ' +
+      'style="width:100%;padding:9px 12px;border:none;background:transparent;font-family:inherit;font-size:13px;outline:none;">';
+  } else if (type === 'select' && options) {
+    input = '<select id="' + id + '" style="width:100%;padding:9px 12px;border:none;background:transparent;font-family:inherit;font-size:13px;outline:none;cursor:pointer;">';
+    options.forEach(function(o) {
+      input += '<option value="' + o + '"' + (o === value ? ' selected' : '') + '>' + o + '</option>';
+    });
+    input += '</select>';
+  } else if (type === 'textarea') {
+    input = '<textarea id="' + id + '" rows="4" ' +
+      'style="width:100%;padding:9px 12px;border:none;background:transparent;font-family:inherit;font-size:13px;outline:none;resize:vertical;line-height:1.5;">' +
+      escHtml(value||'') + '</textarea>';
+  } else {
+    input = '<input type="text" id="' + id + '" value="' + escHtml(value||'') + '" ' +
+      'style="width:100%;padding:9px 12px;border:none;background:transparent;font-family:inherit;font-size:13px;outline:none;">';
+  }
+
+  return '<div class="modal-field">' +
+    '<div class="modal-field-label">' + label + '</div>' +
+    '<div class="modal-field-value editing">' + input + '</div></div>';
+}
+
+// ── Track modal field changes ──────────────────────────────────────
+var _MODAL_FIELD_MAP = {
+  'modal-task-due':      'Due_Date',
+  'modal-task-status':   'Status',
+  'modal-task-priority': 'Priority',
+  'modal-task-desc':     'Description',
+};
+
+function onModalFieldChange(inputId, value) {
+  var apiName = _MODAL_FIELD_MAP[inputId];
+  if (!apiName) return;
+  _modalChanges[apiName] = value;
+  var saveBtn = document.getElementById('modal-save-btn');
+  if (saveBtn) saveBtn.classList.add('visible');
+}
+
+// ── Save modal changes ─────────────────────────────────────────────
+function saveModalChanges() {
+  if (!Object.keys(_modalChanges).length) return;
+  if (!_modalRecordId || typeof ZOHO === 'undefined') {
+    showToast('Not connected to Zoho', 'error');
+    return;
+  }
+  var data = { id: _modalRecordId };
+  Object.assign(data, _modalChanges);
+  showToast('Saving…', 'saving');
+  ZOHO.CRM.API.updateRecord({ Entity: _modalEntity, RecordID: _modalRecordId, APIData: data })
+    .then(function(resp) {
+      if (resp && resp.data && resp.data[0] && resp.data[0].status === 'error') {
+        showToast('Save failed: ' + resp.data[0].message, 'error');
+        return;
+      }
+      // Update cached record
+      Object.assign(_modalRecord, _modalChanges);
+      var tab = getTab(CURRENT_TAB_ID);
+      if (tab && TAB_DATA[tab.id]) {
+        var r = TAB_DATA[tab.id].find(function(x) { return x.id === _modalRecordId; });
+        if (r) Object.assign(r, _modalChanges);
+      }
+      _modalChanges = {};
+      var saveBtn = document.getElementById('modal-save-btn');
+      if (saveBtn) saveBtn.classList.remove('visible');
+      showToast('Saved successfully', 'success');
+      // Re-render the nav count if status changed
+      renderNavItems();
+      renderRelatedPanel(CURRENT_TAB_ID, TAB_DATA[CURRENT_TAB_ID] || []);
+    })
+    .catch(function(err) {
+      showToast('Save failed', 'error');
+      console.log('[ACRM] Modal save error:', err);
+    });
+}
+
+// ── Mark task complete ─────────────────────────────────────────────
+function markTaskComplete() {
+  var btn = document.getElementById('modal-complete-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Marking…'; }
+
+  if (!_modalRecordId || typeof ZOHO === 'undefined') {
+    // Mock mode
+    if (_modalRecord) _modalRecord.Status = 'Completed';
+    showToast('Task marked complete (preview)', 'success');
+    closeModalDirect();
+    return;
+  }
+
+  ZOHO.CRM.API.updateRecord({
+    Entity: 'Tasks', RecordID: _modalRecordId,
+    APIData: { id: _modalRecordId, Status: 'Completed' }
+  })
+  .then(function(resp) {
+    if (resp && resp.data && resp.data[0] && resp.data[0].status === 'error') {
+      showToast('Failed: ' + resp.data[0].message, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Mark Complete'; }
+      return;
+    }
+    // Update cache
+    if (_modalRecord) _modalRecord.Status = 'Completed';
+    var tab = getTab(CURRENT_TAB_ID);
+    if (tab && TAB_DATA[tab.id]) {
+      var r = TAB_DATA[tab.id].find(function(x) { return x.id === _modalRecordId; });
+      if (r) r.Status = 'Completed';
+    }
+    showToast('Task marked complete', 'success');
+    closeModalDirect();
+    // Refresh the panel
+    if (TAB_DATA[CURRENT_TAB_ID]) {
+      renderRelatedPanel(CURRENT_TAB_ID, TAB_DATA[CURRENT_TAB_ID]);
+    }
+  })
+  .catch(function(err) {
+    showToast('Failed to update task', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Mark Complete'; }
+    console.log('[ACRM] markTaskComplete error:', err);
+  });
 }
 
 function modalField(label, value, multiline, rawHtml) {
@@ -1564,7 +1817,6 @@ function closeModal(e) {
 function closeModalDirect() {
   var overlay = document.getElementById('modal-overlay');
   if (overlay) overlay.classList.remove('open');
-  document.body.style.overflow = '';
 }
 function openCurrentModalRecord() {
   if (_modalEntity && _modalRecordId) {
