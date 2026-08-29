@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.11.0';
+      var CURRENT_VERSION = '1.12.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -20,6 +20,7 @@
       }
       var sdkPaths = [
         './ZohoEmbededAppSDK.min.js',
+        '../contact-layout/ZohoEmbededAppSDK.min.js',
         '../ZohoEmbededAppSDK.min.js',
         'https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js',
       ];
@@ -287,7 +288,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.11.0</div>
+<div id="vbadge">v1.12.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
