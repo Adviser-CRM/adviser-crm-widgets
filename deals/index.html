@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.5.0';
+      var CURRENT_VERSION = '1.6.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -63,7 +63,8 @@
     .page.visible { display:block; }
 
     /* ── Layout ── */
-    .layout { display:grid; grid-template-columns:var(--nav-width) 1fr; min-height:100vh; }
+    html, body { height:100%; }
+    .layout { display:grid; grid-template-columns:var(--nav-width) 1fr; min-height:100vh; align-items:start; }
 
     /* ── Left Nav ── */
     .left-nav { background:var(--bg-card);min-height:100vh;padding:20px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:2px;box-shadow:2px 0 12px rgba(0,0,0,0.06); }
@@ -266,7 +267,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.5.0</div>
+<div id="vbadge">v1.6.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -1278,17 +1279,30 @@ var _lastHeight = 0, _resizeTimer = null;
 function scheduleResize() {
   if (_resizeTimer) clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(function() {
-    var h = Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.scrollHeight) + 20;
+    var contentH = Math.max(
+      document.body.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight
+    );
+    var h = contentH;
     if (h <= _lastHeight + 10 && _lastHeight > 0) return;
     _lastHeight = h;
-    try { if (isZohoAvailable() && ZOHO.CRM.UI) ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' }); } catch(e) {}
+    try {
+      if (isZohoAvailable() && ZOHO.CRM.UI) {
+        ZOHO.CRM.UI.Resize({ height: String(h), width: '100%' });
+      }
+    } catch(e) {}
   }, 300);
 }
 function startResizeObserver() {
   if (typeof ResizeObserver !== 'undefined') {
     var ro = new ResizeObserver(scheduleResize);
-    var p = el('main-page'); if (p) ro.observe(p);
+    var page = el('main-page');
+    if (page) ro.observe(page);
     ro.observe(document.body);
+  } else {
+    setInterval(scheduleResize, 500);
   }
 }
 
@@ -1337,6 +1351,9 @@ function reveal() {
   renderNavItems();
   startResizeObserver();
   scheduleResize();
+  setTimeout(scheduleResize, 500);
+  setTimeout(scheduleResize, 1500);
+  setTimeout(scheduleResize, 3000);
   setTimeout(setupDraggableToolbar, 100);
   setTimeout(loadAllCounts, 500);
 }
@@ -1416,13 +1433,7 @@ function initZoho() {
       });
   });
 
-  // Request full canvas view
-  ZOHO.embeddedApp.init().then(function() {
-    // Set canvas to full width/height
-    if (ZOHO.CRM && ZOHO.CRM.UI) {
-      ZOHO.CRM.UI.Resize({ height:'800', width:'100%' });
-    }
-  }).catch(function(){});
+  ZOHO.embeddedApp.init().catch(function(){});
 }
 
 waitForZoho();
