@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <script>
     (function() {
-      var CURRENT_VERSION = '1.16.0';
+      var CURRENT_VERSION = '1.17.0';
       var params = new URLSearchParams(window.location.search);
       if (!params.has('nocache')) {
         fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -255,6 +255,18 @@
     .rl-table tr:last-child td { border-bottom:none; }
     .rl-table tr:hover td { background:var(--blue-lt);cursor:pointer; }
     .rl-table .td-primary { font-weight:700;color:var(--ink); }
+    .rl-row { position:relative; }
+    .rl-row-actions { display:flex; gap:4px; opacity:0; transition:opacity 0.15s; width:60px; }
+    .rl-row:hover .rl-row-actions { opacity:1; }
+    .rl-action-btn {
+      width:26px; height:26px; border-radius:8px; border:none;
+      font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:all 0.15s;
+    }
+    .rl-edit-btn { background:var(--blue-lt); color:var(--blue); }
+    .rl-edit-btn:hover { background:var(--blue); color:#fff; }
+    .rl-del-btn  { background:var(--red-lt);  color:var(--red); }
+    .rl-del-btn:hover  { background:var(--red);  color:#fff; }
     .rl-empty { text-align:center;padding:48px 20px;color:var(--muted);font-size:13px; }
     .rl-empty-icon { font-size:36px;margin-bottom:12px;opacity:0.5; }
     .rl-loading { display:flex;align-items:center;gap:12px;padding:32px 20px;color:var(--muted);font-size:12px;justify-content:center; }
@@ -268,7 +280,7 @@
       z-index: 800;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 80px;
+      padding-top: 20px;
       overflow-y: auto;
     }
     .modal-overlay.open { display: flex; }
@@ -409,7 +421,7 @@
 </head>
 <body>
 
-<div id="vbadge">v1.16.0</div>
+<div id="vbadge">v1.17.0</div>
 <div id="loading">
   <div class="spinner"></div>
   <div style="font-size:12px;color:var(--muted);">Loading deal…</div>
@@ -889,33 +901,49 @@ var STAGE_COLOR_MAP = {
 var _stageScrollIdx = 0;
 var _stageVisible   = 5; // roughly how many fit at once
 
+// Terminal stages always pinned at the end of the pipeline
+var TERMINAL_STAGES = ['Closed Won', 'Closed Lost'];
+
 function renderStageBar(currentStage) {
   var stepsEl = el('stage-steps');
   if (!stepsEl) return;
-  var currentIdx = STAGES.indexOf(currentStage);
 
-  stepsEl.innerHTML = STAGES.map(function(s, i) {
+  // Build visible stages: all non-terminal + always show terminals at end
+  var isTerminal  = TERMINAL_STAGES.indexOf(currentStage) !== -1;
+  var mainStages  = STAGES.filter(function(s) { return TERMINAL_STAGES.indexOf(s) === -1; });
+  var displayStages = mainStages.concat(TERMINAL_STAGES);
+
+  var currentIdx = displayStages.indexOf(currentStage);
+
+  stepsEl.innerHTML = displayStages.map(function(s, i) {
     var c         = STAGE_COLOR_MAP[s] || { bg:'#e8f7fd', text:'#0089b8' };
     var isCurrent = (i === currentIdx);
     var isDone    = (currentIdx !== -1 && i < currentIdx);
-    var cls       = isCurrent ? 'current' : isDone ? 'done' : '';
-    var style     = isCurrent
-      ? 'background:' + c.bg + ';color:' + c.text + ';'
+    var isTerminalStage = TERMINAL_STAGES.indexOf(s) !== -1;
+
+    var style = isCurrent
+      ? 'background:' + c.bg + ';color:' + c.text + ';font-weight:700;'
+      : isDone
+      ? ''  // done class handles colour
+      : isTerminalStage
+      ? 'opacity:0.5;'  // terminal stages greyed when not current
       : '';
 
-    return '<div class="stage-step ' + cls + '" style="' + style + '" ' +
+    return '<div class="stage-step ' + (isCurrent ? 'current' : isDone ? 'done' : '') + '" ' +
+      'style="' + style + '" ' +
       'data-stage="' + escHtml(s) + '" ' +
       'onclick="setStage(this.dataset.stage)" ' +
       'title="' + escHtml(s) + '">' +
-      escHtml(s) +
-    '</div>';
+      escHtml(s) + '</div>';
   }).join('');
 
-  // Auto-scroll to show current stage
-  if (currentIdx !== -1) {
+  // Auto-scroll: if terminal, scroll to end; otherwise centre on current
+  if (isTerminal) {
+    _stageScrollIdx = Math.max(0, displayStages.length - _stageVisible);
+  } else if (currentIdx !== -1) {
     _stageScrollIdx = Math.max(0, currentIdx - 1);
-    applyStageScroll();
   }
+  applyStageScroll();
 }
 
 function scrollStages(dir) {
@@ -1423,22 +1451,74 @@ function renderRelatedPanel(tabId, records) {
     body.innerHTML = '<div class="rl-empty"><div class="rl-empty-icon">' + getTab(tabId).icon + '</div>No records found</div>';
     return;
   }
-  var cols = getTableColumns(tabId);
-  var html = '<table class="rl-table"><thead><tr>';
-  cols.forEach(function(c) { html += '<th>' + c.label + '</th>'; });
-  html += '<th></th></tr></thead><tbody>';
+  var cols        = getTableColumns(tabId);
+  var showPills   = ['licensing'].indexOf(tabId) !== -1;
+  var showActions = ['licensing','tasks','calls','notes'].indexOf(tabId) !== -1;
+
+  var h = '<table class="rl-table"><thead><tr>';
+  if (showActions) h += '<th style="width:64px;"></th>';
+  cols.forEach(function(c) { h += '<th>' + c.label + '</th>'; });
+  h += '<th></th></tr></thead><tbody>';
+
   records.forEach(function(r) {
-    html += '<tr data-rid="' + (r.id||'') + '" onclick="openRelRecord(this.dataset.rid)">';
+    h += '<tr class="rl-row" data-rid="' + (r.id||'') + '" onclick="openRelRecord(this.dataset.rid)">';
+    if (showActions) {
+      h += '<td class="rl-row-actions" onclick="event.stopPropagation()">' +
+        '<button class="rl-action-btn rl-edit-btn" data-tid="' + tabId + '" data-rid="' + (r.id||'') + '" ' +
+          'onclick="editRelRecord(this.dataset.tid,this.dataset.rid)" title="Edit">✎</button>' +
+        '<button class="rl-action-btn rl-del-btn"  data-tid="' + tabId + '" data-rid="' + (r.id||'') + '" ' +
+          'onclick="deleteRelRecord(this.dataset.tid,this.dataset.rid)" title="Delete">✕</button>' +
+      '</td>';
+    }
     cols.forEach(function(c, i) {
-      var v = getNestedVal(r, c.field) || '—';
-      if (c.format==='date') v = v!=='—' ? fmtDate(v) : '—';
-      html += '<td class="' + (i===0?'td-primary':'') + '">' + escHtml(String(v)) + '</td>';
+      var raw = getNestedVal(r, c.field);
+      var v   = raw != null ? String(raw) : '—';
+      if (c.format === 'date') v = v !== '—' ? fmtDate(v) : '—';
+      var cell = (showPills && c.label === 'Status')
+        ? statusPillHtml(v) : escHtml(v);
+      h += '<td class="' + (i===0?'td-primary':'') + '">' + cell + '</td>';
     });
-    html += '<td style="text-align:right;color:var(--blue);font-size:11px;font-weight:700;">Open →</td></tr>';
+    h += '<td style="text-align:right;color:var(--blue);font-size:11px;font-weight:700;white-space:nowrap;">Open →</td>';
+    h += '</tr>';
   });
-  html += '</tbody></table>';
-  body.innerHTML = html;
+  h += '</tbody></table>';
+  body.innerHTML = h;
   setTimeout(scheduleResize, 200);
+}
+
+function statusPillHtml(value) {
+  if (!value || value === '—') return '—';
+  var v = value.toLowerCase();
+  var bg='#e8f7fd', col='#0089b8';
+  if (v==='active')                 { bg='#d1fae5'; col='#059669'; }
+  if (v==='inactive'||v==='expired'){ bg='#fee2e2'; col='#dc2626'; }
+  if (v==='pending')                { bg='#fef3c7'; col='#d97706'; }
+  return '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:' + bg + ';color:' + col + ';">' + escHtml(value) + '</span>';
+}
+
+function editRelRecord(tabId, id) {
+  if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI) {
+    var tab = getTab(tabId);
+    if (tab) ZOHO.CRM.UI.Record.edit({ Entity:tab.entity, RecordID:id });
+  } else { showToast('Not connected to Zoho', 'error'); }
+}
+
+function deleteRelRecord(tabId, id) {
+  if (!confirm('Are you sure you want to delete this record?')) return;
+  if (typeof ZOHO === 'undefined') return;
+  var tab = getTab(tabId);
+  if (!tab) return;
+  ZOHO.CRM.API.deleteRecord({ Entity:tab.entity, RecordID:id })
+    .then(function() {
+      if (TAB_DATA[tabId]) {
+        TAB_DATA[tabId] = TAB_DATA[tabId].filter(function(r) { return r.id !== id; });
+        TAB_COUNTS[tabId] = TAB_DATA[tabId].length;
+      }
+      renderNavItems();
+      renderRelatedPanel(tabId, TAB_DATA[tabId] || []);
+      showToast('Record deleted', 'success');
+    })
+    .catch(function() { showToast('Delete failed', 'error'); });
 }
 
 function getTableColumns(id) {
@@ -1448,7 +1528,15 @@ function getTableColumns(id) {
     'calls':         [{label:'Subject',field:'Subject'},{label:'Date/Time',field:'Call_Start_Time',format:'date'},{label:'Status',field:'Call_Status'},{label:'Owner',field:'Owner.name'}],
     'events':        [{label:'Title',field:'Event_Title'},{label:'Start',field:'Start_DateTime',format:'date'},{label:'Venue',field:'Venue'},{label:'Owner',field:'Owner.name'}],
     'contact_roles': [{label:'Name',field:'Full_Name'},{label:'Email',field:'Email'},{label:'Phone',field:'Phone'}],
-    'licensing':     [{label:'Name',field:'Name'},{label:'Status',field:'Status'},{label:'Date',field:'Created_Time',format:'date'}],
+    'licensing':     [
+      {label:'License Ref',           field:'Name'},
+      {label:'License Holder',        field:'Contact_Name.name'},
+      {label:'License Type',          field:'License_Type'},
+      {label:'Status',                field:'Status'},
+      {label:'License Start Date',    field:'License_Start_Date', format:'date'},
+      {label:'Billing Subscription ID',field:'Billing_Subscription_ID'},
+      {label:'License End Date',       field:'License_End_Date',  format:'date'},
+    ],
     'attachments':   [{label:'File Name',field:'File_Name'},{label:'Size',field:'File_Size'},{label:'Date',field:'Created_Time',format:'date'}],
     'stage_history': [{label:'Stage',field:'Stage'},{label:'Amount',field:'Amount'},{label:'Modified',field:'Modified_Time',format:'date'}],
   };
@@ -1476,7 +1564,7 @@ function openRelRecord(id) {
   if (!record) return;
 
   // Decide which tabs get a modal vs full navigation
-  var modalTabs = ['tasks', 'calls', 'notes', 'events'];
+  var modalTabs = ['tasks', 'calls', 'notes', 'events', 'licensing'];
   if (modalTabs.indexOf(tab.id) !== -1) {
     showRecordModal(tab, record);
   } else {
@@ -1535,24 +1623,24 @@ function showRecordModal(tab, record) {
       content += '<div class="modal-overdue-banner">⚠ This task is overdue — due ' + fmtDate(due) + '</div>';
     }
 
-    content += '<div class="modal-section-label">Task Details</div>';
+    var taskOwner   = record.Owner ? record.Owner.name : '—';
+    var taskContact = record.Who_Id ? record.Who_Id.name : '—';
+    var taskAccount = record.What_Id ? record.What_Id.name : '—';
+
+    content += '<div class="modal-section-label">Task Information</div>';
     content += '<div class="modal-grid">';
-    content += modalEditField('modal-task-due',    'Due Date',    due ? due.substring(0,10) : '', 'date', !isComplete);
-    content += modalEditField('modal-task-status', 'Status',      status, 'select',
+    content += modalReadField('Task Owner',  escHtml(taskOwner));
+    content += modalEditField('modal-task-due', 'Due Date', due ? due.substring(0,10) : '', 'date', !isComplete);
+    content += modalReadField('Contact',    escHtml(taskContact));
+    content += modalReadField('Account',    escHtml(taskAccount));
+    content += modalEditField('modal-task-status',  'Status',   status,   'select',
       ['Not Started','In Progress','Completed','Waiting for Input','Deferred'], !isComplete);
-    content += modalEditField('modal-task-priority','Priority',   priority, 'select',
+    content += modalEditField('modal-task-priority','Priority', priority, 'select',
       ['High','Medium','Normal','Low'], !isComplete);
-    content += modalReadField('Owner', escHtml(owner));
     content += '</div>';
 
-    if (contact) {
-      content += '<div style="margin-top:12px;">';
-      content += modalReadField('Contact', escHtml(contact));
-      content += '</div>';
-    }
-
     if (desc || !isComplete) {
-      content += '<div class="modal-section-label" style="margin-top:16px;">Notes</div>';
+      content += '<div class="modal-section-label" style="margin-top:16px;">Description Information</div>';
       content += modalEditField('modal-task-desc', 'Description', desc, 'textarea', !isComplete);
     }
 
@@ -1637,6 +1725,43 @@ function showRecordModal(tab, record) {
     content += modalReadField('Location', record.Venue || '—');
     content += modalReadField('Owner',    record.Owner ? record.Owner.name : '—');
     content += '</div>';
+
+  // ── LICENSING ───────────────────────────────────────────────────
+  } else if (tab.id === 'licensing') {
+    iconEl.textContent = '📄';
+    iconEl.style.background = 'rgba(124,58,237,0.2)';
+    titleEl.textContent = record.Name || 'License';
+    subEl.textContent   = 'License Record';
+
+    var licStatus = record.Status || '—';
+    var licType   = record.License_Type || '—';
+    pillsEl.innerHTML =
+      '<span class="modal-pill pill-not-started" style="' +
+        (licStatus === 'Active' ? 'background:rgba(5,150,105,0.3);color:#fff;' : '') + '">' +
+        escHtml(licStatus) + '</span>' +
+      (licType !== '—' ? '<span class="modal-pill pill-not-started">' + escHtml(licType) + '</span>' : '');
+
+    if (complBtn) complBtn.style.display = 'none';
+
+    var holder  = record.Contact_Name ? record.Contact_Name.name : '—';
+    var startDt = fmtDate(record.License_Start_Date);
+    var endDt   = fmtDate(record.License_End_Date);
+    var billingId = record.Billing_Subscription_ID || '—';
+
+    content += '<div class="modal-section-label">License Details</div>';
+    content += '<div class="modal-grid">';
+    content += modalReadField('License Ref',   escHtml(record.Name || '—'));
+    content += modalReadField('License Holder',escHtml(holder));
+    content += modalReadField('License Type',  escHtml(licType));
+    content += modalReadField('Status',        escHtml(licStatus));
+    content += modalReadField('Start Date',    startDt);
+    content += modalReadField('End Date',      endDt);
+    content += '</div>';
+    if (billingId !== '—') {
+      content += '<div style="margin-top:12px;">';
+      content += modalReadField('Billing Subscription ID', escHtml(billingId));
+      content += '</div>';
+    }
   }
 
   body.innerHTML = content;
